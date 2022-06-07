@@ -38,17 +38,10 @@ interface IRouter {
     function getAmountsOut(uint amountIn, address[] memory path) external view returns (uint[] memory amounts);
 }
 
-
 interface IL2Vault is IERC20Upgradeable {
     function deposit(uint amount) external;
     function withdraw(uint share) external;
     function getAllPoolInUSD() external view returns (uint);
-    function depositFee() external view returns (uint);
-    function isWhitelisted(address) external view returns (bool);
-}
-
-interface IChainlink {
-    function latestAnswer() external view returns (int256);
 }
 
 contract LCIStrategy is OwnableUpgradeable {

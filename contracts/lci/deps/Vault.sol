@@ -7,7 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "../libs/price.sol";
+import "../libs/Price.sol";
 
 interface IUniRouter {
     function swapExactTokensForTokens(
@@ -87,7 +87,6 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
         require(msg.sender == owner() || msg.sender == admin, "Only owner or admin");
         _;
     }
-
 
     function initialize(string memory _name, string memory _symbol, 
         uint _pid,
@@ -271,7 +270,7 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
 
     function getPricePerFullShare(bool inUSD) public view returns (uint) {
         uint _totalSupply = totalSupply();
-        if (_totalSupply == 0) return 0;
+        if (_totalSupply == 0) return 1e18;
         return inUSD == true ?
             getAllPoolInUSD() * 1e18 / _totalSupply :
             getAllPool() * 1e18 / _totalSupply;

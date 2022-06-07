@@ -147,6 +147,8 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
 
     /// @notice Can be use for calculate both user shares & APR    
     function getPricePerFullShare() external view returns (uint) {
-        return getAllPoolInUSD() * 1e18 / totalSupply();
+        uint _totalSupply = totalSupply();
+        if (_totalSupply == 0) return 1e18;
+        return getAllPoolInUSD() * 1e18 / _totalSupply;
     }
 }
