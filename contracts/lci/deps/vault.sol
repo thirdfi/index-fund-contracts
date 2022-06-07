@@ -63,7 +63,7 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
     IUniRouter public constant PckRouter = IUniRouter(0x10ED43C718714eb63d5aA57B78B54704E256024E);
     IMasterChefV2 public constant MasterChefV2 = IMasterChefV2(0xa5f8C5Dbd5F286960b9d90548680aE5ebFf07652);
 
-    uint private constant DENOMINATOR = 10000;
+    uint constant DENOMINATOR = 10000;
     uint public yieldFee;
 
     address public treasuryWallet;
@@ -122,15 +122,16 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
     function deposit(uint _amount) external nonReentrant whenNotPaused{
         require(_amount > 0, "Invalid amount");
 
-        uint _pool = getAllPool();
+        depositedBlock[msg.sender] = block.number;
         lpToken.safeTransferFrom(msg.sender, address(this), _amount);
 
-        depositedBlock[msg.sender] = block.number;
+        uint _pool = getAllPool();
+        MasterChefV2.deposit(pid, _amount);
 
         uint _totalSupply = totalSupply();
         uint _shares = _totalSupply == 0 ? _amount : _amount * _totalSupply / _pool;
-
         _mint(msg.sender, _shares);
+
         emit Deposit(msg.sender, _amount, _shares);
     }
 
@@ -142,7 +143,6 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
         require(balanceOf(msg.sender) >= _shares, "Not enough balance");
         require(depositedBlock[msg.sender] != block.number, "Withdraw within same block");
 
-
         uint _amountToWithdraw = getAllPool() * _shares / totalSupply(); 
 
         uint lpTokenAvailable = lpToken.balanceOf(address(this));
@@ -150,14 +150,9 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
             MasterChefV2.withdraw(pid, _amountToWithdraw - lpTokenAvailable );
         }
         _burn(msg.sender, _shares);
+
         lpToken.safeTransfer(msg.sender, _amountToWithdraw);
         emit Withdraw(msg.sender, _amountToWithdraw, _shares);
-        
-    }
-
-    function invest() external onlyOwnerOrAdmin whenNotPaused{
-        uint _amt = _invest();
-        emit Invest(_amt);
     }
 
     function _invest() private returns (uint available){
@@ -170,22 +165,18 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
     ///@notice Withdraws funds staked in mirror to this vault and pauses deposit, yield, invest functions
     function emergencyWithdraw() external onlyOwnerOrAdmin whenNotPaused{ 
         _pause();
-
         _yield();
-
         (uint stakedTokens,,) = MasterChefV2.userInfo(pid, address(this));
-
         if(stakedTokens > 0 ) {
             MasterChefV2.withdraw(pid, stakedTokens);
         }
-
         emit EmergencyWithdraw(stakedTokens);
     }
 
     ///@notice Unpauses deposit, yield, invest functions, and invests funds.
     function reInvest() external onlyOwnerOrAdmin whenPaused {
-        _invest();
         _unpause();
+        _invest();
     }
 
     function setAdmin(address _newAdmin) external onlyOwner{
@@ -259,7 +250,6 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
         (_total1 * _getPriceInBNB(address(token1))) ;
 
         _valueInBNB = _valueInBNB / 1e18;
-
     }
 
     function _getPriceInBNB(address _token) private view returns (uint) {
