@@ -1,3 +1,3 @@
-# Market Weighted Index (MWI)
+# Low-risk Crypto Index (LCI)
 
-Market Weighted Index is a tokenised crypto index fund which tracks major crypto assets, such as Bitcoin, Ethereum, DAI. A secure way to earn profit with bitcoin and top cryptocurrencies.
+Low-risk Crypto Index is a tokenised crypto index fund which tracks major stablecoins, such as USDC, USDT, DAI. Low risk but stable profit in your portfolio.
