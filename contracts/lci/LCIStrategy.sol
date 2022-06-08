@@ -298,13 +298,25 @@ contract LCIStrategy is OwnableUpgradeable {
         return pools[0] + pools[1] + pools[2];
     }
 
-    function getCurrentCompositionPerc() external view returns (uint[] memory percentages) {
+    function getCurrentLPCompositionPerc() public view returns (uint[] memory percentages) {
         uint[] memory pools = getEachPoolInUSD();
         uint allPool = pools[0] + pools[1] + pools[2];
         percentages = new uint[](3);
-        percentages[0] = allPool == 0 ? 0 : pools[0] * DENOMINATOR / allPool;
-        percentages[1] = allPool == 0 ? 0 : pools[1] * DENOMINATOR / allPool;
-        percentages[2] = allPool == 0 ? 0 : pools[2] * DENOMINATOR / allPool;
+        percentages[0] = allPool == 0 ? USDTUSDCTargetPerc : pools[0] * DENOMINATOR / allPool;
+        percentages[1] = allPool == 0 ? USDTBUSDTargetPerc : pools[1] * DENOMINATOR / allPool;
+        percentages[2] = allPool == 0 ? USDCBUSDTargetPerc : pools[2] * DENOMINATOR / allPool;
+    }
+
+    function getCurrentTokenCompositionPerc() external view returns (address[] memory tokens, uint[] memory percentages) {
+        uint[] memory lpPerc = getCurrentLPCompositionPerc();
+        tokens = new address[](3);
+        tokens[0] = address(USDT);
+        tokens[1] = address(USDC);
+        tokens[2] = address(BUSD);
+        percentages = new uint[](3);
+        percentages[0] = (lpPerc[0] + lpPerc[1]) / 2;
+        percentages[1] = (lpPerc[0] + lpPerc[2]) / 2;
+        percentages[2] = (lpPerc[1] + lpPerc[2]) / 2;
     }
 
     function getAPR() external view returns (uint) {
