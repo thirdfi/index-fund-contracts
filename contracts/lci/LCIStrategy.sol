@@ -302,18 +302,16 @@ contract LCIStrategy is OwnableUpgradeable {
         uint[] memory pools = getEachPoolInUSD();
         uint allPool = pools[0] + pools[1] + pools[2];
         percentages = new uint[](3);
-        percentages[0] = pools[0] * DENOMINATOR / allPool;
-        percentages[1] = pools[1] * DENOMINATOR / allPool;
-        percentages[2] = pools[2] * DENOMINATOR / allPool;
+        percentages[0] = allPool == 0 ? 0 : pools[0] * DENOMINATOR / allPool;
+        percentages[1] = allPool == 0 ? 0 : pools[1] * DENOMINATOR / allPool;
+        percentages[2] = allPool == 0 ? 0 : pools[2] * DENOMINATOR / allPool;
     }
 
     function getAPR() external view returns (uint) {
-        uint[] memory pools = getEachPoolInUSD();
-        uint allPool = pools[0] + pools[1] + pools[2];
-        uint allApr = pools[0] * USDTUSDCVault.getAPR()
-                    + pools[1] * USDTBUSDVault.getAPR()
-                    + pools[2] * USDCBUSDVault.getAPR();
-        return allApr / allPool;
+        uint allApr = USDTUSDCVault.getAPR() * USDTUSDCTargetPerc
+                    + USDTBUSDVault.getAPR() * USDTBUSDTargetPerc
+                    + USDCBUSDVault.getAPR() * USDCBUSDTargetPerc;
+        return (allApr / DENOMINATOR);
     }
 
 }
