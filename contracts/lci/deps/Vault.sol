@@ -298,12 +298,19 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
         return getAllPoolInBNB() * BNBPriceInUSD / denominator;
     }
 
-    function getPricePerFullShare(bool inUSD) public view returns (uint) {
+    function getPricePerFullShare(bool inUSD) external view returns (uint) {
         uint _totalSupply = totalSupply();
         if (_totalSupply == 0) return 1e18;
         return inUSD == true ?
             getAllPoolInUSD() * 1e18 / _totalSupply :
             getAllPool() * 1e18 / _totalSupply;
+    }
+
+    ///@notice Returns the pending rewards in UDS.
+    function getPendingReward() public view returns (uint) {
+        uint pendingCake = MasterChefV2.pendingCake(pid, address(this));
+        (uint CAKEPriceInUSD, uint denominator) = PriceLib.getCAKEPriceInUSD();
+        return pendingCake * CAKEPriceInUSD / denominator;
     }
 
     function getAPR() external view returns (uint) {
