@@ -1,12 +1,11 @@
 const { ethers } = require("hardhat");
-const { common } = require("../../parameters");
-const { bscMainnet: network_ } = require("../../parameters");
+const { common, bscMainnet: network_ } = require("../../parameters");
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
   const [deployer] = await ethers.getSigners();
 
-  const strategyProxy = await deployments.get("LCIStrategy_Proxy");
+  const strategyProxy = await ethers.getContract("LCIStrategy_Proxy");
   const LCIStrategy = await ethers.getContractFactory("LCIStrategy");
   const strategy = LCIStrategy.attach(strategyProxy.address);
 

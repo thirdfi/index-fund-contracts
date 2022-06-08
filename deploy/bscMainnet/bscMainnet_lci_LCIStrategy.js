@@ -4,7 +4,7 @@ module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
   const [deployer] = await ethers.getSigners();
 
-  const bscVaultFactory = await deployments.get("BscVaultFactory");
+  const bscVaultFactory = await ethers.getContract("BscVaultFactory");
   const totalVaults = await bscVaultFactory.totalVaults();
   if (totalVaults < 3) {
     console.error("No L2 vaults deployed");

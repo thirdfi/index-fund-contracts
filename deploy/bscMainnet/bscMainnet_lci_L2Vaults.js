@@ -1,13 +1,12 @@
 const { ethers } = require("hardhat");
-const { common } = require("../../parameters");
-const { bscMainnet: network_ } = require("../../parameters");
+const { common, bscMainnet: network_ } = require("../../parameters");
 
 module.exports = async ({ deployments }) => {
 
   const vaultArtifact = await deployments.getArtifact("BscVault");
   const vaultIface = new ethers.utils.Interface(JSON.stringify(vaultArtifact.abi));
 
-  const bscVaultFactory = await deployments.get("BscVaultFactory");
+  const bscVaultFactory = await ethers.getContract("BscVaultFactory");
   const totalVaults = await bscVaultFactory.totalVaults();
 
   if (totalVaults < 1) {

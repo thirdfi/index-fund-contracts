@@ -13,6 +13,7 @@ module.exports = async ({ deployments }) => {
   console.log("Now deploying BscVaultFactory ...");
   const bscVaultFactory = await deploy("BscVaultFactory", {
     from: deployer.address,
+    args: [bscVault.address],
   });
   console.log("  BscVaultFactory contract address: ", bscVaultFactory.address);
 
