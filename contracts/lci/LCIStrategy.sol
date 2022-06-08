@@ -42,6 +42,7 @@ interface IL2Vault is IERC20Upgradeable {
     function deposit(uint amount) external;
     function withdraw(uint share) external;
     function getAllPoolInUSD() external view returns (uint);
+    function getAPR() external view returns (uint);
 }
 
 contract LCIStrategy is OwnableUpgradeable {
@@ -304,6 +305,15 @@ contract LCIStrategy is OwnableUpgradeable {
         percentages[0] = pools[0] * DENOMINATOR / allPool;
         percentages[1] = pools[1] * DENOMINATOR / allPool;
         percentages[2] = pools[2] * DENOMINATOR / allPool;
+    }
+
+    function getAPR() external view returns (uint) {
+        uint[] memory pools = getEachPoolInUSD();
+        uint allPool = pools[0] + pools[1] + pools[2];
+        uint allApr = pools[0] * USDTUSDCVault.getAPR()
+                    + pools[1] * USDTBUSDVault.getAPR()
+                    + pools[2] * USDCBUSDVault.getAPR();
+        return allApr / allPool;
     }
 
 }

@@ -19,6 +19,7 @@ interface IStrategy {
     function withdrawFromFarm(uint farmIndex, uint sharePerc) external returns (uint);
     function emergencyWithdraw() external;
     function getAllPoolInUSD() external view returns (uint);
+    function getAPR() external view returns (uint);
 }
 
 contract LCIVault is ERC20Upgradeable, OwnableUpgradeable, 
@@ -150,5 +151,9 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
         uint _totalSupply = totalSupply();
         if (_totalSupply == 0) return 1e18;
         return getAllPoolInUSD() * 1e18 / _totalSupply;
+    }
+
+    function getAPR() external view returns (uint) {
+        return strategy.getAPR();
     }
 }

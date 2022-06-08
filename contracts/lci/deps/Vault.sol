@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "../libs/Math.sol";
 import "../libs/Price.sol";
 
 interface IUniRouter {
@@ -40,10 +41,23 @@ interface IUniPair is IERC20Upgradeable{
 }
 
 interface IMasterChefV2 {
+    function poolInfo(
+        uint pid
+    ) external view returns(
+        uint accCakePerShare, uint lastRewardBlock, uint allocPoint, uint totalBoostedShare, bool isRegular
+    );
+
+    function userInfo(
+        uint pid, address user
+    ) external view returns(
+        uint amount, uint rewardDebt, uint boostMultiplier
+    );
+
     function pendingCake(uint pid, address user) external view returns (uint);
-    function poolInfo(uint pid) external view returns(uint, uint, uint, uint, bool);
-    function userInfo(uint pid, address user) external view returns(uint, uint, uint);
-    function lpToken(uint pid) external view returns(address);
+    function lpToken(uint pid) external view returns (address);
+    function totalRegularAllocPoint() external view returns (uint);
+    function totalSpecialAllocPoint() external view returns (uint);
+    function cakePerBlock(bool isRegular) external view returns (uint amount);
 
     function deposit(uint pid, uint amount) external;
     function withdraw(uint pid, uint amount) external;
@@ -56,9 +70,6 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
 
     IERC20Upgradeable public constant CAKE  = IERC20Upgradeable(0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82);
     IERC20Upgradeable public constant WBNB = IERC20Upgradeable(0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c);
-    IERC20Upgradeable public token0;
-    IERC20Upgradeable public token1;
-    IUniPair public lpToken;
 
     IUniRouter public constant PckRouter = IUniRouter(0x10ED43C718714eb63d5aA57B78B54704E256024E);
     IMasterChefV2 public constant MasterChefV2 = IMasterChefV2(0xa5f8C5Dbd5F286960b9d90548680aE5ebFf07652);
@@ -66,12 +77,24 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
     uint constant DENOMINATOR = 10000;
     uint public yieldFee;
 
+    uint public pid;
+    IUniPair public lpToken;
+    IERC20Upgradeable public token0;
+    IERC20Upgradeable public token1;
+
     address public treasuryWallet;
     address public admin;
 
     mapping(address => uint) private depositedBlock;
 
-    uint pid;
+    uint constant DAY_IN_SEC = 86400; // 3600 * 24
+    uint constant YEAR_IN_SEC = 365 * DAY_IN_SEC;
+    uint constant BSC_BLOCK_TIME = 3;
+    uint constant BLOCKS_PER_YEAR = (60 / BSC_BLOCK_TIME) * 60 * 24 * 365; // 10512000
+
+    uint public lpRewardApr;
+    uint public lpReservePerShare;
+    uint public lpDataLastUpdate;
 
     event Deposit(address _user, uint _amount, uint _shares);
     event EmergencyWithdraw(uint _amount);
@@ -112,7 +135,8 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
         CAKE.safeApprove(address(PckRouter), type(uint).max);
         token0.approve(address(PckRouter), type(uint).max);
         token1.approve(address(PckRouter), type(uint).max);
-    
+
+        _updateLpRewardApr();
     }
     
     /**
@@ -188,17 +212,20 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
     ///@notice Function to set deposit and yield fee
     ///@param _yieldFeePerc deposit fee percentage. 2000 for 20%
     function setFee(uint _yieldFeePerc) external onlyOwner{
+        require(_yieldFeePerc < DENOMINATOR, "yieldFeePerc invalid");
         yieldFee = _yieldFeePerc;
         emit SetYieldFeePerc(_yieldFeePerc);
     }
 
     function setTreasuryWallet(address _wallet) external onlyOwner {
+        require(_wallet != address(0), "wallet invalid");
         treasuryWallet = _wallet;
         emit SetTreasuryWallet(_wallet);
     }
 
     function yield() external onlyOwnerOrAdmin whenNotPaused {
         _yield();
+        _updateLpRewardApr();
     }
 
     function _yield() private {
@@ -237,13 +264,16 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
     }
 
     function getAllPoolInBNB() public view returns (uint _valueInBNB) {
-        uint _pool = getAllPool();
+        return _getValueInBNB(getAllPool());
+    }
+
+    function _getValueInBNB(uint lpAmt) public view returns (uint _valueInBNB) {
         uint _totalSupply = lpToken.totalSupply();
 
         (uint _reserve0, uint _reserve1) = lpToken.getReserves();
         
-        uint _total0 = _pool * _reserve0 / _totalSupply;
-        uint _total1 = _pool * _reserve1 / _totalSupply;
+        uint _total0 = lpAmt * _reserve0 / _totalSupply;
+        uint _total1 = lpAmt * _reserve1 / _totalSupply;
         
         _valueInBNB = (_total0 * _getPriceInBNB(address(token0))) + 
         (_total1 * _getPriceInBNB(address(token1))) ;
@@ -274,6 +304,62 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
         return inUSD == true ?
             getAllPoolInUSD() * 1e18 / _totalSupply :
             getAllPool() * 1e18 / _totalSupply;
+    }
+
+    function getAPR() external view returns (uint) {
+        (uint _lpRewardApr,,) = getLpRewardApr();
+        uint _farmRewardApr = getCakeRewardApr();
+        _farmRewardApr = _farmRewardApr * (DENOMINATOR-yieldFee) / DENOMINATOR;
+        return (_lpRewardApr + _farmRewardApr);
+    }
+
+    function _updateLpRewardApr() private {
+        (uint _lpRewardApr, uint _lpReservePerShare, bool _update) = getLpRewardApr();
+        if (_update) {
+            lpRewardApr = _lpRewardApr;
+            lpReservePerShare = _lpReservePerShare;
+            lpDataLastUpdate = block.timestamp;
+        }
+    }
+
+    function _getLpReservePerShare() private view returns (uint) {
+        uint _totalSupply = lpToken.totalSupply();
+        if (_totalSupply == 0) return 0;
+        (uint reserve0, uint reserve1) = lpToken.getReserves();
+        return Math.sqrt(reserve0 * reserve1) / _totalSupply;
+    }
+
+    function getLpRewardApr() public view returns (uint, uint, bool) {
+        if (lpRewardApr == 0 || (lpDataLastUpdate+DAY_IN_SEC) <= block.timestamp) {
+            uint _lpReservePerShare = _getLpReservePerShare();
+            if (0 < lpReservePerShare && lpReservePerShare < _lpReservePerShare) {
+                uint _lpRewardApr = (_lpReservePerShare-lpReservePerShare) * YEAR_IN_SEC * 1e18 / (lpReservePerShare * (block.timestamp-lpDataLastUpdate));
+                return (_lpRewardApr, _lpReservePerShare, true);
+            } else {
+                return (0, _lpReservePerShare, true);
+            }
+        } else {
+            return (lpRewardApr, lpReservePerShare, false);
+        }
+    }
+
+    function getCakeRewardApr() public view returns (uint) {
+        uint yearlyCakeReward = _getYearlyCakeReward();
+        (uint CAKEPriceInUSD, uint cakeDenominator) = PriceLib.getCAKEPriceInUSD();
+        uint yearlyRewardInUSD = yearlyCakeReward * CAKEPriceInUSD / cakeDenominator;
+
+        uint poolInBNB = _getValueInBNB(lpToken.balanceOf(address(MasterChefV2)));
+        (uint BNBPriceInUSD, uint bnbDenominator) = PriceLib.getBNBPriceInUSD();
+        uint poolInUSD = poolInBNB * BNBPriceInUSD / bnbDenominator;
+
+        return yearlyRewardInUSD * 1e18 / poolInUSD;
+    }
+
+    function _getYearlyCakeReward() private view returns (uint) {
+        (,, uint allocPoint, , bool isRegular) = MasterChefV2.poolInfo(pid);
+        uint totalAllocPoint = isRegular ? MasterChefV2.totalRegularAllocPoint() : MasterChefV2.totalSpecialAllocPoint();
+        uint cakePerBlock = MasterChefV2.cakePerBlock(isRegular);
+        return cakePerBlock * BLOCKS_PER_YEAR * allocPoint / totalAllocPoint;
     }
 
 }
