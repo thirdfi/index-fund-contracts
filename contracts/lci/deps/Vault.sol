@@ -197,7 +197,7 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
     }
 
     ///@notice Unpauses deposit, yield, invest functions, and invests funds.
-    function reInvest() external onlyOwnerOrAdmin whenPaused {
+    function reinvest() external onlyOwnerOrAdmin whenPaused {
         _unpause();
         _invest();
     }

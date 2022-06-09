@@ -202,34 +202,43 @@ contract LCIStrategy is OwnableUpgradeable {
     }
 
     function _withdrawUSDTUSDC(uint _sharePerc) private {
-        USDTUSDCVault.withdraw(USDTUSDCVault.balanceOf(address(this)) * _sharePerc / 1e18 );
+        uint amount = USDTUSDCVault.balanceOf(address(this)) * _sharePerc / 1e18;
+        if (0 < amount) {
+            USDTUSDCVault.withdraw(amount);
 
-        uint _amt = USDTUSDC.balanceOf(address(this));
-        (uint _amtUSDT, uint _amtUSDC) = _removeLiquidity(address(USDT), address(USDC), _amt);
-        _amtUSDT += _swap(address(USDC), address(USDT), _amtUSDC, _amtUSDC*98/100);
+            uint _amt = USDTUSDC.balanceOf(address(this));
+            (uint _amtUSDT, uint _amtUSDC) = _removeLiquidity(address(USDT), address(USDC), _amt);
+            _amtUSDT += _swap(address(USDC), address(USDT), _amtUSDC, _amtUSDC*98/100);
 
-        emit WithdrawUSDTUSDC(_amt, _amtUSDT);
+            emit WithdrawUSDTUSDC(_amt, _amtUSDT);
+        }
     }
 
     function _withdrawUSDTBUSD(uint _sharePerc) private {
-        USDTBUSDVault.withdraw(USDTBUSDVault.balanceOf(address(this)) * _sharePerc / 1e18 );
+        uint amount = USDTBUSDVault.balanceOf(address(this)) * _sharePerc / 1e18;
+        if (0 < amount) {
+            USDTBUSDVault.withdraw(amount);
 
-        uint _amt = USDTBUSD.balanceOf(address(this));
-        (uint _amtUSDT, uint _amtBUSD) = _removeLiquidity(address(USDT), address(BUSD), _amt);
-        _amtUSDT += _swap(address(BUSD), address(USDT), _amtBUSD, _amtBUSD*98/100);
+            uint _amt = USDTBUSD.balanceOf(address(this));
+            (uint _amtUSDT, uint _amtBUSD) = _removeLiquidity(address(USDT), address(BUSD), _amt);
+            _amtUSDT += _swap(address(BUSD), address(USDT), _amtBUSD, _amtBUSD*98/100);
 
-        emit WithdrawUSDTBUSD(_amt, _amtUSDT);
+            emit WithdrawUSDTBUSD(_amt, _amtUSDT);
+        }
     }
 
     function _withdrawUSDCBUSD(uint _sharePerc) private {
-        USDCBUSDVault.withdraw(USDCBUSDVault.balanceOf(address(this)) * _sharePerc / 1e18);
+        uint amount = USDCBUSDVault.balanceOf(address(this)) * _sharePerc / 1e18;
+        if (0 < amount) {
+            USDCBUSDVault.withdraw(amount);
 
-        uint _amt = USDCBUSD.balanceOf(address(this));
-        (uint _amtUSDC, uint _amtBUSD) = _removeLiquidity(address(USDC), address(BUSD), _amt);
-        uint _usdtAmt = _swap(address(USDC), address(USDT), _amtUSDC, _amtUSDC*98/100);
-        _usdtAmt += _swap(address(BUSD), address(USDT), _amtBUSD, _amtBUSD*98*100);
+            uint _amt = USDCBUSD.balanceOf(address(this));
+            (uint _amtUSDC, uint _amtBUSD) = _removeLiquidity(address(USDC), address(BUSD), _amt);
+            uint _usdtAmt = _swap(address(USDC), address(USDT), _amtUSDC, _amtUSDC*98/100);
+            _usdtAmt += _swap(address(BUSD), address(USDT), _amtBUSD, _amtBUSD*98*100);
 
-        emit WithdrawUSDCBUSD(_amt, _usdtAmt);
+            emit WithdrawUSDCBUSD(_amt, _usdtAmt);
+        }
     }
 
     function _swap(address _tokenA, address _tokenB, uint _amt, uint _minAmount) private returns (uint) {
@@ -267,7 +276,9 @@ contract LCIStrategy is OwnableUpgradeable {
         _withdrawUSDTBUSD(1e18);
         _withdrawUSDCBUSD(1e18);
         uint USDTAmt = USDT.balanceOf(address(this));
-        USDT.safeTransfer(vault, USDTAmt);
+        if (0 < USDTAmt) {
+            USDT.safeTransfer(vault, USDTAmt);
+        }
         emit EmergencyWithdraw(USDTAmt);
     }
 

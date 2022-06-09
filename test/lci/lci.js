@@ -46,7 +46,6 @@ describe("LCI", async () => {
       admin = await ethers.getSigner(common.admin);
 
       usdt = new ethers.Contract('0x55d398326f99059fF775485246999027B3197955', ERC20_ABI, deployer);
-
       cakeFeed = new ethers.Contract('0xB6064eD41d4f67e353768aA239cA86f4F73665a1', CHAINLINK_ABI, deployer);
     });
 
@@ -103,70 +102,60 @@ describe("LCI", async () => {
         expect(await USDCBUSDVault.lpDataLastUpdate()).gt(0);
       });
 
-      // it("Should be set by only owner", async () => {
-      //   await expectRevert(fw.invest(), "Only owner or admin");
-      //   await fw.connect(admin).invest();
+      it("Should be set by only owner", async () => {
+        await expectRevert(vault.setAdmin(a2.address), "Ownable: caller is not the owner");
+        await vault.connect(deployer).setAdmin(a2.address);
+        expect(await vault.admin()).equal(a2.address);
+        await vault.connect(deployer).setAdmin(admin.address);
 
-      //   await expectRevert(fw.emergencyWithdraw(), "Only owner or admin");
-      //   await fw.connect(admin).emergencyWithdraw();
-      //   await expectRevert(fw.connect(deployer).emergencyWithdraw(), "Pausable: paused");
+        await expectRevert(vault.setTreasuryWallet(a2.address), "Ownable: caller is not the owner");
+        await vault.connect(deployer).setTreasuryWallet(a2.address);
+        expect(await vault.treasuryWallet()).equal(a2.address);
+        await vault.connect(deployer).setTreasuryWallet(common.treasury);
 
-      //   await expectRevert(fw.reinvest(), "Only owner or admin");
-      //   await fw.connect(admin).reinvest();
-      //   await expectRevert(fw.connect(deployer).reinvest(), "Pausable: not paused");
+        await expectRevert(vault.setBiconomy(a2.address), "Ownable: caller is not the owner");
+        await vault.connect(deployer).setBiconomy(a2.address);
+        expect(await vault.trustedForwarder()).equal(a2.address);
+        await vault.connect(deployer).setBiconomy(network_.biconomy);
 
-      //   await expectRevert(fw.yield(), "Only owner or admin");
-      //   await fw.connect(admin).yield();
-      //   await fw.connect(admin).emergencyWithdraw();
-      //   await expectRevert(fw.connect(deployer).yield(), "Pausable: paused");
-      //   await fw.connect(admin).reinvest();
+        await expectRevert(vault.emergencyWithdraw(), "Only owner or admin");
+        await vault.connect(admin).emergencyWithdraw();
+        await expectRevert(vault.connect(deployer).emergencyWithdraw(), "Pausable: paused");
 
-      //   await expectRevert(fw.setMarketState(BULLISH), "Only owner or admin");
-      //   await fw.connect(admin).setMarketState(BULLISH);
-      //   expect(await fw.marketState()).equal(BULLISH);
-      //   await fw.connect(admin).emergencyWithdraw();
-      //   await expectRevert(fw.connect(deployer).setMarketState(BEARISH), "Pausable: paused");
-      //   await fw.connect(admin).reinvest();
-      //   await fw.connect(admin).setMarketState(BEARISH);
+        await expectRevert(vault.reinvest(), "Only owner or admin");
+        await vault.connect(admin).reinvest();
+        await expectRevert(vault.connect(deployer).reinvest(), "Pausable: not paused");
 
-      //   await expectRevert(fw.setAdmin(a2.address), "Ownable: caller is not the owner");
-      //   await fw.connect(deployer).setAdmin(a2.address);
-      //   expect(await fw.admin()).equal(a2.address);
-      //   await fw.connect(deployer).setAdmin(admin.address);
+        await expectRevert(vault.rebalance(0, 1000), "Only owner or admin");
+        await vault.connect(admin).rebalance(0, 1000);
 
-      //   await expectRevert(fw.setBiconomy(a2.address), "Ownable: caller is not the owner");
-      //   await fw.connect(deployer).setBiconomy(a2.address);
-      //   expect(await fw.trustedForwarder()).equal(a2.address);
-      //   await fw.connect(deployer).setBiconomy(network_.biconomy);
+        const USDTUSDCVault = new ethers.Contract(await strategy.USDTUSDCVault(), l2VaultArtifact.abi, a1);
 
-      //   await expectRevert(fw.setNetworkFeeTier3([1,2,3]), "Ownable: caller is not the owner");
-      //   await fw.connect(deployer).setNetworkFeeTier3([1,2,3]);
-      //   expect(await fw.networkFeeTier3(0)).equal(1);
-      //   expect(await fw.networkFeeTier3(1)).equal(2);
-      //   expect(await fw.networkFeeTier3(2)).equal(3);
+        await expectRevert(USDTUSDCVault.setAdmin(a2.address), "Ownable: caller is not the owner");
+        await USDTUSDCVault.connect(deployer).setAdmin(a2.address);
+        expect(await USDTUSDCVault.admin()).equal(a2.address);
+        await USDTUSDCVault.connect(deployer).setAdmin(admin.address);
 
-      //   await expectRevert(fw.setNetworkFeePerc([0,1,2,3]), "Ownable: caller is not the owner");
-      //   await fw.connect(deployer).setNetworkFeePerc([0,1,2,3]);
-      //   expect(await fw.networkFeePerc(0)).equal(0);
-      //   expect(await fw.networkFeePerc(1)).equal(1);
-      //   expect(await fw.networkFeePerc(2)).equal(2);
-      //   expect(await fw.networkFeePerc(3)).equal(3);
+        await expectRevert(USDTUSDCVault.setTreasuryWallet(a2.address), "Ownable: caller is not the owner");
+        await USDTUSDCVault.connect(deployer).setTreasuryWallet(a2.address);
+        expect(await USDTUSDCVault.treasuryWallet()).equal(a2.address);
+        await USDTUSDCVault.connect(deployer).setTreasuryWallet(common.treasury);
 
-      //   await expectRevert(fw.setYieldFeePerc(1000), "Ownable: caller is not the owner");
-      //   await fw.connect(deployer).setYieldFeePerc(1000);
-      //   expect(await fw.yieldFeePerc()).equal(1000);
+        await expectRevert(USDTUSDCVault.setFee(1000), "Ownable: caller is not the owner");
+        await USDTUSDCVault.connect(deployer).setFee(1000);
+        expect(await USDTUSDCVault.yieldFee()).equal(1000);
 
-      //   await expectRevert(fw.setTreasuryWallet(a2.address), "Ownable: caller is not the owner");
-      //   await fw.connect(deployer).setTreasuryWallet(a2.address);
-      //   expect(await fw.treasuryWallet()).equal(a2.address);
-      //   await fw.connect(deployer).setTreasuryWallet(network_.treasury);
+        await expectRevert(USDTUSDCVault.yield(), "Only owner or admin");
+        await USDTUSDCVault.connect(admin).yield();
 
-      //   await expectRevert(fw.setSubImpl(a2.address), "Ownable: caller is not the owner");
-      //   await fw.connect(deployer).setSubImpl(a2.address);
-      //   expect(await fw.subImpl()).equal(a2.address);
-      //   const subImpl = await deployments.get("FoloWhaleSub");
-      //   await fw.connect(deployer).setSubImpl(subImpl.address);
-      // });
+        await expectRevert(USDTUSDCVault.emergencyWithdraw(), "Only owner or admin");
+        await USDTUSDCVault.connect(admin).emergencyWithdraw();
+        await expectRevert(USDTUSDCVault.connect(deployer).emergencyWithdraw(), "Pausable: paused");
+
+        await expectRevert(USDTUSDCVault.reinvest(), "Only owner or admin");
+        await USDTUSDCVault.connect(admin).reinvest();
+        await expectRevert(USDTUSDCVault.connect(deployer).reinvest(), "Pausable: not paused");
+      });
     });
 
     // describe('Test with USDT', () => {

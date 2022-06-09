@@ -100,8 +100,10 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
 
     function rebalance(uint farmIndex, uint sharePerc) external onlyOwnerOrAdmin {
         uint USDTAmt = strategy.withdrawFromFarm(farmIndex, sharePerc);
-        strategy.invest(USDTAmt);
-        emit Rebalance(farmIndex, sharePerc, USDTAmt);
+        if (0 < USDTAmt) {
+            strategy.invest(USDTAmt);
+            emit Rebalance(farmIndex, sharePerc, USDTAmt);
+        }
     }
 
     function emergencyWithdraw() external onlyOwnerOrAdmin whenNotPaused {
@@ -112,8 +114,10 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
     function reinvest() external onlyOwnerOrAdmin whenPaused {
         _unpause();
         uint USDTAmt = USDT.balanceOf(address(this));
-        strategy.invest(USDTAmt);
-        emit Reinvest(USDTAmt);
+        if (0 < USDTAmt) {
+            strategy.invest(USDTAmt);
+            emit Reinvest(USDTAmt);
+        }
     }
 
     function setTreasuryWallet(address _treasuryWallet) external onlyOwner {
