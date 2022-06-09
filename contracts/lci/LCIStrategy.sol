@@ -54,7 +54,7 @@ contract LCIStrategy is OwnableUpgradeable {
 
     IERC20Upgradeable public constant USDTUSDC = IERC20Upgradeable(0xEc6557348085Aa57C72514D67070dC863C0a5A8c);
     IERC20Upgradeable public constant USDTBUSD = IERC20Upgradeable(0x7EFaEf62fDdCCa950418312c6C91Aef321375A00);
-    IERC20Upgradeable public constant USDCBUSD = IERC20Upgradeable(0xF45cd219aEF8618A92BAa7aD848364a158a24F33);
+    IERC20Upgradeable public constant USDCBUSD = IERC20Upgradeable(0x2354ef4DF11afacb85a5C7f98B624072ECcddbB1);
 
     IRouter public constant PnckRouter = IRouter(0x10ED43C718714eb63d5aA57B78B54704E256024E);
 
@@ -123,7 +123,7 @@ contract LCIStrategy is OwnableUpgradeable {
         ) {
             _investUSDTUSDC(USDTUSDCTargetPool - pools[0]);
             _investUSDTBUSD(USDTBUSDTargetPool - pools[1]);
-            _investUSDCBUSD((USDCBUSDTargetPool - pools[3]));
+            _investUSDCBUSD(USDCBUSDTargetPool - pools[2]);
         } else {
             uint furthest;
             uint farmIndex;
@@ -139,6 +139,12 @@ contract LCIStrategy is OwnableUpgradeable {
                 if (diff > furthest) {
                     furthest = diff;
                     farmIndex = 1;
+                }
+            }
+            if (USDTBUSDTargetPool > pools[2]) {
+                diff = USDTBUSDTargetPool - pools[2];
+                if (diff > furthest) {
+                    farmIndex = 2;
                 }
             }
 
@@ -235,7 +241,7 @@ contract LCIStrategy is OwnableUpgradeable {
             uint _amt = USDCBUSD.balanceOf(address(this));
             (uint _amtUSDC, uint _amtBUSD) = _removeLiquidity(address(USDC), address(BUSD), _amt);
             uint _usdtAmt = _swap(address(USDC), address(USDT), _amtUSDC, _amtUSDC*98/100);
-            _usdtAmt += _swap(address(BUSD), address(USDT), _amtBUSD, _amtBUSD*98*100);
+            _usdtAmt += _swap(address(BUSD), address(USDT), _amtBUSD, _amtBUSD*98/100);
 
             emit WithdrawUSDCBUSD(_amt, _usdtAmt);
         }
@@ -331,9 +337,10 @@ contract LCIStrategy is OwnableUpgradeable {
     }
 
     function getAPR() external view returns (uint) {
-        uint allApr = USDTUSDCVault.getAPR() * USDTUSDCTargetPerc
-                    + USDTBUSDVault.getAPR() * USDTBUSDTargetPerc
-                    + USDCBUSDVault.getAPR() * USDCBUSDTargetPerc;
+        uint[] memory lpPerc = getCurrentLPCompositionPerc();
+        uint allApr = USDTUSDCVault.getAPR() * lpPerc[0]
+                    + USDTBUSDVault.getAPR() * lpPerc[1]
+                    + USDCBUSDVault.getAPR() * lpPerc[2];
         return (allApr / DENOMINATOR);
     }
 

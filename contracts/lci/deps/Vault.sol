@@ -307,7 +307,7 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
     }
 
     ///@notice Returns the pending rewards in UDS.
-    function getPendingReward() public view returns (uint) {
+    function getPendingRewards() public view returns (uint) {
         uint pendingCake = MasterChefV2.pendingCake(pid, address(this));
         (uint CAKEPriceInUSD, uint denominator) = PriceLib.getCAKEPriceInUSD();
         return pendingCake * CAKEPriceInUSD / denominator;

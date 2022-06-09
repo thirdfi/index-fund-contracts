@@ -15,7 +15,7 @@ interface IChainlink {
 
 interface IStrategy {
     function invest(uint amount) external;
-    function withdraw(uint sharePerc) external;
+    function withdrawPerc(uint sharePerc) external;
     function withdrawFromFarm(uint farmIndex, uint sharePerc) external returns (uint);
     function emergencyWithdraw() external;
     function getAllPoolInUSD() external view returns (uint);
@@ -66,15 +66,16 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
         require(msg.sender == tx.origin || isTrustedForwarder(msg.sender), "Only EOA or Biconomy");
         require(amount > 0, "Amount must > 0");
 
+        uint pool = getAllPoolInUSD();
+
         address msgSender = _msgSender();
         USDT.safeTransferFrom(msgSender, address(this), amount);
 
-        uint pool = getAllPoolInUSD();
         strategy.invest(amount);
 
         uint amtDeposit = amount; // USDT's decimals is 18
         uint _totalSupply = totalSupply();
-        uint share = _totalSupply == 0 ? amtDeposit : amtDeposit * _totalSupply / pool;
+        uint share = (_totalSupply == 0 || pool <= _totalSupply)  ? amtDeposit : amtDeposit * _totalSupply / pool;
         _mint(msgSender, share);
 
         emit Deposit(msgSender, amtDeposit, address(USDT), share);
@@ -89,7 +90,7 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
         uint withdrawAmt = getAllPoolInUSD() * share / _totalSupply;
 
         if (!paused()) {
-            strategy.withdraw(share * 1e18 / _totalSupply);
+            strategy.withdrawPerc(share * 1e18 / _totalSupply);
             USDT.safeTransfer(msg.sender, USDT.balanceOf(address(this)));
         } else {
             USDT.safeTransfer(msg.sender, withdrawAmt); // USDT's decimals is 18

@@ -19,6 +19,9 @@ const DENOMINATOR = 10000;
 function e(pow) {
   return BigNumber.from(10).pow(pow);
 }
+function getUsdtAmount(amount) {
+  return parseEther(amount);
+}
 
 describe("LCI", async () => {
 
@@ -158,207 +161,199 @@ describe("LCI", async () => {
       });
     });
 
-    // describe('Test with USDT', () => {
-    //   it("Deposit/withdraw", async () => {
-    //     await usdt.transfer(a1.address, getUsdtAmount('50000'));
-    //     await usdt.connect(a1).approve(fw.address, getUsdtAmount('50000'));
+    describe('Basic function', () => {
+      it("Deposit/withdraw", async () => {
+        await usdt.transfer(a1.address, getUsdtAmount('50000'));
+        await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
 
-    //     await expectRevert(fw.deposit(getUsdtAmount('50000'), '0xd91Fbc9b431464D737E1BC4e76900D43405a639b'), "Invalid token deposit");
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     const fee = parseEther('50000').mul(100).div(PERC_DENOMINATOR)
-    //     expect(await fw.depositAmt(a1.address)).equal(parseEther('50000').sub(fee));
-    //     expect(await fw.totalDepositAmt()).equal(parseEther('50000').sub(fee));
-    //     expect(await fw.fees()).equal(fee);
-    //     expect(await fw.getTotalPendingDeposits()).equal(1);
-    //     expect(await fw.totalSupply()).equal(0);
-    //     expect(await fw.getAllPoolInUSD()).equal(parseEther('50000').sub(fee));
-    //     expect(await fw.getPricePerFullShare()).equal(parseEther('1'));
+        const USDTUSDCVault = new ethers.Contract(await strategy.USDTUSDCVault(), l2VaultArtifact.abi, a1);
+        const USDTBUSDVault = new ethers.Contract(await strategy.USDTBUSDVault(), l2VaultArtifact.abi, a1);
+        const USDCBUSDVault = new ethers.Contract(await strategy.USDCBUSDVault(), l2VaultArtifact.abi, a1);
+        expect(await USDTUSDCVault.getAPR()).gt(0);
+        expect(await USDTBUSDVault.getAPR()).gt(0);
+        expect(await USDCBUSDVault.getAPR()).gt(0);
+        expect(await vault.getAPR()).gt(0);
 
-    //     const treasuryBalanceBefore = await usdt.balanceOf(network_.treasury);
-    //     await fw.connect(admin).invest();
-    //     expect((await usdt.balanceOf(network_.treasury)).sub(treasuryBalanceBefore)).equal(getUsdtAmount('50000').mul(100).div(PERC_DENOMINATOR));
-    //     expect(await fw.depositAmt(a1.address)).equal(0);
-    //     expect(await fw.totalDepositAmt()).equal(0);
-    //     expect(await fw.fees()).equal(0);
-    //     expect(await fw.getTotalPendingDeposits()).equal(0);
-    //     expect(await fw.totalSupply()).equal(parseEther('50000').sub(fee));
-    //     expect(await fw.balanceOf(a1.address)).equal(parseEther('50000').sub(fee));
+        expect(await vault.getAllPoolInUSD()).equal(0);
+        expect(await vault.getPricePerFullShare()).equal(parseEther('1'));
 
-    //     await increaseTime(DAY);
-    //     expect(await fw.getPendingRewards()).gt(0);
+        await vault.deposit(getUsdtAmount('50000'));
+        expect(await vault.balanceOf(a1.address)).equal(parseEther('50000'));
+        expect(await vault.totalSupply()).equal(parseEther('50000'));
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(100));
 
-    //     await fw.connect(admin).yield();
-    //     expect(await fw.getAllPoolInUSD()).gte(parseEther('50000').sub(fee));
-    //     expect(await fw.getPricePerFullShare()).gte(parseEther('1'));
-    //     const apr = await fw.getAPR();
-    //     expect(apr).gt(0);
+        await increaseTime(DAY);
+        expect(await USDTUSDCVault.getPendingRewards()).gt(0);
+        expect(await USDTBUSDVault.getPendingRewards()).gt(0);
+        expect(await USDCBUSDVault.getPendingRewards()).gt(0);
 
-    //     await increaseTime(DAY);
-    //     expect(await fw.getAPR()).gt(apr);
+        await USDTUSDCVault.connect(admin).yield();
+        await USDTBUSDVault.connect(admin).yield();
+        await USDCBUSDVault.connect(admin).yield();
 
-    //     await fw.withdraw(await fw.balanceOf(a1.address), usdt.address);
-    //     expect(await fw.totalSupply()).equal(0);
-    //     expect(await fw.balanceOf(a1.address)).equal(0);
-    //     expect(await fw.getAllPoolInUSD()).gte(0);
-    //     expect(await fw.getPricePerFullShare()).gte(parseEther('1'));
-    //     expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000').mul(99).div(100), getUsdtAmount('50000').div(100));
-    //   });
+        await vault.withdraw(await vault.balanceOf(a1.address));
+        expect(await vault.totalSupply()).equal(0);
+        expect(await vault.balanceOf(a1.address)).equal(0);
+        expect(await vault.getAllPoolInUSD()).gte(0);
+        expect(await vault.getPricePerFullShare()).gte(parseEther('1'));
+        expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(100));
+      });
 
     //   it("Test Deposit fee", async () => {
     //     await usdt.transfer(a1.address, getUsdtAmount('5000000'));
-    //     await usdt.connect(a1).approve(fw.address, getUsdtAmount('5000000'));
+    //     await usdt.connect(a1).approve(vault.address, getUsdtAmount('5000000'));
 
-    //     await fw.deposit(getUsdtAmount('100000'), usdt.address);
+    //     await vault.deposit(getUsdtAmount('100000'), usdt.address);
     //     var fee = parseEther('100000').mul(75).div(PERC_DENOMINATOR)
-    //     expect(await fw.depositAmt(a1.address)).equal(parseEther('100000').sub(fee));
-    //     expect(await fw.totalDepositAmt()).equal(parseEther('100000').sub(fee));
-    //     expect(await fw.fees()).equal(fee);
-    //     await fw.connect(admin).invest();
-    //     await fw.withdraw(await fw.balanceOf(a1.address), usdt.address);
+    //     expect(await vault.depositAmt(a1.address)).equal(parseEther('100000').sub(fee));
+    //     expect(await vault.totalDepositAmt()).equal(parseEther('100000').sub(fee));
+    //     expect(await vault.fees()).equal(fee);
+    //     await vault.connect(admin).invest();
+    //     await vault.withdraw(await vault.balanceOf(a1.address), usdt.address);
 
-    //     await fw.deposit(getUsdtAmount('1000000'), usdt.address);
+    //     await vault.deposit(getUsdtAmount('1000000'), usdt.address);
     //     var fee = parseEther('1000000').mul(50).div(PERC_DENOMINATOR)
-    //     expect(await fw.depositAmt(a1.address)).equal(parseEther('1000000').sub(fee));
-    //     expect(await fw.totalDepositAmt()).equal(parseEther('1000000').sub(fee));
-    //     expect(await fw.fees()).equal(fee);
-    //     await fw.connect(admin).invest();
-    //     await fw.withdraw(await fw.balanceOf(a1.address), usdt.address);
+    //     expect(await vault.depositAmt(a1.address)).equal(parseEther('1000000').sub(fee));
+    //     expect(await vault.totalDepositAmt()).equal(parseEther('1000000').sub(fee));
+    //     expect(await vault.fees()).equal(fee);
+    //     await vault.connect(admin).invest();
+    //     await vault.withdraw(await vault.balanceOf(a1.address), usdt.address);
 
-    //     await fw.deposit(getUsdtAmount('1000001'), usdt.address);
+    //     await vault.deposit(getUsdtAmount('1000001'), usdt.address);
     //     var fee = parseEther('1000001').mul(25).div(PERC_DENOMINATOR)
-    //     expect(await fw.depositAmt(a1.address)).equal(parseEther('1000001').sub(fee));
-    //     expect(await fw.totalDepositAmt()).equal(parseEther('1000001').sub(fee));
-    //     expect(await fw.fees()).equal(fee);
-    //     await fw.connect(admin).invest();
-    //     await fw.withdraw(await fw.balanceOf(a1.address), usdt.address);
+    //     expect(await vault.depositAmt(a1.address)).equal(parseEther('1000001').sub(fee));
+    //     expect(await vault.totalDepositAmt()).equal(parseEther('1000001').sub(fee));
+    //     expect(await vault.fees()).equal(fee);
+    //     await vault.connect(admin).invest();
+    //     await vault.withdraw(await vault.balanceOf(a1.address), usdt.address);
     //   });
 
     //   it("Deposit again before invest", async () => {
     //     await usdt.transfer(a1.address, getUsdtAmount('100000'));
-    //     await usdt.connect(a1).approve(fw.address, getUsdtAmount('100000'));
+    //     await usdt.connect(a1).approve(vault.address, getUsdtAmount('100000'));
 
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
     //     const fee = parseEther('50000').mul(100).div(PERC_DENOMINATOR)
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     expect(await fw.depositAmt(a1.address)).equal(parseEther('50000').sub(fee).mul(2));
-    //     expect(await fw.totalDepositAmt()).equal(parseEther('50000').sub(fee).mul(2));
-    //     expect(await fw.fees()).equal(fee.mul(2));
-    //     expect(await fw.getTotalPendingDeposits()).equal(1);
-    //     expect(await fw.totalSupply()).equal(0);
-    //     expect(await fw.getAllPoolInUSD()).equal(parseEther('50000').sub(fee).mul(2));
-    //     expect(await fw.getPricePerFullShare()).equal(parseEther('1'));
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
+    //     expect(await vault.depositAmt(a1.address)).equal(parseEther('50000').sub(fee).mul(2));
+    //     expect(await vault.totalDepositAmt()).equal(parseEther('50000').sub(fee).mul(2));
+    //     expect(await vault.fees()).equal(fee.mul(2));
+    //     expect(await vault.getTotalPendingDeposits()).equal(1);
+    //     expect(await vault.totalSupply()).equal(0);
+    //     expect(await vault.getAllPoolInUSD()).equal(parseEther('50000').sub(fee).mul(2));
+    //     expect(await vault.getPricePerFullShare()).equal(parseEther('1'));
 
     //     const treasuryBalanceBefore = await usdt.balanceOf(network_.treasury);
-    //     await fw.connect(admin).invest();
+    //     await vault.connect(admin).invest();
     //     expect((await usdt.balanceOf(network_.treasury)).sub(treasuryBalanceBefore)).equal(getUsdtAmount('100000').mul(100).div(PERC_DENOMINATOR));
-    //     expect(await fw.depositAmt(a1.address)).equal(0);
-    //     expect(await fw.totalDepositAmt()).equal(0);
-    //     expect(await fw.fees()).equal(0);
-    //     expect(await fw.getTotalPendingDeposits()).equal(0);
-    //     expect(await fw.totalSupply()).equal(parseEther('50000').sub(fee).mul(2));
-    //     expect(await fw.getAllPoolInUSD()).closeTo(parseEther('50000').sub(fee).mul(2), parseEther('50000').sub(fee).mul(2).div(100));
-    //     expect(await fw.balanceOf(a1.address)).equal(parseEther('50000').sub(fee).mul(2));
+    //     expect(await vault.depositAmt(a1.address)).equal(0);
+    //     expect(await vault.totalDepositAmt()).equal(0);
+    //     expect(await vault.fees()).equal(0);
+    //     expect(await vault.getTotalPendingDeposits()).equal(0);
+    //     expect(await vault.totalSupply()).equal(parseEther('50000').sub(fee).mul(2));
+    //     expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000').sub(fee).mul(2), parseEther('50000').sub(fee).mul(2).div(100));
+    //     expect(await vault.balanceOf(a1.address)).equal(parseEther('50000').sub(fee).mul(2));
     //   });
 
     //   it("Deposit again after invest", async () => {
     //     await usdt.transfer(a1.address, getUsdtAmount('100000'));
-    //     await usdt.connect(a1).approve(fw.address, getUsdtAmount('100000'));
+    //     await usdt.connect(a1).approve(vault.address, getUsdtAmount('100000'));
 
     //     const treasuryBalanceBefore = await usdt.balanceOf(network_.treasury);
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
     //     const fee = parseEther('50000').mul(100).div(PERC_DENOMINATOR)
-    //     await fw.connect(admin).invest();
+    //     await vault.connect(admin).invest();
 
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     await fw.connect(admin).invest();
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.connect(admin).invest();
     //     expect((await usdt.balanceOf(network_.treasury)).sub(treasuryBalanceBefore)).equal(getUsdtAmount('100000').mul(100).div(PERC_DENOMINATOR));
-    //     expect(await fw.depositAmt(a1.address)).equal(0);
-    //     expect(await fw.totalDepositAmt()).equal(0);
-    //     expect(await fw.fees()).equal(0);
-    //     expect(await fw.getTotalPendingDeposits()).equal(0);
-    //     expect(await fw.totalSupply()).closeTo(parseEther('50000').sub(fee).mul(2), parseEther('50000').sub(fee).mul(2).div(100));
-    //     expect(await fw.getAllPoolInUSD()).closeTo(parseEther('50000').sub(fee).mul(2), parseEther('50000').sub(fee).mul(2).div(100));
-    //     expect(await fw.balanceOf(a1.address)).closeTo(parseEther('50000').sub(fee).mul(2), parseEther('50000').sub(fee).mul(2).div(100));
+    //     expect(await vault.depositAmt(a1.address)).equal(0);
+    //     expect(await vault.totalDepositAmt()).equal(0);
+    //     expect(await vault.fees()).equal(0);
+    //     expect(await vault.getTotalPendingDeposits()).equal(0);
+    //     expect(await vault.totalSupply()).closeTo(parseEther('50000').sub(fee).mul(2), parseEther('50000').sub(fee).mul(2).div(100));
+    //     expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000').sub(fee).mul(2), parseEther('50000').sub(fee).mul(2).div(100));
+    //     expect(await vault.balanceOf(a1.address)).closeTo(parseEther('50000').sub(fee).mul(2), parseEther('50000').sub(fee).mul(2).div(100));
     //   });
 
     //   it("Test emergencyWithdraw", async () => {
     //     await usdt.transfer(a1.address, getUsdtAmount('50000'));
-    //     await usdt.connect(a1).approve(fw.address, getUsdtAmount('50000'));
+    //     await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
 
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
     //     const fee = parseEther('50000').mul(100).div(PERC_DENOMINATOR)
 
-    //     await fw.connect(admin).emergencyWithdraw();
-    //     expect(await fw.getAllPoolInUSD()).equal(parseEther('50000').sub(fee));
-    //     await fw.connect(admin).reinvest();
-    //     expect(await fw.getAllPoolInUSD()).closeTo(parseEther('50000').sub(fee), parseEther('50000').sub(fee).div(1000));
-    //     await fw.connect(admin).emergencyWithdraw();
-    //     expect(await fw.getAllPoolInUSD()).closeTo(parseEther('50000').sub(fee), parseEther('50000').sub(fee).div(1000));
+    //     await vault.connect(admin).emergencyWithdraw();
+    //     expect(await vault.getAllPoolInUSD()).equal(parseEther('50000').sub(fee));
+    //     await vault.connect(admin).reinvest();
+    //     expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000').sub(fee), parseEther('50000').sub(fee).div(1000));
+    //     await vault.connect(admin).emergencyWithdraw();
+    //     expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000').sub(fee), parseEther('50000').sub(fee).div(1000));
 
-    //     expect(await fw.getPricePerFullShare()).closeTo(parseEther('1'), parseEther('1').div(1000));
-    //     expect(await fw.getAPR()).equal(0);
-    //     expect(await fw.getPendingRewards()).equal(0);
+    //     expect(await vault.getPricePerFullShare()).closeTo(parseEther('1'), parseEther('1').div(1000));
+    //     expect(await vault.getAPR()).equal(0);
+    //     expect(await vault.getPendingRewards()).equal(0);
 
-    //     await fw.withdraw((await fw.balanceOf(a1.address)).div(2), usdt.address);
+    //     await vault.withdraw((await vault.balanceOf(a1.address)).div(2), usdt.address);
 
-    //     await fw.connect(admin).reinvest();
-    //     await fw.connect(admin).setMarketState(BULLISH);
-    //     await fw.connect(admin).emergencyWithdraw();
-    //     await fw.withdraw(await fw.balanceOf(a1.address), usdt.address);
+    //     await vault.connect(admin).reinvest();
+    //     await vault.connect(admin).setMarketState(BULLISH);
+    //     await vault.connect(admin).emergencyWithdraw();
+    //     await vault.withdraw(await vault.balanceOf(a1.address), usdt.address);
 
     //     expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000').mul(99).div(100), getUsdtAmount('50000').div(100));
-    //     expect(await fw.getAllPoolInUSD()).equal(0);
+    //     expect(await vault.getAllPoolInUSD()).equal(0);
     //   });
 
     //   it("Withdraw before invest", async () => {
     //     await usdt.transfer(a1.address, getUsdtAmount('100000'));
-    //     await usdt.connect(a1).approve(fw.address, getUsdtAmount('100000'));
+    //     await usdt.connect(a1).approve(vault.address, getUsdtAmount('100000'));
     //     await usdt.transfer(a2.address, getUsdtAmount('100000'));
-    //     await usdt.connect(a2).approve(fw.address, getUsdtAmount('100000'));
+    //     await usdt.connect(a2).approve(vault.address, getUsdtAmount('100000'));
 
-    //     await fw.connect(a2).deposit(getUsdtAmount('100000'), usdt.address);
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     await fw.connect(admin).invest();
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.connect(a2).deposit(getUsdtAmount('100000'), usdt.address);
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.connect(admin).invest();
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
 
-    //     expect(await fw.depositShare(a1.address)).gt(0);
-    //     await fw.withdraw((await fw.depositShare(a1.address)).mul(3), usdt.address);
-    //     expect(await fw.depositShare(a1.address)).equal(0);
-    //     expect(await fw.balanceOf(a1.address)).equal(0);
-    //     expect(await fw.getAllPoolInUSD()).gt(0);
-    //     expect(await fw.getPricePerFullShare()).gt(parseEther('1'));
+    //     expect(await vault.depositShare(a1.address)).gt(0);
+    //     await vault.withdraw((await vault.depositShare(a1.address)).mul(3), usdt.address);
+    //     expect(await vault.depositShare(a1.address)).equal(0);
+    //     expect(await vault.balanceOf(a1.address)).equal(0);
+    //     expect(await vault.getAllPoolInUSD()).gt(0);
+    //     expect(await vault.getPricePerFullShare()).gt(parseEther('1'));
     //     expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('100000').mul(99).div(100), getUsdtAmount('100000').div(1000));
     //   });
 
     //   it("Withdraw after marketState changed", async () => {
     //     await usdt.transfer(a1.address, getUsdtAmount('50000'));
-    //     await usdt.connect(a1).approve(fw.address, getUsdtAmount('50000'));
+    //     await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
 
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
     //     const fee = parseEther('50000').mul(100).div(PERC_DENOMINATOR)
-    //     await fw.connect(admin).invest();
+    //     await vault.connect(admin).invest();
 
-    //     await fw.connect(admin).setMarketState(BULLISH);
-    //     expect(await fw.getAllPoolInUSD()).closeTo(parseEther('50000').sub(fee), parseEther('50000').sub(fee).div(1000));
-    //     expect(await fw.getPricePerFullShare()).closeTo(parseEther('1'), parseEther('1').div(1000));
-    //     expect(await fw.getAPR()).gte(0);
-    //     expect(await fw.getPendingRewards()).gte(0);
+    //     await vault.connect(admin).setMarketState(BULLISH);
+    //     expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000').sub(fee), parseEther('50000').sub(fee).div(1000));
+    //     expect(await vault.getPricePerFullShare()).closeTo(parseEther('1'), parseEther('1').div(1000));
+    //     expect(await vault.getAPR()).gte(0);
+    //     expect(await vault.getPendingRewards()).gte(0);
 
-    //     await fw.withdraw(await fw.balanceOf(a1.address), usdt.address);
-    //     expect(await fw.totalSupply()).equal(0);
-    //     expect(await fw.balanceOf(a1.address)).equal(0);
-    //     expect(await fw.getAllPoolInUSD()).gte(0);
-    //     expect(await fw.getPricePerFullShare()).gte(parseEther('1'));
+    //     await vault.withdraw(await vault.balanceOf(a1.address), usdt.address);
+    //     expect(await vault.totalSupply()).equal(0);
+    //     expect(await vault.balanceOf(a1.address)).equal(0);
+    //     expect(await vault.getAllPoolInUSD()).gte(0);
+    //     expect(await vault.getPricePerFullShare()).gte(parseEther('1'));
     //     expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000').mul(99).div(100), getUsdtAmount('50000').div(1000));
     //   });
 
     //   it("Deposit with USDT, Withdraw as WBTC", async () => {
     //     await usdt.transfer(a1.address, getUsdtAmount('50000'));
-    //     await usdt.connect(a1).approve(fw.address, getUsdtAmount('50000'));
+    //     await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
 
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     await fw.connect(admin).invest();
-    //     await fw.withdraw(await fw.balanceOf(a1.address), wbtc.address);
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.connect(admin).invest();
+    //     await vault.withdraw(await vault.balanceOf(a1.address), wbtc.address);
 
     //     const btcPriceInUSD = await btcFeed.latestAnswer();
     //     const btcAmount = getUsdtAmount('50000').mul(99).div(100).mul(e(10)).div(btcPriceInUSD);
@@ -367,45 +362,45 @@ describe("LCI", async () => {
 
     //   it("Deposit with USDT, Withdraw as USDT before invest", async () => {
     //     await usdt.transfer(a1.address, getUsdtAmount('100000'));
-    //     await usdt.connect(a1).approve(fw.address, getUsdtAmount('100000'));
+    //     await usdt.connect(a1).approve(vault.address, getUsdtAmount('100000'));
 
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     await fw.connect(admin).invest();
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     await fw.withdraw(await fw.balanceOf(a1.address), usdt.address);
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.connect(admin).invest();
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.withdraw(await vault.balanceOf(a1.address), usdt.address);
     //     expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000').mul(99).div(100), getUsdtAmount('50000').div(1000));
     //   });
 
     //   it("Deposit with USDT, Withdraw as USDC before invest", async () => {
     //     await usdt.transfer(a1.address, getUsdtAmount('100000'));
-    //     await usdt.connect(a1).approve(fw.address, getUsdtAmount('100000'));
+    //     await usdt.connect(a1).approve(vault.address, getUsdtAmount('100000'));
 
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     await fw.connect(admin).invest();
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     await fw.withdraw(await fw.balanceOf(a1.address), usdc.address);
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.connect(admin).invest();
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.withdraw(await vault.balanceOf(a1.address), usdc.address);
     //     expect(await usdc.balanceOf(a1.address)).closeTo(getUsdtAmount('50000').mul(99).div(100), getUsdtAmount('50000').div(1000));
     //   });
 
     //   it("Deposit with USDT, Withdraw as DAI before invest", async () => {
     //     await usdt.transfer(a1.address, getUsdtAmount('100000'));
-    //     await usdt.connect(a1).approve(fw.address, getUsdtAmount('100000'));
+    //     await usdt.connect(a1).approve(vault.address, getUsdtAmount('100000'));
 
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     await fw.connect(admin).invest();
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     await fw.withdraw(await fw.balanceOf(a1.address), dai.address);
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.connect(admin).invest();
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.withdraw(await vault.balanceOf(a1.address), dai.address);
     //     expect(await dai.balanceOf(a1.address)).closeTo(parseEther('50000').mul(99).div(100), parseEther('50000').div(1000));
     //   });
 
     //   it("Deposit with USDT, withdraw as WBTC before invest", async () => {
     //     await usdt.transfer(a1.address, getUsdtAmount('100000'));
-    //     await usdt.connect(a1).approve(fw.address, getUsdtAmount('100000'));
+    //     await usdt.connect(a1).approve(vault.address, getUsdtAmount('100000'));
 
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     await fw.connect(admin).invest();
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     await fw.withdraw(await fw.balanceOf(a1.address), wbtc.address);
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.connect(admin).invest();
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.withdraw(await vault.balanceOf(a1.address), wbtc.address);
 
     //     const btcPriceInUSD = await btcFeed.latestAnswer();
     //     const btcAmount = getUsdtAmount('50000').mul(99).div(100).mul(e(10)).div(btcPriceInUSD);
@@ -414,12 +409,12 @@ describe("LCI", async () => {
 
     //   it("Deposit with USDT, withdraw as SBTC before invest", async () => {
     //     await usdt.transfer(a1.address, getUsdtAmount('100000'));
-    //     await usdt.connect(a1).approve(fw.address, getUsdtAmount('100000'));
+    //     await usdt.connect(a1).approve(vault.address, getUsdtAmount('100000'));
 
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     await fw.connect(admin).invest();
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     await fw.withdraw(await fw.balanceOf(a1.address), sbtc.address);
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.connect(admin).invest();
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.withdraw(await vault.balanceOf(a1.address), sbtc.address);
 
     //     const btcPriceInUSD = await btcFeed.latestAnswer();
     //     const btcAmount = parseEther('50000').mul(99).div(100).mul(e(8)).div(btcPriceInUSD);
@@ -428,17 +423,17 @@ describe("LCI", async () => {
 
     //   it("Deposit with USDT, withdraw as RENBTC before invest", async () => {
     //     await usdt.transfer(a1.address, getUsdtAmount('100000'));
-    //     await usdt.connect(a1).approve(fw.address, getUsdtAmount('100000'));
+    //     await usdt.connect(a1).approve(vault.address, getUsdtAmount('100000'));
 
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     await fw.connect(admin).invest();
-    //     await fw.deposit(getUsdtAmount('50000'), usdt.address);
-    //     await fw.withdraw(await fw.balanceOf(a1.address), renbtc.address);
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.connect(admin).invest();
+    //     await vault.deposit(getUsdtAmount('50000'), usdt.address);
+    //     await vault.withdraw(await vault.balanceOf(a1.address), renbtc.address);
 
     //     const btcPriceInUSD = await btcFeed.latestAnswer();
     //     const btcAmount = getUsdtAmount('50000').mul(99).div(100).mul(e(10)).div(btcPriceInUSD);
     //     expect(await renbtc.balanceOf(a1.address)).closeTo(btcAmount, btcAmount.div(1000));
     //   });
-    // });
+    });
 
 });
