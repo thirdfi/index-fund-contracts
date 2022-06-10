@@ -15,5 +15,10 @@ module.exports = {
 
   bscTestnet: {
     biconomy: "0x61456BF1715C1415730076BB79ae118E806E74d2",
+    PancakeSwap: {
+      Farm_USDT_USDC_pid: 48,
+      Farm_USDT_BUSD_pid: 7,
+      Farm_USDC_BUSD_pid: 20,
+    }
   },
 };

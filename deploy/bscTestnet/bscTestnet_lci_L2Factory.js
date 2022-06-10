@@ -5,7 +5,7 @@ module.exports = async ({ deployments }) => {
   const [deployer] = await ethers.getSigners();
 
   console.log("Now deploying BscVault ...");
-  const bscVault = await deploy("BscVault", {
+  const bscVault = await deploy("BscVaultTest", {
     from: deployer.address,
   });
   console.log("  BscVault contract address: ", bscVault.address);
@@ -21,7 +21,7 @@ module.exports = async ({ deployments }) => {
   try {
     await run("verify:verify", {
       address: bscVault.address,
-      contract: "contracts/lci/deps/Vault.sol:BscVault",
+      contract: "contracts/lci/deps/VaultTest.sol:BscVaultTest",
     });
   } catch(e) {
   }
@@ -37,4 +37,4 @@ module.exports = async ({ deployments }) => {
   }
 
 };
-module.exports.tags = ["bscMainnet_lci_L2Factory"];
+module.exports.tags = ["bscTestnet_lci_L2Factory"];
