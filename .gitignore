@@ -5,7 +5,6 @@ package-lock.json
 #Hardhat files
 cache
 artifacts
-deployments
 
 .env
 coverage.json
