@@ -145,10 +145,11 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
     function deposit(uint _amount) external nonReentrant whenNotPaused{
         require(_amount > 0, "Invalid amount");
 
-        depositedBlock[msg.sender] = block.number;
+        uint _pool = getAllPool();
         lpToken.safeTransferFrom(msg.sender, address(this), _amount);
 
-        uint _pool = getAllPool();
+        depositedBlock[msg.sender] = block.number;
+
         MasterChefV2.deposit(pid, _amount);
 
         uint _totalSupply = totalSupply();
