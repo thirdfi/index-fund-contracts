@@ -147,7 +147,10 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
     }
 
     function getAllPoolInUSD() public view returns (uint) {
-        if (paused()) return USDT.balanceOf(address(this)); // USDT's decimals is 18
+        if (paused()) {
+            (uint USDTPriceInUSD, uint denominator) = PriceLib.getUSDTPriceInUSD();
+            return USDT.balanceOf(address(this)) * USDTPriceInUSD / denominator; // USDT's decimals is 18
+        }
         return strategy.getAllPoolInUSD();
     }
 
