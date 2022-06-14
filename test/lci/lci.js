@@ -184,8 +184,8 @@ describe("LCI", async () => {
         await vault.withdraw(await vault.balanceOf(a1.address));
         expect(await vault.totalSupply()).equal(0);
         expect(await vault.balanceOf(a1.address)).equal(0);
-        expect(await vault.getAllPoolInUSD()).gte(0);
-        expect(await vault.getPricePerFullShare()).gte(parseEther('1'));
+        expect(await vault.getAllPoolInUSD()).equal(0);
+        expect(await vault.getPricePerFullShare()).equal(parseEther('1'));
         expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(100));
       });
 
@@ -210,7 +210,7 @@ describe("LCI", async () => {
         expect(await vault.totalSupply()).equal(0);
         expect(await vault.balanceOf(a2.address)).equal(0);
         expect(await vault.getAllPoolInUSD()).equal(0);
-        expect(await vault.getPricePerFullShare()).gte(parseEther('1'));
+        expect(await vault.getPricePerFullShare()).equal(parseEther('1'));
         expect(await usdt.balanceOf(a2.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(100));
       });
 
