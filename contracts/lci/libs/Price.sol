@@ -15,4 +15,9 @@ library PriceLib {
         uint CAKEPriceInUSD = uint(IChainlink(0xB6064eD41d4f67e353768aA239cA86f4F73665a1).latestAnswer()); // 8 decimals
         return (CAKEPriceInUSD, 1e8);
     }
+
+    function getUSDTPriceInUSD() internal view returns (uint, uint) {
+        uint USDTPriceInUSD = uint(IChainlink(0xB97Ad0E74fa7d920791E90258A6E2085088b4320).latestAnswer()); // 8 decimals
+        return (USDTPriceInUSD, 1e8);
+    }
 }

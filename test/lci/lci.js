@@ -168,8 +168,8 @@ describe("LCI", async () => {
         expect(await vault.getPricePerFullShare()).equal(parseEther('1'));
 
         await vault.deposit(getUsdtAmount('50000'));
-        expect(await vault.balanceOf(a1.address)).equal(parseEther('50000'));
-        expect(await vault.totalSupply()).equal(parseEther('50000'));
+        expect(await vault.balanceOf(a1.address)).closeTo(parseEther('50000'), parseEther('50000').div(100));
+        expect(await vault.totalSupply()).closeTo(parseEther('50000'), parseEther('50000').div(100));
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(100));
 
         await increaseTime(DAY);
@@ -197,14 +197,14 @@ describe("LCI", async () => {
 
         await vault.deposit(getUsdtAmount('50000'));
         await vault.connect(a2).deposit(getUsdtAmount('50000'));
-        expect(await vault.balanceOf(a2.address)).equal(parseEther('50000'));
-        expect(await vault.totalSupply()).equal(parseEther('100000'));
+        expect(await vault.balanceOf(a2.address)).closeTo(parseEther('50000'), parseEther('50000').div(100));
+        expect(await vault.totalSupply()).closeTo(parseEther('100000'), parseEther('100000').div(100));
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('100000'), parseEther('100000').div(100));
 
         await increaseTime(DAY);
 
         await vault.withdraw(await vault.balanceOf(a1.address));
-        expect(await vault.totalSupply()).equal(parseEther('50000'));
+        expect(await vault.totalSupply()).closeTo(parseEther('50000'), parseEther('50000').div(100));
 
         await vault.connect(a2).withdraw(await vault.balanceOf(a2.address));
         expect(await vault.totalSupply()).equal(0);

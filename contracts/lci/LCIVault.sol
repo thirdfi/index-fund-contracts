@@ -8,10 +8,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../../libs/BaseRelayRecipient.sol";
-
-interface IChainlink {
-    function latestAnswer() external view returns (int256);
-}
+import "./libs/Price.sol";
 
 interface IStrategy {
     function invest(uint amount) external;
@@ -73,7 +70,8 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
 
         strategy.invest(amount);
 
-        uint amtDeposit = amount; // USDT's decimals is 18
+        (uint USDTPriceInUSD, uint denominator) = PriceLib.getUSDTPriceInUSD();
+        uint amtDeposit = amount * USDTPriceInUSD / denominator; // USDT's decimals is 18
         uint _totalSupply = totalSupply();
         uint share = (_totalSupply == 0 || pool <= _totalSupply)  ? amtDeposit : amtDeposit * _totalSupply / pool;
         _mint(msgSender, share);
@@ -93,7 +91,8 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
             strategy.withdrawPerc(share * 1e18 / _totalSupply);
             USDT.safeTransfer(msg.sender, USDT.balanceOf(address(this)));
         } else {
-            USDT.safeTransfer(msg.sender, withdrawAmt); // USDT's decimals is 18
+            (uint USDTPriceInUSD, uint denominator) = PriceLib.getUSDTPriceInUSD();
+            USDT.safeTransfer(msg.sender, withdrawAmt * denominator / USDTPriceInUSD); // USDT's decimals is 18
         }
         _burn(msg.sender, share);
         emit Withdraw(msg.sender, withdrawAmt, address(USDT), share);

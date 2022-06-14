@@ -4,6 +4,7 @@ pragma solidity 0.8.9;
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "./libs/Price.sol";
 
 interface IRouter {
     function swapExactTokensForTokens(
@@ -108,9 +109,10 @@ contract LCIStrategy is OwnableUpgradeable {
     function invest(uint USDTAmt) external onlyVault {
         USDT.safeTransferFrom(vault, address(this), USDTAmt);
         USDTAmt = USDT.balanceOf(address(this));
-        
+        (uint USDTPriceInUSD, uint denominator) = PriceLib.getUSDTPriceInUSD();
+
         uint[] memory pools = getEachPoolInUSD();
-        uint pool = pools[0] + pools[1] + pools[2] + USDTAmt; // USDT's decimals is 18
+        uint pool = pools[0] + pools[1] + pools[2] + USDTAmt * USDTPriceInUSD / denominator; // USDT's decimals is 18
         uint USDTUSDCTargetPool = pool * USDTUSDCTargetPerc / DENOMINATOR;
         uint USDTBUSDTargetPool = pool * USDTBUSDTargetPerc / DENOMINATOR;
         uint USDCBUSDTargetPool = pool * USDCBUSDTargetPerc / DENOMINATOR;
@@ -121,9 +123,9 @@ contract LCIStrategy is OwnableUpgradeable {
             USDTBUSDTargetPool > pools[1] &&
             USDCBUSDTargetPool > pools[2]
         ) {
-            _investUSDTUSDC(USDTUSDCTargetPool - pools[0]);
-            _investUSDTBUSD(USDTBUSDTargetPool - pools[1]);
-            _investUSDCBUSD(USDCBUSDTargetPool - pools[2]);
+            _investUSDTUSDC((USDTUSDCTargetPool - pools[0]) * denominator / USDTPriceInUSD);
+            _investUSDTBUSD((USDTBUSDTargetPool - pools[1]) * denominator / USDTPriceInUSD);
+            _investUSDCBUSD((USDCBUSDTargetPool - pools[2]) * denominator / USDTPriceInUSD);
         } else {
             uint furthest;
             uint farmIndex;
