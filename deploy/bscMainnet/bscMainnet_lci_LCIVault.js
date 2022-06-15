@@ -27,8 +27,10 @@ module.exports = async ({ deployments }) => {
   });
   console.log("  LCIVault_Proxy contract address: ", proxy.address);
 
-  const tx = await strategy.setVault(proxy.address);
-  await tx.wait();
+  if ((await strategy.vault()) === ethers.constants.AddressZero) {
+    const tx = await strategy.setVault(proxy.address);
+    await tx.wait();
+  }
 
   // Verify the implementation contract
   try {

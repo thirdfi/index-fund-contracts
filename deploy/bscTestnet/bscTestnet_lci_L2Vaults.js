@@ -9,14 +9,14 @@ module.exports = async ({ deployments }) => {
   const bscVaultFactory = await ethers.getContract("BscVaultFactory");
   const totalVaults = await bscVaultFactory.totalVaults();
 
+  const dataUSDTUSDC = vaultIface.encodeFunctionData("initialize", [
+    "LCI L2 USDT-USDC", "lciL2USDTC",
+    network_.PancakeSwap.Farm_USDT_USDC_pid,
+    common.treasury, common.admin,
+  ]);
+
   if (totalVaults < 1) {
     console.log("Now deploying USDTUSDCVault ...");
-    const dataUSDTUSDC = vaultIface.encodeFunctionData("initialize", [
-      "LCI L2 USDT-USDC", "lciL2USDTC",
-      network_.PancakeSwap.Farm_USDT_USDC_pid,
-      common.treasury, common.admin,
-    ]);
-
     const tx = await bscVaultFactory.createVault(dataUSDTUSDC);
     await tx.wait();
     const USDTUSDCVaultAddr = await bscVaultFactory.getVault((await bscVaultFactory.totalVaults()).sub(1))
@@ -49,6 +49,19 @@ module.exports = async ({ deployments }) => {
     await tx.wait();
     const USDCBUSDVaultAddr = await bscVaultFactory.getVault((await bscVaultFactory.totalVaults()).sub(1))
     console.log("  USDCBUSDVaultAddr: ", USDCBUSDVaultAddr);
+  }
+
+  // Verify the contracts
+  try {
+    await run("verify:verify", {
+      address: await avaxVaultFactory.getVault(0),
+      constructorArguments: [
+        await avaxVaultFactory.getBeacon(),
+        dataUSDTUSDC
+      ],
+      contract: "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol:BeaconProxy",
+    });
+  } catch(e) {
   }
 
 };

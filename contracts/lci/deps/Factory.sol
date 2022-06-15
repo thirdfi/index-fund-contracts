@@ -18,6 +18,10 @@ contract BscVaultFactory is Ownable {
         upgradeableBeacon = new UpgradeableBeacon(_logic);
     }
 
+    function getBeacon() external view returns (address) {
+        return address(upgradeableBeacon);
+    }
+
     function updateLogic(address _newImpl) onlyOwner public{
         upgradeableBeacon.upgradeTo(_newImpl);
     }
