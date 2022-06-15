@@ -54,6 +54,9 @@ describe("LCI", async () => {
         expect(await vault.versionRecipient()).equal('1');
 
         expect(await strategy.vault()).equal(vault.address);
+        expect(await strategy.USDTUSDCTargetPerc()).equal(6000);
+        expect(await strategy.USDTBUSDTargetPerc()).equal(2000);
+        expect(await strategy.USDCBUSDTargetPerc()).equal(2000);
         const USDTUSDCVaultAddr = await strategy.USDTUSDCVault();
         const USDTBUSDVaultAddr = await strategy.USDTBUSDVault();
         const USDCBUSDVaultAddr = await strategy.USDCBUSDVault();
@@ -121,6 +124,14 @@ describe("LCI", async () => {
 
         await expectRevert(vault.rebalance(0, 1000), "Only owner or admin");
         await vault.connect(admin).rebalance(0, 1000);
+
+        await expectRevert(strategy.setLPCompositionTargetPerc([4000,3000,3000]), "Ownable: caller is not the owner");
+        await expectRevert(strategy.connect(deployer).setLPCompositionTargetPerc([4000,3000]), "Invalid count");
+        await expectRevert(strategy.connect(deployer).setLPCompositionTargetPerc([4000,3000,2000]), "Invalid parameter");
+        await strategy.connect(deployer).setLPCompositionTargetPerc([4000,3000,3000]);
+        expect(await strategy.USDTUSDCTargetPerc()).equal(4000);
+        expect(await strategy.USDTBUSDTargetPerc()).equal(3000);
+        expect(await strategy.USDCBUSDTargetPerc()).equal(3000);
 
         const USDTUSDCVault = new ethers.Contract(await strategy.USDTUSDCVault(), l2VaultArtifact.abi, a1);
 

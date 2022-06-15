@@ -64,9 +64,9 @@ contract LCIStrategy is OwnableUpgradeable {
     IL2Vault public USDCBUSDVault;
     
     uint constant DENOMINATOR = 10000;
-    uint constant USDTUSDCTargetPerc = 6000; // 60%
-    uint constant USDTBUSDTargetPerc = 2000; // 20%
-    uint constant USDCBUSDTargetPerc = 2000; // 20%
+    uint public USDTUSDCTargetPerc;
+    uint public USDTBUSDTargetPerc;
+    uint public USDCBUSDTargetPerc;
 
     address public vault;
 
@@ -88,6 +88,10 @@ contract LCIStrategy is OwnableUpgradeable {
 
     function initialize(IL2Vault _USDTUSDCVault, IL2Vault _USDTBUSDVault, IL2Vault _USDCBUSDVault) external initializer {
         __Ownable_init();
+
+        USDTUSDCTargetPerc = 6000; // 60%
+        USDTBUSDTargetPerc = 2000; // 20%
+        USDCBUSDTargetPerc = 2000; // 20%
 
         USDTUSDCVault = _USDTUSDCVault;
         USDTBUSDVault = _USDTBUSDVault;
@@ -273,11 +277,6 @@ contract LCIStrategy is OwnableUpgradeable {
         USDT.safeTransfer(vault, USDTAmt);
     }
 
-    function setVault(address _vault) external onlyOwner {
-        require(vault == address(0), "Vault set");
-        vault = _vault;
-    }
-
     function emergencyWithdraw() external onlyVault {
         // 1e18 == 100% of share
         _withdrawUSDTUSDC(1e18);
@@ -288,6 +287,20 @@ contract LCIStrategy is OwnableUpgradeable {
             USDT.safeTransfer(vault, USDTAmt);
         }
         emit EmergencyWithdraw(USDTAmt);
+    }
+
+    function setVault(address _vault) external onlyOwner {
+        require(vault == address(0), "Vault set");
+        vault = _vault;
+    }
+
+    function setLPCompositionTargetPerc(uint[] calldata _targetPerc) external onlyOwner {
+        require(_targetPerc.length == 3, "Invalid count");
+        require((_targetPerc[0]+_targetPerc[1]+_targetPerc[2]) == DENOMINATOR, "Invalid parameter");
+
+        USDTUSDCTargetPerc = _targetPerc[0];
+        USDTBUSDTargetPerc = _targetPerc[1];
+        USDCBUSDTargetPerc = _targetPerc[2];
     }
 
     function getUSDTUSDCPoolInUSD() private view  returns (uint) {
