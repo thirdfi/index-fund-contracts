@@ -294,9 +294,32 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
         }
     }
 
+    function _getValueInUSD(uint lpAmt) public view returns (uint _valueInUSD, bool valid) {
+        uint _totalSupply = lpToken.totalSupply();
+
+        (uint _reserve0, uint _reserve1) = lpToken.getReserves();
+
+        uint _total0 = lpAmt * _reserve0 / _totalSupply;
+        uint _total1 = lpAmt * _reserve1 / _totalSupply;
+
+        uint _price0 = PriceLib.getAssetPrice(address(token0));
+        uint _price1 = PriceLib.getAssetPrice(address(token1));
+        if (_price0 == 0 || _price1 == 0) {
+            return (0, false);
+        }
+
+        _valueInUSD = ((_total0 * _price0) + (_total1 * _price1)) / 1e8;
+        valid = true;
+    }
+
     function getAllPoolInUSD() public view returns (uint) {
-        (uint BNBPriceInUSD, uint denominator) = PriceLib.getBNBPriceInUSD();
-        return getAllPoolInBNB() * BNBPriceInUSD / denominator;
+        (uint poolInUSD, bool valid) = _getValueInUSD(getAllPool());
+        if (valid) {
+            return poolInUSD;
+        } else {
+            (uint BNBPriceInUSD, uint denominator) = PriceLib.getBNBPriceInUSD();
+            return getAllPoolInBNB() * BNBPriceInUSD / denominator;
+        }
     }
 
     function getPricePerFullShare(bool inUSD) external view returns (uint) {
