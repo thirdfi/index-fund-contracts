@@ -73,7 +73,7 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
         (uint USDTPriceInUSD, uint denominator) = PriceLib.getUSDTPriceInUSD();
         uint amtDeposit = amount * USDTPriceInUSD / denominator; // USDT's decimals is 18
         uint _totalSupply = totalSupply();
-        uint share = (_totalSupply == 0 || pool <= _totalSupply)  ? amtDeposit : amtDeposit * _totalSupply / pool;
+        uint share = _totalSupply == 0 ? amtDeposit : amtDeposit * _totalSupply / pool;
         _mint(msgSender, share);
 
         emit Deposit(msgSender, amtDeposit, address(USDT), share);
