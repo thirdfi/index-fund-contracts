@@ -12,6 +12,15 @@ Market Weighted Index is a tokenised crypto index fund which tracks major crypto
 
 ## Contract Addresses
 
+### USDT
+
+| Network     | Mainnet                                                                                                               | Testnet                                                                                                               |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Aurora      | [0x4988a896b1227218e4A686fdE5EabdcAbd91571f](https://aurorascan.dev/address/0x4988a896b1227218e4A686fdE5EabdcAbd91571f) | [0xF9C249974c1Acf96a59e5757Cc9ba7035cE489B1](https://testnet.aurorascan.dev/address/0xf9c249974c1acf96a59e5757cc9ba7035ce489b1)
+| Avalanche   | [0xc7198437980c041c805A1EDcbA50c1Ce5db95118](https://snowtrace.io/address/0xc7198437980c041c805A1EDcbA50c1Ce5db95118) | [0x78ae2880bd1672b49a33cF796CF53FE6db0aB01D](https://testnet.snowtrace.io/address/0x78ae2880bd1672b49a33cf796cf53fe6db0ab01d)
+| BSC         | [0x55d398326f99059fF775485246999027B3197955](https://bscscan.com/token/0x55d398326f99059fF775485246999027B3197955) | [0x1F326a8CA5399418a76eA0efa0403Cbb00790C67](https://testnet.bscscan.com/address/0x1f326a8ca5399418a76ea0efa0403cbb00790c67)
+| Polygon     | [0xc2132D05D31c914a87C6611C10748AEb04B58e8F](https://polygonscan.com/address/0xc2132D05D31c914a87C6611C10748AEb04B58e8F) | [0x7e4C234B1d634DB790592d1550816b19E862F744](https://mumbai.polygonscan.com/address/0x7e4c234b1d634db790592d1550816b19e862f744)
+
 ### Aurora Products
 
 | Products    | Mainnet                                                                                                               | Testnet                                                                                                               |
