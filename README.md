@@ -2,6 +2,10 @@
 
 ## Products
 
+### Blockchain Network Index (BNI)
+
+Blockchain Network is a tokenised crypto index fund which tracks major Layer 1 Blockchain Network utility tokens, such as AVAX, NEAR, MATIC. An innovative fund to get ahead of the crypto market.
+
 ### Low-risk Crypto Index (LCI)
 
 Low-risk Crypto Index is a tokenised crypto index fund which tracks major stablecoins, such as USDC, USDT, DAI. Low risk but stable profit in your portfolio.
