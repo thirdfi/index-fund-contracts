@@ -52,6 +52,7 @@ describe("LCI", async () => {
         expect(await vault.name()).equal('Low-risk Crypto Index');
         expect(await vault.symbol()).equal('LCI');
         expect(await vault.versionRecipient()).equal('1');
+        expect(await vault.profitFeePerc()).equal(2000);
 
         expect(await strategy.vault()).equal(vault.address);
         expect(await strategy.USDTUSDCTargetPerc()).equal(6000);
@@ -113,6 +114,10 @@ describe("LCI", async () => {
         await vault.connect(deployer).setBiconomy(a2.address);
         expect(await vault.trustedForwarder()).equal(a2.address);
         await vault.connect(deployer).setBiconomy(network_.biconomy);
+
+        await expectRevert(vault.setProfitFeePerc(1000), "Ownable: caller is not the owner");
+        await expectRevert(vault.collectProfitAndUpdateWatermark(), "Only owner or admin");
+        await expectRevert(vault.withdrawFees(), "Only owner or admin");
 
         await expectRevert(vault.emergencyWithdraw(), "Only owner or admin");
         await vault.connect(admin).emergencyWithdraw();

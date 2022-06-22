@@ -30,6 +30,11 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
     address public treasuryWallet;
     address public admin;
 
+    uint constant DENOMINATOR = 10000;
+    uint public watermark; // In USD (18 decimals)
+    uint public profitFeePerc;
+    uint public fees; // In USD (18 decimals)
+
     event Deposit(address caller, uint amtDeposit, address tokenDeposit, uint shareMinted);
     event Withdraw(address caller, uint amtWithdraw, address tokenWithdraw, uint shareBurned);
     event Rebalance(uint farmIndex, uint sharePerc, uint amount);
@@ -37,7 +42,10 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
     event SetTreasuryWallet(address oldTreasuryWallet, address newTreasuryWallet);
     event SetAdminWallet(address oldAdmin, address newAdmin);
     event SetBiconomy(address oldBiconomy, address newBiconomy);
-    
+    event CollectProfitAndUpdateWatermark(uint currentWatermark, uint lastWatermark, uint fee);
+    event AdjustWatermark(uint currentWatermark, uint lastWatermark);
+    event TransferredOutFees(uint fees, address token);
+
     modifier onlyOwnerOrAdmin {
         require(msg.sender == owner() || msg.sender == address(admin), "Only owner or admin");
         _;
@@ -56,6 +64,8 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
         admin = _admin;
         trustedForwarder = _biconomy;
 
+        profitFeePerc = 2000;
+
         USDT.safeApprove(address(strategy), type(uint).max);
     }
 
@@ -68,12 +78,19 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
         address msgSender = _msgSender();
         USDT.safeTransferFrom(msgSender, address(this), amount);
 
-        strategy.invest(amount);
-
         (uint USDTPriceInUSD, uint denominator) = PriceLib.getUSDTPriceInUSD();
         uint amtDeposit = amount * USDTPriceInUSD / denominator; // USDT's decimals is 18
         uint _totalSupply = totalSupply();
-        uint share = _totalSupply == 0 ? amtDeposit : amtDeposit * _totalSupply / pool;
+
+        if (watermark > 0) _collectProfitAndUpdateWatermark();
+        uint USDTAmt = _transferOutFees();
+        if (USDTAmt > 0) {
+            strategy.invest(amount);
+        }
+        adjustWatermark(amtDeposit, true);
+
+        // When assets invested in strategy, around 0.3% lost for swapping fee. We will consider it in share amount calculation.
+        uint share = _totalSupply == 0 ? amtDeposit : _totalSupply * amtDeposit * 997 / (1000 * pool);
         _mint(msgSender, share);
 
         emit Deposit(msgSender, amtDeposit, address(USDT), share);
@@ -90,6 +107,7 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
         if (!paused()) {
             strategy.withdrawPerc(share * 1e18 / _totalSupply);
             USDT.safeTransfer(msg.sender, USDT.balanceOf(address(this)));
+            adjustWatermark(withdrawAmt, false);
         } else {
             (uint USDTPriceInUSD, uint denominator) = PriceLib.getUSDTPriceInUSD();
             USDT.safeTransfer(msg.sender, withdrawAmt * denominator / USDTPriceInUSD); // USDT's decimals is 18
@@ -109,15 +127,82 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
     function emergencyWithdraw() external onlyOwnerOrAdmin whenNotPaused {
         _pause();
         strategy.emergencyWithdraw();
+        watermark = 0;
     }
 
     function reinvest() external onlyOwnerOrAdmin whenPaused {
         _unpause();
         uint USDTAmt = USDT.balanceOf(address(this));
         if (0 < USDTAmt) {
+            (uint USDTPriceInUSD, uint denominator) = PriceLib.getUSDTPriceInUSD();
+            uint amtDeposit = USDTAmt * USDTPriceInUSD / denominator; // USDT's decimals is 18
+
             strategy.invest(USDTAmt);
+            adjustWatermark(amtDeposit, true);
             emit Reinvest(USDTAmt);
         }
+    }
+
+    function collectProfitAndUpdateWatermark() external onlyOwnerOrAdmin whenNotPaused {
+        _collectProfitAndUpdateWatermark();
+    }
+    function _collectProfitAndUpdateWatermark() private {
+        uint currentWatermark = strategy.getAllPoolInUSD();
+        uint lastWatermark = watermark;
+        uint fee;
+        if (currentWatermark > lastWatermark) {
+            uint profit = currentWatermark - lastWatermark;
+            fee = profit * profitFeePerc / DENOMINATOR;
+            fees += fee;
+            watermark = currentWatermark;
+        }
+        emit CollectProfitAndUpdateWatermark(currentWatermark, lastWatermark, fee);
+    }
+
+    /// @param signs True for positive, false for negative
+    function adjustWatermark(uint amount, bool signs) private {
+        uint lastWatermark = watermark;
+        watermark = signs == true
+                    ? watermark + amount
+                    : (watermark > amount) ? watermark - amount : 0;
+        emit AdjustWatermark(watermark, lastWatermark);
+    }
+
+    function withdrawFees() external onlyOwnerOrAdmin {
+        if (!paused()) {
+            uint pool = getAllPoolInUSD();
+            uint _fees = fees;
+            uint sharePerc = _fees < pool ? _fees * 1e18 / pool : 1e18;
+            strategy.withdrawPerc(sharePerc);
+        }
+        _transferOutFees();
+    }
+
+    function _transferOutFees() private returns (uint USDTAmt) {
+        USDTAmt = USDT.balanceOf(address(this));
+        uint _fees = fees;
+        if (_fees != 0) {
+            (uint USDTPriceInUSD, uint denominator) = PriceLib.getUSDTPriceInUSD();
+            uint FeeAmt = _fees * denominator / USDTPriceInUSD; // USDT's decimals is 18
+
+            if (FeeAmt < USDTAmt) {
+                _fees = 0;
+                USDTAmt -= FeeAmt;
+            } else {
+                _fees -= (USDTAmt * USDTPriceInUSD / denominator);
+                FeeAmt = USDTAmt;
+                USDTAmt = 0;
+            }
+            fees = _fees;
+
+            USDT.safeTransfer(treasuryWallet, FeeAmt);
+            emit TransferredOutFees(FeeAmt, address(USDT)); // Decimal follow _token
+        }
+    }
+
+    function setProfitFeePerc(uint _profitFeePerc) external onlyOwner {
+        require(profitFeePerc < 3001, "Profit fee cannot > 30%");
+        profitFeePerc = _profitFeePerc;
     }
 
     function setTreasuryWallet(address _treasuryWallet) external onlyOwner {

@@ -213,7 +213,7 @@ contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pausab
     ///@notice Function to set deposit and yield fee
     ///@param _yieldFeePerc deposit fee percentage. 2000 for 20%
     function setFee(uint _yieldFeePerc) external onlyOwner{
-        require(_yieldFeePerc < DENOMINATOR, "yieldFeePerc invalid");
+        require(_yieldFeePerc < 3001, "Yield Fee cannot > 30%");
         yieldFee = _yieldFeePerc;
         emit SetYieldFeePerc(_yieldFeePerc);
     }
