@@ -76,6 +76,7 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
         uint pool = getAllPoolInUSD();
         address msgSender = _msgSender();
         USDT.safeTransferFrom(msgSender, address(this), amount);
+        amount = USDT.balanceOf(address(this));
 
         (uint USDTPriceInUSD, uint denominator) = PriceLib.getUSDTPriceInUSD();
         uint amtDeposit = amount * USDTPriceInUSD / denominator; // USDT's decimals is 18
@@ -170,7 +171,7 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
 
     function withdrawFees() external onlyOwnerOrAdmin {
         if (!paused()) {
-            uint pool = getAllPoolInUSD();
+            uint pool = strategy.getAllPoolInUSD();
             uint _fees = fees;
             uint sharePerc = _fees < pool ? _fees * 1e18 / pool : 1e18;
             strategy.withdrawPerc(sharePerc);
@@ -232,11 +233,14 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
     }
 
     function getAllPoolInUSD() public view returns (uint) {
+        uint pool;
         if (paused()) {
             (uint USDTPriceInUSD, uint denominator) = PriceLib.getUSDTPriceInUSD();
-            return USDT.balanceOf(address(this)) * USDTPriceInUSD / denominator; // USDT's decimals is 18
+            pool = USDT.balanceOf(address(this)) * USDTPriceInUSD / denominator; // USDT's decimals is 18
+        } else {
+            pool = strategy.getAllPoolInUSD();
         }
-        return strategy.getAllPoolInUSD();
+        return (pool > fees ? pool - fees : 0);
     }
 
     /// @notice Can be use for calculate both user shares & APR    
