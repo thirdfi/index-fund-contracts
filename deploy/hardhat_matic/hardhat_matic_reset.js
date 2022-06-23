@@ -1,7 +1,7 @@
 const { network } = require("hardhat");
 require("dotenv").config();
 
-const mainnetUrl = process.env.ALCHEMY_URL_POLYGON_MAINNET;
+const mainnetUrl = `https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_POLYGON_MAINNET_API_KEY}`;
 const mainnetBlockNumber = 29697590;
 
 module.exports = async () => {

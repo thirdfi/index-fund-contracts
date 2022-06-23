@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { common, bscTestnet: network_ } = require("../../parameters");
+const { common, bscTestnet: network_ } = require("../../parameters/testnet");
 
 module.exports = async ({ deployments }) => {
 

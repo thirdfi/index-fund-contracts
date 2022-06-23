@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { common, maticMumbai: network_ } = require("../../parameters");
+const { common, maticMumbai: network_ } = require("../../parameters/testnet");
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;

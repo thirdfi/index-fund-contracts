@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { common, avaxTestnet: network_ } = require("../../parameters");
+const { common, avaxTestnet: network_ } = require("../../parameters/testnet");
 const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {

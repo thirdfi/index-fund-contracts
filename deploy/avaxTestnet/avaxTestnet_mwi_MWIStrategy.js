@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { avaxTestnet: network_ } = require("../../parameters");
+const { avaxTestnet: network_ } = require("../../parameters/testnet");
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
