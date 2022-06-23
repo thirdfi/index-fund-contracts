@@ -1,13 +1,13 @@
 const { ethers } = require("hardhat");
 const { common, bscTestnet: network_ } = require("../../parameters/testnet");
+const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
 
   const vaultArtifact = await deployments.getArtifact("BscVaultTest");
   const vaultIface = new ethers.utils.Interface(JSON.stringify(vaultArtifact.abi));
 
-  const bscVaultFactory = await ethers.getContract("BscVaultFactory");
-  const totalVaults = await bscVaultFactory.totalVaults();
+  const bscVaultFactory = await ethers.getContract("PckFarm2VaultFactory");
 
   const dataUSDTUSDC = vaultIface.encodeFunctionData("initialize", [
     "LCI L2 USDT-USDC", "lciL2USDTC",
@@ -15,15 +15,15 @@ module.exports = async ({ deployments }) => {
     common.treasury, common.admin,
   ]);
 
-  if (totalVaults < 1) {
+  if (await bscVaultFactory.getVaultByPid(network_.PancakeSwap.Farm_USDT_USDC_pid) === AddressZero) {
     console.log("Now deploying USDTUSDCVault ...");
-    const tx = await bscVaultFactory.createVault(dataUSDTUSDC);
+    const tx = await bscVaultFactory.createVault(network_.PancakeSwap.Farm_USDT_USDC_pid, dataUSDTUSDC);
     await tx.wait();
     const USDTUSDCVaultAddr = await bscVaultFactory.getVault((await bscVaultFactory.totalVaults()).sub(1))
     console.log("  USDTUSDCVaultAddr: ", USDTUSDCVaultAddr);
   }
 
-  if (totalVaults < 2) {
+  if (await bscVaultFactory.getVaultByPid(network_.PancakeSwap.Farm_USDT_BUSD_pid) === AddressZero) {
     console.log("Now deploying USDTBUSDVault ...");
     const dataUSDTBUSD= vaultIface.encodeFunctionData("initialize", [
       "LCI L2 USDT-BUSD", "lciL2USDTB",
@@ -31,13 +31,13 @@ module.exports = async ({ deployments }) => {
       common.treasury, common.admin,
     ]);
 
-    const tx = await bscVaultFactory.createVault(dataUSDTBUSD);
+    const tx = await bscVaultFactory.createVault(network_.PancakeSwap.Farm_USDT_BUSD_pid, dataUSDTBUSD);
     await tx.wait();
     const USDTBUSDVaultAddr = await bscVaultFactory.getVault((await bscVaultFactory.totalVaults()).sub(1))
     console.log("  USDTBUSDVaultAddr: ", USDTBUSDVaultAddr);
   }
 
-  if (totalVaults < 3) {
+  if (await bscVaultFactory.getVaultByPid(network_.PancakeSwap.Farm_USDC_BUSD_pid) === AddressZero) {
     console.log("Now deploying USDCBUSDVault ...");
     const dataUSDCBUSD= vaultIface.encodeFunctionData("initialize", [
       "LCI L2 USDC-BUSD", "lciL2USDCB",
@@ -45,7 +45,7 @@ module.exports = async ({ deployments }) => {
       common.treasury, common.admin,
     ]);
 
-    const tx = await bscVaultFactory.createVault(dataUSDCBUSD);
+    const tx = await bscVaultFactory.createVault(network_.PancakeSwap.Farm_USDC_BUSD_pid, dataUSDCBUSD);
     await tx.wait();
     const USDCBUSDVaultAddr = await bscVaultFactory.getVault((await bscVaultFactory.totalVaults()).sub(1))
     console.log("  USDCBUSDVaultAddr: ", USDCBUSDVaultAddr);

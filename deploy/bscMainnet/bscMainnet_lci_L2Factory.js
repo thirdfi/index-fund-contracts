@@ -4,24 +4,24 @@ module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
   const [deployer] = await ethers.getSigners();
 
-  console.log("Now deploying BscVault ...");
-  const bscVault = await deploy("BscVault", {
+  console.log("Now deploying PckFarm2Vault ...");
+  const bscVault = await deploy("PckFarm2Vault", {
     from: deployer.address,
   });
-  console.log("  BscVault contract address: ", bscVault.address);
+  console.log("  PckFarm2Vault contract address: ", bscVault.address);
 
-  console.log("Now deploying BscVaultFactory ...");
-  const bscVaultFactory = await deploy("BscVaultFactory", {
+  console.log("Now deploying PckFarm2VaultFactory ...");
+  const bscVaultFactory = await deploy("PckFarm2VaultFactory", {
     from: deployer.address,
     args: [bscVault.address],
   });
-  console.log("  BscVaultFactory contract address: ", bscVaultFactory.address);
+  console.log("  PckFarm2VaultFactory contract address: ", bscVaultFactory.address);
 
   // Verify the implementation contract
   try {
     await run("verify:verify", {
       address: bscVault.address,
-      contract: "contracts/lci/deps/Vault.sol:BscVault",
+      contract: "contracts/lci/deps/PckFarm2Vault.sol:PckFarm2Vault",
     });
   } catch(e) {
   }
@@ -31,7 +31,7 @@ module.exports = async ({ deployments }) => {
       constructorArguments: [
         bscVault.address
       ],
-      contract: "contracts/lci/deps/Factory.sol:BscVaultFactory",
+      contract: "contracts/lci/deps/PckFarm2VaultFactory.sol:PckFarm2VaultFactory",
     });
   } catch(e) {
   }

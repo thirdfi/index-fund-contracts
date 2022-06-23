@@ -68,7 +68,7 @@ module.exports = async ({ deployments }) => {
   // Verify the contracts
   try {
     await run("verify:verify", {
-      address: await avaxVaultFactory.getVault(0),
+      address: await avaxVaultFactory.getVaultByUnderlying(network_.Token.WBTC),
       constructorArguments: [
         await avaxVaultFactory.getBeacon(),
         dataWBTC

@@ -26,7 +26,7 @@ describe("LCI", async () => {
   
       vaultArtifact = await deployments.getArtifact("LCIVault");
       strategyArtifact = await deployments.getArtifact("LCIStrategy");
-      l2VaultArtifact = await deployments.getArtifact("BscVault");
+      l2VaultArtifact = await deployments.getArtifact("PckFarm2Vault");
     });
   
     beforeEach(async () => {

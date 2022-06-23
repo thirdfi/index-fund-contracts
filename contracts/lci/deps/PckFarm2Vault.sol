@@ -63,7 +63,7 @@ interface IMasterChefV2 {
     function withdraw(uint pid, uint amount) external;
 }
 
-contract BscVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable{
+contract PckFarm2Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable{
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     using SafeERC20Upgradeable for IUniPair;

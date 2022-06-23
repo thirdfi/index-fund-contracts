@@ -1,19 +1,20 @@
 const { ethers } = require("hardhat");
+const { bscTestnet: network_ } = require("../../parameters/testnet");
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
   const [deployer] = await ethers.getSigners();
 
-  const bscVaultFactory = await ethers.getContract("BscVaultFactory");
+  const bscVaultFactory = await ethers.getContract("PckFarm2VaultFactory");
   const totalVaults = await bscVaultFactory.totalVaults();
   if (totalVaults < 3) {
     console.error("No L2 vaults deployed");
     process.exit(1);
   }
 
-  const USDTUSDCVaultAddr = await bscVaultFactory.getVault(0);
-  const USDTBUSDVaultAddr = await bscVaultFactory.getVault(1);
-  const USDCBUSDVaultAddr = await bscVaultFactory.getVault(2);
+  const USDTUSDCVaultAddr = await bscVaultFactory.getVaultByPid(network_.PancakeSwap.Farm_USDT_USDC_pid);
+  const USDTBUSDVaultAddr = await bscVaultFactory.getVaultByPid(network_.PancakeSwap.Farm_USDT_BUSD_pid);
+  const USDCBUSDVaultAddr = await bscVaultFactory.getVaultByPid(network_.PancakeSwap.Farm_USDC_BUSD_pid);
 
   console.log("Now deploying LCIStrategy...");
   const proxy = await deploy("LCIStrategyTest", {
