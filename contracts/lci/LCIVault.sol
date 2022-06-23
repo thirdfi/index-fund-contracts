@@ -74,13 +74,11 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
         require(amount > 0, "Amount must > 0");
 
         uint pool = getAllPoolInUSD();
-
         address msgSender = _msgSender();
         USDT.safeTransferFrom(msgSender, address(this), amount);
 
         (uint USDTPriceInUSD, uint denominator) = PriceLib.getUSDTPriceInUSD();
         uint amtDeposit = amount * USDTPriceInUSD / denominator; // USDT's decimals is 18
-        uint _totalSupply = totalSupply();
 
         if (watermark > 0) _collectProfitAndUpdateWatermark();
         uint USDTAmt = _transferOutFees();
@@ -89,8 +87,10 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
         }
         adjustWatermark(amtDeposit, true);
 
-        // When assets invested in strategy, around 0.3% lost for swapping fee. We will consider it in share amount calculation.
-        uint share = _totalSupply == 0 ? amtDeposit : _totalSupply * amtDeposit * 997 / (1000 * pool);
+        uint _totalSupply = totalSupply();
+        uint share = _totalSupply == 0 ? amtDeposit : _totalSupply * amtDeposit / pool;
+        // When assets invested in strategy, around 0.3% lost for swapping fee. We will consider it in share amount calculation to avoid pricePerFullShare fall down under 1.
+        share = share * 997 / 1000;
         _mint(msgSender, share);
 
         emit Deposit(msgSender, amtDeposit, address(USDT), share);
