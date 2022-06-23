@@ -22,6 +22,13 @@ Create files storing private key and API keys.
 
 ## Deploy and Verify contracts
 
+### BNI
+```text
+npx hardhat deploy --network maticMainnet --tags maticMainnet_bni
+npx hardhat deploy --network auroraMainnet --tags auroraMainnet_bni
+npx hardhat deploy --network avaxMainnet --tags avaxMainnet_bni
+```
+
 ### LCI
 ```text
 npx hardhat deploy --network bscMainnet --tags bscMainnet_lci

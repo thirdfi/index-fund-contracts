@@ -21,7 +21,22 @@ task("accounts", "Prints the list of accounts", async () => {
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
-const apiKey = process.env.AVAXSCAN_API_KEY;
+const isBinance = (process.env.BLOCKCHAIN === 'binance') ? true : false;
+const isPolygon = (process.env.BLOCKCHAIN === 'polygon') ? true : false;
+const isAvalanche = (process.env.BLOCKCHAIN === 'avalanche') ? true : false;
+const isAurora = (process.env.BLOCKCHAIN === 'aurora') ? true : false;
+
+const apiKey = isBinance ? process.env.BSCSCAN_API_KEY
+              : isPolygon ? process.env.POLYGONSCAN_API_KEY
+              : isAvalanche ? process.env.AVAXSCAN_API_KEY
+              : isAurora ? process.env.AURORASCAN_API_KEY
+              : process.env.ETHERSCAN_API_KEY;
+
+const chainId = isBinance ? 56
+              : isPolygon ? 137
+              : isAvalanche ? 43114
+              : isAurora ? 1313161554
+              : 1;
 
 module.exports = {
   solidity: {
@@ -37,6 +52,15 @@ module.exports = {
   },
   networks: {
     hardhat: {
+      // chainId: chainId,
+    },
+    auroraMainnet: {
+      url: `https://mainnet.aurora.dev`,
+      accounts: [process.env.PRIVATE_KEY]
+    },
+    auroraTestnet: {
+      url: `https://testnet.aurora.dev`,
+      accounts: [process.env.PRIVATE_KEY]
     },
     avaxMainnet: {
       url: `https://api.avax.network/ext/bc/C/rpc`,
@@ -52,6 +76,14 @@ module.exports = {
     },
     bscTestnet: {
       url: `https://data-seed-prebsc-2-s1.binance.org:8545`,
+      accounts: [process.env.PRIVATE_KEY]
+    },
+    maticMainnet: {
+      url: `https://rpc-mainnet.maticvigil.com`,
+      accounts: [process.env.PRIVATE_KEY]
+    },
+    maticMumbai: {
+      url: `https://rpc-mumbai.maticvigil.com`,
       accounts: [process.env.PRIVATE_KEY]
     },
   },
