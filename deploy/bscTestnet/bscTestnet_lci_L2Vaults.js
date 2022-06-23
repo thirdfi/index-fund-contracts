@@ -54,9 +54,9 @@ module.exports = async ({ deployments }) => {
   // Verify the contracts
   try {
     await run("verify:verify", {
-      address: await avaxVaultFactory.getVault(0),
+      address: await bscVaultFactory.getVaultByPid(network_.PancakeSwap.Farm_USDT_USDC_pid),
       constructorArguments: [
-        await avaxVaultFactory.getBeacon(),
+        await bscVaultFactory.getBeacon(),
         dataUSDTUSDC
       ],
       contract: "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol:BeaconProxy",
