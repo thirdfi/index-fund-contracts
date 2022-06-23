@@ -76,7 +76,6 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
         uint pool = getAllPoolInUSD();
         address msgSender = _msgSender();
         USDT.safeTransferFrom(msgSender, address(this), amount);
-        amount = USDT.balanceOf(address(this));
 
         (uint USDTPriceInUSD, uint denominator) = PriceLib.getUSDTPriceInUSD();
         uint amtDeposit = amount * USDTPriceInUSD / denominator; // USDT's decimals is 18
@@ -103,15 +102,17 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
         require(share <= balanceOf(msg.sender), "Not enough share to withdraw");
         
         uint _totalSupply = totalSupply();
-        uint withdrawAmt = getAllPoolInUSD() * share / _totalSupply;
+        uint pool = getAllPoolInUSD();
+        uint withdrawAmt = pool * share / _totalSupply;
+        uint sharePerc = withdrawAmt * 1e18 / (pool + fees);
 
         if (!paused()) {
-            strategy.withdrawPerc(share * 1e18 / _totalSupply);
+            strategy.withdrawPerc(sharePerc);
             USDT.safeTransfer(msg.sender, USDT.balanceOf(address(this)));
             adjustWatermark(withdrawAmt, false);
         } else {
-            (uint USDTPriceInUSD, uint denominator) = PriceLib.getUSDTPriceInUSD();
-            USDT.safeTransfer(msg.sender, withdrawAmt * denominator / USDTPriceInUSD); // USDT's decimals is 18
+            uint USDTAmt = USDT.balanceOf(address(this)) * sharePerc / 1e18;
+            USDT.safeTransfer(msg.sender, USDTAmt);
         }
         _burn(msg.sender, share);
         emit Withdraw(msg.sender, withdrawAmt, address(USDT), share);
