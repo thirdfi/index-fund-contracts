@@ -27,6 +27,11 @@ Create files storing private key and API keys.
 npx hardhat deploy --network bscMainnet --tags bscMainnet_lci
 ```
 
+### MWI
+```text
+npx hardhat deploy --network avaxMainnet --tags avaxMainnet_mwi
+```
+
 
 ## Contracts
 

@@ -21,7 +21,7 @@ task("accounts", "Prints the list of accounts", async () => {
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
-const apiKey = process.env.BSCSCAN_API_KEY;
+const apiKey = process.env.AVAXSCAN_API_KEY;
 
 module.exports = {
   solidity: {
@@ -37,6 +37,14 @@ module.exports = {
   },
   networks: {
     hardhat: {
+    },
+    avaxMainnet: {
+      url: `https://api.avax.network/ext/bc/C/rpc`,
+      accounts: [process.env.PRIVATE_KEY]
+    },
+    avaxTestnet: {
+      url: `https://api.avax-test.network/ext/bc/C/rpc`,
+      accounts: [process.env.PRIVATE_KEY]
     },
     bscMainnet: {
       url: `https://bsc-dataseed.binance.org`,
