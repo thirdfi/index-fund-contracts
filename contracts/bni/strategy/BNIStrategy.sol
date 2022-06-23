@@ -280,13 +280,21 @@ contract BNIStrategy is OwnableUpgradeable {
         }
     }
 
+    function _changeDecimals(uint amount, uint curDecimals, uint newDecimals) private pure returns(uint) {
+        if (curDecimals < newDecimals) {
+            return amount * (10 ** (newDecimals - curDecimals));
+        } else {
+            return amount / (10 ** (curDecimals - newDecimals));
+        }
+    }
+
     function _getPoolInUSD(uint _pid) private view returns (uint pool) {
         IERC20UpgradeableExt token = IERC20UpgradeableExt(tokens[_pid]);
         uint amount = token.balanceOf(address(this));
         if (0 < amount) {
             (uint TOKENPriceInUSD, uint8 TOKENPriceDecimals) = priceOracle.getAssetPrice(address(token));
             uint8 tokenDecimals = IERC20UpgradeableExt(token).decimals();
-            pool = amount * TOKENPriceInUSD * (10 ** (18-tokenDecimals)) / (10 ** (TOKENPriceDecimals));
+            pool = _changeDecimals(amount, tokenDecimals, 18) * TOKENPriceInUSD / (10 ** (TOKENPriceDecimals));
         }
     }
 

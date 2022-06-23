@@ -99,18 +99,23 @@ describe("BNI on Aurora", async () => {
     });
 
     describe('Basic function', () => {
+      beforeEach(async () => {
+        vault.connect(deployer).setAdmin(accounts[0].address);
+        admin = accounts[0];
+      });
+
       it("Basic Deposit/withdraw", async () => {
-        await usdt.transfer(a1.address, getUsdtAmount('10000'));
-        await usdt.connect(a1).approve(vault.address, getUsdtAmount('10000'));
+        await usdt.transfer(a1.address, getUsdtAmount('50000'));
+        await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
 
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await vault.connect(admin).deposit(a1.address, tokens, [getUsdtAmount('10000')]);
+        await vault.connect(admin).deposit(a1.address, tokens, [getUsdtAmount('50000')]);
         expect(await usdt.balanceOf(a1.address)).equal(0);
-        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('5000'), parseEther('5000').div(10));
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(10));
 
         await vault.connect(admin).withdrawPerc(a1.address, parseEther('1'));
-        expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('5000'), getUsdtAmount('5000').div(10));
+        expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(10));
         expect(await vault.getAllPoolInUSD()).equal(0);
       });
 
