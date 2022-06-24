@@ -59,14 +59,13 @@ contract LCIStrategy is OwnableUpgradeable {
 
     IRouter public constant PnckRouter = IRouter(0x10ED43C718714eb63d5aA57B78B54704E256024E);
 
+    uint constant POOL_COUNT = 3;
     IL2Vault public USDTUSDCVault;
     IL2Vault public USDTBUSDVault;
     IL2Vault public USDCBUSDVault;
     
     uint constant DENOMINATOR = 10000;
-    uint public USDTUSDCTargetPerc;
-    uint public USDTBUSDTargetPerc;
-    uint public USDCBUSDTargetPerc;
+    uint[] public targetPercentages;
 
     address public vault;
 
@@ -89,9 +88,9 @@ contract LCIStrategy is OwnableUpgradeable {
     function initialize(IL2Vault _USDTUSDCVault, IL2Vault _USDTBUSDVault, IL2Vault _USDCBUSDVault) external initializer {
         __Ownable_init();
 
-        USDTUSDCTargetPerc = 6000; // 60%
-        USDTBUSDTargetPerc = 2000; // 20%
-        USDCBUSDTargetPerc = 2000; // 20%
+        targetPercentages.push(6000); // 60%
+        targetPercentages.push(2000); // 20%
+        targetPercentages.push(2000); // 20%
 
         USDTUSDCVault = _USDTUSDCVault;
         USDTBUSDVault = _USDTBUSDVault;
@@ -116,51 +115,36 @@ contract LCIStrategy is OwnableUpgradeable {
         (uint USDTPriceInUSD, uint denominator) = PriceLib.getUSDTPriceInUSD();
 
         uint[] memory pools = getEachPoolInUSD();
-        uint pool = pools[0] + pools[1] + pools[2] + USDTAmt * USDTPriceInUSD / denominator; // USDT's decimals is 18
-        uint USDTUSDCTargetPool = pool * USDTUSDCTargetPerc / DENOMINATOR;
-        uint USDTBUSDTargetPool = pool * USDTBUSDTargetPerc / DENOMINATOR;
-        uint USDCBUSDTargetPool = pool * USDCBUSDTargetPerc / DENOMINATOR;
+        uint allPool = pools[0] + pools[1] + pools[2] + USDTAmt * USDTPriceInUSD / denominator; // USDT's decimals is 18
 
-        // Rebalancing invest
-        if (
-            USDTUSDCTargetPool > pools[0] &&
-            USDTBUSDTargetPool > pools[1] &&
-            USDCBUSDTargetPool > pools[2]
-        ) {
-            _investUSDTUSDC((USDTUSDCTargetPool - pools[0]) * denominator / USDTPriceInUSD);
-            _investUSDTBUSD((USDTBUSDTargetPool - pools[1]) * denominator / USDTPriceInUSD);
-            _investUSDCBUSD((USDCBUSDTargetPool - pools[2]) * denominator / USDTPriceInUSD);
-        } else {
-            uint furthest;
-            uint farmIndex;
-            uint diff;
-
-            if (USDTUSDCTargetPool > pools[0]) {
-                diff = USDTUSDCTargetPool - pools[0];
-                furthest = diff;
-                farmIndex = 0;
+        uint totalAllocation;
+        uint[] memory allocations = new uint[](POOL_COUNT);
+        for (uint i = 0; i < POOL_COUNT; i ++) {
+            uint target = allPool * targetPercentages[i] / DENOMINATOR;
+            if (pools[i] < target) {
+                uint diff = target - pools[i];
+                allocations[i] = diff;
+                totalAllocation += diff;
             }
-            if (USDTBUSDTargetPool > pools[1]) {
-                diff = USDTBUSDTargetPool - pools[1];
-                if (diff > furthest) {
-                    furthest = diff;
-                    farmIndex = 1;
-                }
-            }
-            if (USDTBUSDTargetPool > pools[2]) {
-                diff = USDTBUSDTargetPool - pools[2];
-                if (diff > furthest) {
-                    farmIndex = 2;
-                }
-            }
-
-            if (farmIndex == 0) _investUSDTUSDC(USDTAmt);
-            else if (farmIndex == 1) _investUSDTBUSD(USDTAmt);
-            else _investUSDCBUSD(USDTAmt);
         }
 
-        emit TargetComposition(USDTUSDCTargetPool, USDTBUSDTargetPool, USDCBUSDTargetPool);
+        uint[] memory USDTAmts = new uint[](POOL_COUNT);
+        for (uint i = 0; i < POOL_COUNT; i ++) {
+            USDTAmts[i] = USDTAmt * allocations[i] / totalAllocation;
+        }
+
+        if (USDTAmts[0] > 0) {
+            _investUSDTUSDC(USDTAmts[0]);
+        }
+        if (USDTAmts[1] > 0) {
+            _investUSDTBUSD(USDTAmts[1]);
+        }
+        if (USDTAmts[2] > 0) {
+            _investUSDCBUSD(USDTAmts[2]);
+        }
+
         emit CurrentComposition(pools[0], pools[1], pools[2]);
+        emit TargetComposition(targetPercentages[0], targetPercentages[1], targetPercentages[2]);
     }
 
 
@@ -295,12 +279,15 @@ contract LCIStrategy is OwnableUpgradeable {
     }
 
     function setLPCompositionTargetPerc(uint[] calldata _targetPerc) external onlyOwner {
-        require(_targetPerc.length == 3, "Invalid count");
-        require((_targetPerc[0]+_targetPerc[1]+_targetPerc[2]) == DENOMINATOR, "Invalid parameter");
+        uint targetCnt = _targetPerc.length;
+        require(targetCnt == targetPercentages.length, "Invalid count");
 
-        USDTUSDCTargetPerc = _targetPerc[0];
-        USDTBUSDTargetPerc = _targetPerc[1];
-        USDCBUSDTargetPerc = _targetPerc[2];
+        uint sum;
+        for (uint i = 0; i < targetCnt; i ++) {
+            targetPercentages[i] = _targetPerc[i];
+            sum += _targetPerc[i];
+        }
+        require(sum == DENOMINATOR, "Invalid parameter");
     }
 
     function getUSDTUSDCPoolInUSD() private view  returns (uint) {
@@ -334,9 +321,9 @@ contract LCIStrategy is OwnableUpgradeable {
         uint[] memory pools = getEachPoolInUSD();
         uint allPool = pools[0] + pools[1] + pools[2];
         percentages = new uint[](3);
-        percentages[0] = allPool == 0 ? USDTUSDCTargetPerc : pools[0] * DENOMINATOR / allPool;
-        percentages[1] = allPool == 0 ? USDTBUSDTargetPerc : pools[1] * DENOMINATOR / allPool;
-        percentages[2] = allPool == 0 ? USDCBUSDTargetPerc : pools[2] * DENOMINATOR / allPool;
+        for (uint i = 0; i < 3; i ++) {
+            percentages[i] = allPool == 0 ? targetPercentages[i] : pools[i] * DENOMINATOR / allPool;
+        }
     }
 
     function getCurrentTokenCompositionPerc() external view returns (address[] memory tokens, uint[] memory percentages) {

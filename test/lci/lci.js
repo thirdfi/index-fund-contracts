@@ -55,9 +55,9 @@ describe("LCI", async () => {
         expect(await vault.profitFeePerc()).equal(2000);
 
         expect(await strategy.vault()).equal(vault.address);
-        expect(await strategy.USDTUSDCTargetPerc()).equal(6000);
-        expect(await strategy.USDTBUSDTargetPerc()).equal(2000);
-        expect(await strategy.USDCBUSDTargetPerc()).equal(2000);
+        expect(await strategy.targetPercentages(0)).equal(6000);
+        expect(await strategy.targetPercentages(1)).equal(2000);
+        expect(await strategy.targetPercentages(2)).equal(2000);
         const USDTUSDCVaultAddr = await strategy.USDTUSDCVault();
         const USDTBUSDVaultAddr = await strategy.USDTBUSDVault();
         const USDCBUSDVaultAddr = await strategy.USDCBUSDVault();
@@ -134,9 +134,9 @@ describe("LCI", async () => {
         await expectRevert(strategy.connect(deployer).setLPCompositionTargetPerc([4000,3000]), "Invalid count");
         await expectRevert(strategy.connect(deployer).setLPCompositionTargetPerc([4000,3000,2000]), "Invalid parameter");
         await strategy.connect(deployer).setLPCompositionTargetPerc([4000,3000,3000]);
-        expect(await strategy.USDTUSDCTargetPerc()).equal(4000);
-        expect(await strategy.USDTBUSDTargetPerc()).equal(3000);
-        expect(await strategy.USDCBUSDTargetPerc()).equal(3000);
+        expect(await strategy.targetPercentages(0)).equal(4000);
+        expect(await strategy.targetPercentages(1)).equal(3000);
+        expect(await strategy.targetPercentages(2)).equal(3000);
 
         const USDTUSDCVault = new ethers.Contract(await strategy.USDTUSDCVault(), l2VaultArtifact.abi, a1);
 
