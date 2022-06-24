@@ -55,10 +55,10 @@ describe("MWI", async () => {
         expect(await vault.profitFeePerc()).equal(2000);
 
         expect(await strategy.vault()).equal(vault.address);
-        expect(await strategy.WBTCTargetPerc()).equal(4500);
-        expect(await strategy.WETHTargetPerc()).equal(3500);
-        expect(await strategy.WAVAXTargetPerc()).equal(1500);
-        expect(await strategy.USDTTargetPerc()).equal(500);
+        expect(await strategy.targetPercentages(0)).equal(4500);
+        expect(await strategy.targetPercentages(1)).equal(3500);
+        expect(await strategy.targetPercentages(2)).equal(1500);
+        expect(await strategy.targetPercentages(3)).equal(500);
         const WBTCVaultAddr = await strategy.WBTCVault();
         const WETHVaultAddr = await strategy.WETHVault();
         const WAVAXVaultAddr = await strategy.WAVAXVault();
@@ -132,10 +132,10 @@ describe("MWI", async () => {
         await expectRevert(strategy.connect(deployer).setTokenCompositionTargetPerc([4000,3000,2000]), "Invalid count");
         await expectRevert(strategy.connect(deployer).setTokenCompositionTargetPerc([4000,3000,2000,500]), "Invalid parameter");
         await strategy.connect(deployer).setTokenCompositionTargetPerc([4000,3000,2000,1000]);
-        expect(await strategy.WBTCTargetPerc()).equal(4000);
-        expect(await strategy.WETHTargetPerc()).equal(3000);
-        expect(await strategy.WAVAXTargetPerc()).equal(2000);
-        expect(await strategy.USDTTargetPerc()).equal(1000);
+        expect(await strategy.targetPercentages(0)).equal(4000);
+        expect(await strategy.targetPercentages(1)).equal(3000);
+        expect(await strategy.targetPercentages(2)).equal(2000);
+        expect(await strategy.targetPercentages(3)).equal(1000);
 
         const WBTCVault = new ethers.Contract(await strategy.WBTCVault(), l2VaultArtifact.abi, a1);
 

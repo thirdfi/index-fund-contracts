@@ -57,16 +57,14 @@ contract MWIStrategy is OwnableUpgradeable {
 
     IRouter public constant JoeRouter = IRouter(0x60aE616a2155Ee3d9A68541Ba4544862310933d4);
 
+    uint constant POOL_COUNT = 4;
     IL2Vault public WBTCVault;
     IL2Vault public WETHVault;
     IL2Vault public WAVAXVault;
     IL2Vault public USDTVault;
     
     uint constant DENOMINATOR = 10000;
-    uint public WBTCTargetPerc;
-    uint public WETHTargetPerc;
-    uint public WAVAXTargetPerc;
-    uint public USDTTargetPerc;
+    uint[] public targetPercentages;
 
     address public vault;
 
@@ -91,10 +89,10 @@ contract MWIStrategy is OwnableUpgradeable {
     function initialize(IL2Vault _WBTCVault, IL2Vault _WETHVault, IL2Vault _WAVAXVault, IL2Vault _USDTVault) external initializer {
         __Ownable_init();
 
-        WBTCTargetPerc = 4500; // 45%
-        WETHTargetPerc = 3500; // 35%
-        WAVAXTargetPerc = 1500; // 15%
-        USDTTargetPerc = 500; // 5%
+        targetPercentages.push(4500); // WBTC: 45%
+        targetPercentages.push(3500); // WETH: 35%
+        targetPercentages.push(1500); // WAVAX: 15%
+        targetPercentages.push(500); // USDT: 5%
 
         WBTCVault = _WBTCVault;
         WETHVault = _WETHVault;
@@ -117,65 +115,41 @@ contract MWIStrategy is OwnableUpgradeable {
         USDT.safeTransferFrom(vault, address(this), USDTAmt);
         USDTAmt = USDT.balanceOf(address(this));
         uint USDTPriceInUSD = PriceLib.getAssetPrice(address(USDT));
-        uint k = USDTPriceInUSD * 1e4;
 
         uint[] memory pools = getEachPoolInUSD();
-        uint pool = pools[0] + pools[1] + pools[2] + pools[3] + (USDTAmt * k); // USDT's decimals is 6
-        uint WBTCTargetPool = pool * WBTCTargetPerc / DENOMINATOR;
-        uint WETHTargetPool = pool * WETHTargetPerc / DENOMINATOR;
-        uint WAVAXTargetPool = pool * WAVAXTargetPerc / DENOMINATOR;
-        uint USDTTargetPool = pool * USDTTargetPerc / DENOMINATOR;
+        uint allPool = pools[0] + pools[1] + pools[2] + pools[3] + (USDTAmt * USDTPriceInUSD * 1e4); // USDT's decimals is 6
 
-        // Rebalancing invest
-        if (
-            WBTCTargetPool > pools[0] &&
-            WETHTargetPool > pools[1] &&
-            WAVAXTargetPool > pools[2] &&
-            USDTTargetPool > pools[3]
-        ) {
-            _investWBTC((WBTCTargetPool-pools[0])/k, USDTPriceInUSD);
-            _investWETH((WETHTargetPool-pools[1])/k, USDTPriceInUSD);
-            _investWAVAX((WAVAXTargetPool-pools[2])/k, USDTPriceInUSD);
-            _investUSDT((USDTTargetPool-pools[3])/k);
-        } else {
-            uint furthest;
-            uint farmIndex;
-            uint diff;
-
-            if (WBTCTargetPool > pools[0]) {
-                diff = WBTCTargetPool - pools[0];
-                furthest = diff;
-                farmIndex = 0;
+        uint totalAllocation;
+        uint[] memory allocations = new uint[](POOL_COUNT);
+        for (uint i = 0; i < POOL_COUNT; i ++) {
+            uint target = allPool * targetPercentages[i] / DENOMINATOR;
+            if (pools[i] < target) {
+                uint diff = target - pools[i];
+                allocations[i] = diff;
+                totalAllocation += diff;
             }
-            if (WETHTargetPool > pools[1]) {
-                diff = WETHTargetPool - pools[1];
-                if (diff > furthest) {
-                    furthest = diff;
-                    farmIndex = 1;
-                }
-            }
-            if (WAVAXTargetPool > pools[2]) {
-                diff = WAVAXTargetPool - pools[2];
-                if (diff > furthest) {
-                    furthest = diff;
-                    farmIndex = 2;
-                }
-            }
-            if (USDTTargetPool > pools[3]) {
-                diff = USDTTargetPool - pools[3];
-                if (diff > furthest) {
-                    farmIndex = 3;
-                }
-            }
-
-            if (farmIndex == 0) _investWBTC(USDTAmt, USDTPriceInUSD);
-            else if (farmIndex == 1) _investWETH(USDTAmt, USDTPriceInUSD);
-            else if (farmIndex == 2) _investWAVAX(USDTAmt, USDTPriceInUSD);
-            else _investUSDT(USDTAmt);
         }
 
-        emit TargetComposition(WBTCTargetPool, WETHTargetPool, WAVAXTargetPool, USDTTargetPool);
+        uint[] memory USDTAmts = new uint[](POOL_COUNT);
+        for (uint i = 0; i < POOL_COUNT; i ++) {
+            USDTAmts[i] = USDTAmt * allocations[i] / totalAllocation;
+        }
+
+        if (USDTAmts[0] > 0) {
+            _investWBTC(USDTAmts[0], USDTPriceInUSD);
+        }
+        if (USDTAmts[1] > 0) {
+            _investWETH(USDTAmts[1], USDTPriceInUSD);
+        }
+        if (USDTAmts[2] > 0) {
+            _investWAVAX(USDTAmts[2], USDTPriceInUSD);
+        }
+        if (USDTAmts[3] > 0) {
+            _investUSDT(USDTAmts[3]);
+        }
+
         emit CurrentComposition(pools[0], pools[1], pools[2], pools[3]);
+        emit TargetComposition(targetPercentages[0], targetPercentages[1], targetPercentages[2], targetPercentages[3]);
     }
 
     function _investWBTC(uint USDTAmt, uint USDTPriceInUSD) private {
@@ -324,13 +298,15 @@ contract MWIStrategy is OwnableUpgradeable {
     }
 
     function setTokenCompositionTargetPerc(uint[] calldata _targetPerc) external onlyOwner {
-        require(_targetPerc.length == 4, "Invalid count");
-        require((_targetPerc[0]+_targetPerc[1]+_targetPerc[2]+_targetPerc[3]) == DENOMINATOR, "Invalid parameter");
+        uint targetCnt = _targetPerc.length;
+        require(targetCnt == targetPercentages.length, "Invalid count");
 
-        WBTCTargetPerc = _targetPerc[0];
-        WETHTargetPerc = _targetPerc[1];
-        WAVAXTargetPerc = _targetPerc[2];
-        USDTTargetPerc = _targetPerc[3];
+        uint sum;
+        for (uint i = 0; i < targetCnt; i ++) {
+            targetPercentages[i] = _targetPerc[i];
+            sum += _targetPerc[i];
+        }
+        require(sum == DENOMINATOR, "Invalid parameter");
     }
 
     function getWBTCPoolInUSD() private view  returns (uint) {
@@ -354,7 +330,7 @@ contract MWIStrategy is OwnableUpgradeable {
     }
 
     function getEachPoolInUSD() private view returns (uint[] memory pools) {
-        pools = new uint[](4);
+        pools = new uint[](POOL_COUNT);
         pools[0] = getWBTCPoolInUSD();
         pools[1] = getWETHPoolInUSD();
         pools[2] = getWAVAXPoolInUSD();
@@ -367,7 +343,7 @@ contract MWIStrategy is OwnableUpgradeable {
     }
 
     function getCurrentTokenCompositionPerc() public view returns (address[] memory tokens, uint[] memory percentages) {
-        tokens = new address[](4);
+        tokens = new address[](POOL_COUNT);
         tokens[0] = address(WBTC);
         tokens[1] = address(WETH);
         tokens[2] = address(WAVAX);
@@ -375,11 +351,10 @@ contract MWIStrategy is OwnableUpgradeable {
 
         uint[] memory pools = getEachPoolInUSD();
         uint allPool = pools[0] + pools[1] + pools[2] + pools[3];
-        percentages = new uint[](4);
-        percentages[0] = allPool == 0 ? WBTCTargetPerc : pools[0] * DENOMINATOR / allPool;
-        percentages[1] = allPool == 0 ? WETHTargetPerc : pools[1] * DENOMINATOR / allPool;
-        percentages[2] = allPool == 0 ? WAVAXTargetPerc : pools[2] * DENOMINATOR / allPool;
-        percentages[3] = allPool == 0 ? USDTTargetPerc : pools[3] * DENOMINATOR / allPool;
+        percentages = new uint[](POOL_COUNT);
+        for (uint i = 0; i < POOL_COUNT; i ++) {
+            percentages[i] = allPool == 0 ? targetPercentages[i] : pools[i] * DENOMINATOR / allPool;
+        }
     }
 
     function getAPR() external view returns (uint) {
