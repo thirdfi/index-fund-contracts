@@ -33,6 +33,8 @@ contract LCIVaultTest is ERC20Upgradeable, OwnableUpgradeable,
     address public treasuryWallet;
     address public admin;
 
+    mapping(address => uint) private depositedBlock;
+
     event Deposit(address caller, uint amtDeposit, address tokenDeposit, uint shareMinted);
     event Withdraw(address caller, uint amtWithdraw, address tokenWithdraw, uint shareBurned);
     event Rebalance(uint farmIndex, uint sharePerc, uint amount);
@@ -62,41 +64,51 @@ contract LCIVaultTest is ERC20Upgradeable, OwnableUpgradeable,
         USDT.safeApprove(address(strategy), type(uint).max);
     }
 
-    function deposit(uint amount) external nonReentrant whenNotPaused {
-        require(msg.sender == tx.origin || isTrustedForwarder(msg.sender), "Only EOA or Biconomy");
+    function deposit(uint amount) external {
+        _deposit(_msgSender(), amount);
+    }
+    function depositByAdmin(address account, uint amount) external onlyOwnerOrAdmin {
+        _deposit(account, amount);
+    }
+    function _deposit(address account, uint amount) private nonReentrant whenNotPaused {
         require(amount > 0, "Amount must > 0");
+        depositedBlock[account] = block.number;
 
         uint pool = getAllPoolInUSD();
-
-        address msgSender = _msgSender();
-        USDT.safeTransferFrom(msgSender, address(this), amount);
+        USDT.safeTransferFrom(account, address(this), amount);
 
         strategy.invest(amount);
 
         uint amtDeposit = amount; // USDT's decimals is 18
         uint _totalSupply = totalSupply();
         uint share = (_totalSupply == 0 || pool <= _totalSupply)  ? amtDeposit : amtDeposit * _totalSupply / pool;
-        _mint(msgSender, share);
+        _mint(account, share);
 
-        emit Deposit(msgSender, amtDeposit, address(USDT), share);
+        emit Deposit(account, amtDeposit, address(USDT), share);
     }
 
-    function withdraw(uint share) external nonReentrant {
-        require(msg.sender == tx.origin, "Only EOA");
+    function withdraw(uint share) external {
+        _withdraw(msg.sender, share);
+    }
+    function withdrawByAdmin(address account, uint share) external onlyOwnerOrAdmin {
+        _withdraw(account, share);
+    }
+    function _withdraw(address account, uint share) private nonReentrant {
         require(share > 0, "Shares must > 0");
-        require(share <= balanceOf(msg.sender), "Not enough share to withdraw");
+        require(share <= balanceOf(account), "Not enough share to withdraw");
+        require(depositedBlock[account] != block.number, "Withdraw within same block");
         
         uint _totalSupply = totalSupply();
         uint withdrawAmt = getAllPoolInUSD() * share / _totalSupply;
 
         if (!paused()) {
             strategy.withdrawPerc(share * 1e18 / _totalSupply);
-            USDT.safeTransfer(msg.sender, USDT.balanceOf(address(this)));
+            USDT.safeTransfer(account, USDT.balanceOf(address(this)));
         } else {
-            USDT.safeTransfer(msg.sender, withdrawAmt); // USDT's decimals is 18
+            USDT.safeTransfer(account, withdrawAmt); // USDT's decimals is 18
         }
-        _burn(msg.sender, share);
-        emit Withdraw(msg.sender, withdrawAmt, address(USDT), share);
+        _burn(account, share);
+        emit Withdraw(account, withdrawAmt, address(USDT), share);
     }
 
     function rebalance(uint farmIndex, uint sharePerc) external onlyOwnerOrAdmin {
