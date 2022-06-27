@@ -306,7 +306,7 @@ contract Aave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Paus
 
         address[] memory rewards = aRewardsController.getRewardsByAsset(address(aToken));
         uint rewardsCount = rewards.length;
-        uint totalSupply = aToken.totalSupply();
+        uint _totalSupply = aToken.totalSupply();
         uint TokenPriceInUSD = PriceLib.getAssetPrice(address(token));
         uint rewardsApr;
         for (uint i = 0; i < rewardsCount; i ++) {
@@ -317,7 +317,7 @@ contract Aave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Paus
                                     + tokenDecimals; // against to totalSupply
             uint denominatorDecimals = IERC20UpgradeableEx(address(reward)).decimals(); // against to emissionPerSecond
             uint rewardApr = YEAR_IN_SEC * emissionPerSecond * priceInUSD * (10 ** (numeratorDecimals-denominatorDecimals))
-                            / (totalSupply * TokenPriceInUSD);
+                            / (_totalSupply * TokenPriceInUSD);
             rewardsApr += rewardApr;
         }
 
