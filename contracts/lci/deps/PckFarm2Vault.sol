@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "../libs/Math.sol";
 import "../libs/Price.sol";
+import "../../../interfaces/IUniPair.sol";
 
 interface IUniRouter {
     function swapExactTokensForTokens(
@@ -32,12 +33,6 @@ interface IUniRouter {
 
     function getAmountsOut(uint amountIn, address[] memory path) external view returns (uint[] memory amounts);
 
-}
-
-interface IUniPair is IERC20Upgradeable{
-    function getReserves() external view returns (uint, uint);
-    function token0() external view returns (address);
-    function token1() external view returns (address);
 }
 
 interface IMasterChefV2 {
@@ -239,8 +234,21 @@ contract PckFarm2Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable, P
             CAKE.safeTransfer(treasuryWallet, fee);
             cakeBalance -= fee;
 
-            uint _token0Amount = token0 == CAKE ? cakeBalance /2 : _swap(address(CAKE), address(token0), cakeBalance/2)[1];
-            uint _token1Amount = token1 == CAKE ? cakeBalance /2 :  _swap(address(CAKE), address(token1), cakeBalance/2)[1];
+            uint _token0Amount;
+            if (token0 == CAKE) {
+                _token0Amount = cakeBalance /2;
+            } else {
+                _swap(address(CAKE), address(token0), cakeBalance/2);
+                _token0Amount = token0.balanceOf(address(this));
+            }
+
+            uint _token1Amount;
+            if (token1 == CAKE) {
+                _token1Amount = cakeBalance /2;
+            } else {
+                _swap(address(CAKE), address(token1), cakeBalance/2);
+                _token1Amount = token1.balanceOf(address(this));
+            }
 
             PckRouter.addLiquidity(address(token0), address(token1), _token0Amount, _token1Amount, 0, 0, address(this), block.timestamp);
 

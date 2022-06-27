@@ -140,7 +140,7 @@ contract LCIStrategy is OwnableUpgradeable {
             _investUSDTBUSD(USDTAmts[1]);
         }
         if (USDTAmts[2] > 0) {
-            _investUSDCBUSD(USDTAmts[2]);
+            _investUSDCBUSD(USDT.balanceOf(address(this)));
         }
 
         emit CurrentComposition(pools[0], pools[1], pools[2]);
@@ -203,7 +203,8 @@ contract LCIStrategy is OwnableUpgradeable {
             USDTUSDCVault.withdraw(amount);
 
             uint _amt = USDTUSDC.balanceOf(address(this));
-            (uint _amtUSDT, uint _amtUSDC) = _removeLiquidity(address(USDT), address(USDC), _amt);
+            (uint _amtUSDT,) = _removeLiquidity(address(USDT), address(USDC), _amt);
+            uint _amtUSDC = USDC.balanceOf(address(this));
             _amtUSDT += _swap(address(USDC), address(USDT), _amtUSDC, _amtUSDC*98/100);
 
             emit WithdrawUSDTUSDC(_amt, _amtUSDT);
@@ -216,7 +217,8 @@ contract LCIStrategy is OwnableUpgradeable {
             USDTBUSDVault.withdraw(amount);
 
             uint _amt = USDTBUSD.balanceOf(address(this));
-            (uint _amtUSDT, uint _amtBUSD) = _removeLiquidity(address(USDT), address(BUSD), _amt);
+            (uint _amtUSDT,) = _removeLiquidity(address(USDT), address(BUSD), _amt);
+            uint _amtBUSD = BUSD.balanceOf(address(this));
             _amtUSDT += _swap(address(BUSD), address(USDT), _amtBUSD, _amtBUSD*98/100);
 
             emit WithdrawUSDTBUSD(_amt, _amtUSDT);
@@ -229,7 +231,9 @@ contract LCIStrategy is OwnableUpgradeable {
             USDCBUSDVault.withdraw(amount);
 
             uint _amt = USDCBUSD.balanceOf(address(this));
-            (uint _amtUSDC, uint _amtBUSD) = _removeLiquidity(address(USDC), address(BUSD), _amt);
+            _removeLiquidity(address(USDC), address(BUSD), _amt);
+            uint _amtUSDC = USDC.balanceOf(address(this));
+            uint _amtBUSD = BUSD.balanceOf(address(this));
             uint _usdtAmt = _swap(address(USDC), address(USDT), _amtUSDC, _amtUSDC*98/100);
             _usdtAmt += _swap(address(BUSD), address(USDT), _amtBUSD, _amtBUSD*98/100);
 
