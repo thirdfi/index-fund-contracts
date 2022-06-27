@@ -34,7 +34,7 @@ contract AuroraPriceOracle is PriceOracle {
         return super.getAssetPrice(asset);
     }
 
-    function getWNEARPrice() private view returns (uint price, uint8 decimals) {
+    function getWNEARPrice() public view returns (uint price, uint8 decimals) {
         uint priceInUSDT = getPriceFromPair(WNEARUSDT, AuroraConstant.WNEAR);
         uint priceInUSDC = getPriceFromPair(WNEARUSDC, AuroraConstant.WNEAR);
         return ((priceInUSDT + priceInUSDC) / 2, 18);
