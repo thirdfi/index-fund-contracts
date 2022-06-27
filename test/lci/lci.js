@@ -130,6 +130,9 @@ describe("LCI", async () => {
         await expectRevert(vault.rebalance(0, 1000), "Only owner or admin");
         await vault.connect(admin).rebalance(0, 1000);
 
+        await expectRevert(vault.depositByAdmin(a1.address, 0), "Only owner or admin");
+        await expectRevert(vault.withdrawByAdmin(a1.address, 0), "Only owner or admin");
+
         await expectRevert(strategy.setLPCompositionTargetPerc([4000,3000,3000]), "Ownable: caller is not the owner");
         await expectRevert(strategy.connect(deployer).setLPCompositionTargetPerc([4000,3000]), "Invalid count");
         await expectRevert(strategy.connect(deployer).setLPCompositionTargetPerc([4000,3000,2000]), "Invalid parameter");

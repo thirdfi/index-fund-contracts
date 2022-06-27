@@ -61,6 +61,7 @@ interface IMasterChefV2 {
 
     function deposit(uint pid, uint amount) external;
     function withdraw(uint pid, uint amount) external;
+    function harvestFromMasterChef() external;
 }
 
 contract PckFarm2Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable{
@@ -230,6 +231,7 @@ contract PckFarm2Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable, P
     }
 
     function _yield() private {
+        MasterChefV2.harvestFromMasterChef();
         uint cakeBalance = CAKE.balanceOf(address(this));
         
         if(cakeBalance > 0) {
