@@ -55,16 +55,16 @@ npx hardhat deploy --network avaxMainnet --tags avaxMainnet_mwi
 
 | Products    | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| BNIVault    |  | [0x25276F97f70c2E3bC907f6B5A955a76248ae9945](https://testnet.aurorascan.dev/address/0x25276f97f70c2e3bc907f6b5a955a76248ae9945)
+| BNIVault    | [0x72eB6E3f163E8CFD1Ebdd7B2f4ffB60b6e420448](https://aurorascan.dev/address/0x72eB6E3f163E8CFD1Ebdd7B2f4ffB60b6e420448) | [0x25276F97f70c2E3bC907f6B5A955a76248ae9945](https://testnet.aurorascan.dev/address/0x25276f97f70c2e3bc907f6b5a955a76248ae9945)
 
 ### Avalanche Products
 
 | Products    | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | MWI         | [0x5aCBd5b82edDae114EC0703c86d163bD0107367c](https://snowtrace.io/address/0x5aCBd5b82edDae114EC0703c86d163bD0107367c) | [0x48Ef64b90c7c04AE5353Bdaab075242D8B325170](https://testnet.snowtrace.io/address/0x48ef64b90c7c04ae5353bdaab075242d8b325170)
-| BNI         |  | [0x25Ce8a40cfe13B890769FD4CC640e16Ce034E73e](https://testnet.snowtrace.io/address/0x25Ce8a40cfe13B890769FD4CC640e16Ce034E73e)
-| BNIMinter   |  | [0x4f8Ebe88aC0978c0696D6f61ca994CA73903ec96](https://testnet.snowtrace.io/address/0x4f8Ebe88aC0978c0696D6f61ca994CA73903ec96)
-| BNIVault    |  | [0x0cB5F3b91161D870A35b6d2671A73a6A5bB7F847](https://testnet.snowtrace.io/address/0x0cB5F3b91161D870A35b6d2671A73a6A5bB7F847)
+| BNI         | [0x52942c46F355aC354CFdeF72fd96b41eE10D7C72](https://snowtrace.io/address/0x52942c46F355aC354CFdeF72fd96b41eE10D7C72) | [0x25Ce8a40cfe13B890769FD4CC640e16Ce034E73e](https://testnet.snowtrace.io/address/0x25Ce8a40cfe13B890769FD4CC640e16Ce034E73e)
+| BNIMinter   | [0xCbAB0d4c9B040e94cA392f0C3c65D136C17ee290](https://snowtrace.io/address/0xCbAB0d4c9B040e94cA392f0C3c65D136C17ee290) | [0x4f8Ebe88aC0978c0696D6f61ca994CA73903ec96](https://testnet.snowtrace.io/address/0x4f8Ebe88aC0978c0696D6f61ca994CA73903ec96)
+| BNIVault    | [0xe76367024ca3AEeC875A03BB395f54D7c6A82eb0](https://snowtrace.io/address/0xe76367024ca3AEeC875A03BB395f54D7c6A82eb0) | [0x0cB5F3b91161D870A35b6d2671A73a6A5bB7F847](https://testnet.snowtrace.io/address/0x0cB5F3b91161D870A35b6d2671A73a6A5bB7F847)
 
 ### BSC Products
 
@@ -76,4 +76,4 @@ npx hardhat deploy --network avaxMainnet --tags avaxMainnet_mwi
 
 | Products    | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| BNIVault    |  | [0xE276b8197D61D1b5da0d50E0B6c7B41937da29C3](https://mumbai.polygonscan.com/address/0xe276b8197d61d1b5da0d50e0b6c7b41937da29c3)
+| BNIVault    | [0x1Ec9e11960CC071A10Dc403aa77074Fa6E258FB1](https://polygonscan.com/address/0x1Ec9e11960CC071A10Dc403aa77074Fa6E258FB1) | [0xE276b8197D61D1b5da0d50E0B6c7B41937da29C3](https://mumbai.polygonscan.com/address/0xe276b8197d61d1b5da0d50e0b6c7b41937da29c3)
