@@ -3,6 +3,7 @@ const { assert, ethers, deployments } = require("hardhat");
 const { expectRevert } = require('@openzeppelin/test-helpers');
 const { BigNumber } = ethers;
 const parseEther = ethers.utils.parseEther;
+const AddressZero = ethers.constants.AddressZero;
 const { increaseTime } = require("../../scripts/utils/ethereum");
 
 const ERC20_ABI = require("@openzeppelin/contracts-upgradeable/build/contracts/ERC20Upgradeable.json").abi;
@@ -93,6 +94,7 @@ describe("BNI on Avalanche", async () => {
         expect(await strategy.USDT()).equal(network_.Swap.USDT);
         expect(await strategy.tokens(0)).equal(network_.Swap.WAVAX);
         expect(await strategy.pid(network_.Swap.WAVAX)).equal(0);
+        expect(await strategy.WAVAXVault()).not.equal(AddressZero);
       });
 
       it("Should be set by only owner", async () => {

@@ -288,7 +288,7 @@ contract BNIStrategy is OwnableUpgradeable {
         }
     }
 
-    function _getPoolInUSD(uint _pid) private view returns (uint pool) {
+    function _getPoolInUSD(uint _pid) internal view virtual returns (uint pool) {
         IERC20UpgradeableExt token = IERC20UpgradeableExt(tokens[_pid]);
         uint amount = token.balanceOf(address(this));
         if (0 < amount) {

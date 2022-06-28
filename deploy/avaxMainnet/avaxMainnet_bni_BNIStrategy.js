@@ -1,5 +1,6 @@
 const { ethers } = require("hardhat");
 const { common, avaxMainnet: network_ } = require("../../parameters");
+const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
@@ -26,6 +27,16 @@ module.exports = async ({ deployments }) => {
     },
   });
   console.log("  AvaxBNIStrategy_Proxy contract address: ", proxy.address);
+
+  const AvaxBNIStrategy = await ethers.getContractFactory("AvaxBNIStrategy");
+  const strategy = AvaxBNIStrategy.attach(proxy.address);
+  const WAVAXVault = await strategy.WAVAXVault();
+  if (WAVAXVault === AddressZero) {
+    const avaxVaultFactory = await ethers.getContract("Aave3VaultFactory");
+    const WAVAXVaultAddr = await avaxVaultFactory.getVaultByUnderlying(network_.Token.WAVAX);
+    const tx = await strategy.setWAVAXVault(WAVAXVaultAddr);
+    await tx.wait();
+  }
 
   // Verify the implementation contract
   try {
