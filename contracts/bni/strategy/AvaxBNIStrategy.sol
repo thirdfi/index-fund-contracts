@@ -15,6 +15,7 @@ contract AvaxBNIStrategy is BNIStrategy {
     IL2Vault public WAVAXVault;
 
     event InvestWAVAX(uint USDTAmt, uint WAVAXAmt);
+    event WithdrawWAVAX(uint WAVAXAmt, uint USDTAmt);
 
     function setWAVAXVault(IL2Vault _WAVAXVault) external onlyOwner {
         WAVAXVault = _WAVAXVault;
@@ -38,6 +39,25 @@ contract AvaxBNIStrategy is BNIStrategy {
             if (token == address(WAVAX)) {
                 _investWAVAX(_USDTAmts[i]);
             }
+        }
+    }
+
+    function _withdrawWAVAX(uint _sharePerc) private returns (uint USDTAmt) {
+        uint amount = WAVAXVault.balanceOf(address(this)) * _sharePerc / 1e18;
+        if (0 < amount) {
+            WAVAXVault.withdraw(amount);
+            uint WAVAXAmt = WAVAX.balanceOf(address(this));
+            USDTAmt = _swapForUSDT(address(WAVAX), WAVAXAmt);
+            emit WithdrawWAVAX(WAVAXAmt, USDTAmt);
+        }
+    }
+
+    function _withdrawFromPool(uint _pid, uint _sharePerc) internal virtual override returns (uint USDTAmt) {
+        address token = tokens[_pid];
+        if (token == address(WAVAX)) {
+            USDTAmt = _withdrawWAVAX(_sharePerc);
+        } else {
+            USDTAmt = super._withdrawFromPool(_pid, _sharePerc);
         }
     }
 

@@ -5,43 +5,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../priceOracle/IPriceOracle.sol";
-
-interface IRouter {
-    function swapExactTokensForTokens(
-        uint amountIn,
-        uint amountOutMin,
-        address[] calldata path,
-        address to,
-        uint deadline
-    ) external returns (uint[] memory amounts);
-
-    function addLiquidity(
-        address tokenA,
-        address tokenB,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMin,
-        uint amountBMin,
-        address to,
-        uint deadline
-    ) external returns (uint amountA, uint amountB, uint liquidity);
-
-    function removeLiquidity(
-        address tokenA,
-        address tokenB,
-        uint liquidity,
-        uint amountAMin,
-        uint amountBMin,
-        address to,
-        uint deadline
-    ) external returns (uint amountA, uint amountB);
-
-    function getAmountsOut(uint amountIn, address[] memory path) external view returns (uint[] memory amounts);
-}
-
-interface IERC20UpgradeableExt is IERC20Upgradeable {
-    function decimals() external view returns (uint8);
-}
+import "../../../interfaces/IERC20UpgradeableExt.sol";
+import "../../../interfaces/IRouter.sol";
 
 contract BNIStrategy is OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20UpgradeableExt;
@@ -200,19 +165,23 @@ contract BNIStrategy is OwnableUpgradeable {
             if (address(token) == address(USDT)) {
                 USDTAmt = amount;
             } else {
-                (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
-                (uint TOKENPriceInUSD, uint8 TOKENPriceDecimals) = priceOracle.getAssetPrice(address(token));
-                uint8 tokenDecimals = IERC20UpgradeableExt(token).decimals();
-                uint numerator = TOKENPriceInUSD * (10 ** (USDTPriceDecimals + usdtDecimals));
-                uint denominator = USDTPriceInUSD * (10 ** (TOKENPriceDecimals + tokenDecimals));
-                uint amountOutMin = amount * numerator * 95 / (denominator * 100);
-
-                if (address(token) == address(SWAP_BASE_TOKEN)) {
-                    USDTAmt = _swap(address(token), address(USDT), amount, amountOutMin);
-                } else{
-                    USDTAmt = _swap2(address(token), address(USDT), amount, amountOutMin);
-                }
+                USDTAmt = _swapForUSDT(address(token), amount);
             }
+        }
+    }
+
+    function _swapForUSDT(address token, uint amount) internal returns (uint USDTAmt) {
+        (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
+        (uint TOKENPriceInUSD, uint8 TOKENPriceDecimals) = priceOracle.getAssetPrice(address(token));
+        uint8 tokenDecimals = IERC20UpgradeableExt(token).decimals();
+        uint numerator = TOKENPriceInUSD * (10 ** (USDTPriceDecimals + usdtDecimals));
+        uint denominator = USDTPriceInUSD * (10 ** (TOKENPriceDecimals + tokenDecimals));
+        uint amountOutMin = amount * numerator * 95 / (denominator * 100);
+
+        if (address(token) == address(SWAP_BASE_TOKEN)) {
+            USDTAmt = _swap(address(token), address(USDT), amount, amountOutMin);
+        } else{
+            USDTAmt = _swap2(address(token), address(USDT), amount, amountOutMin);
         }
     }
 
