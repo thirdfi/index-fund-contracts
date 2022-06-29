@@ -81,9 +81,9 @@ npx hardhat deploy --network avaxMainnet --tags avaxMainnet_mwi
 
 | Network     | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| Aurora      |  | [0x147abEE959A578F2ae5F9bC996dcf6259EBd3a89](https://testnet.aurorascan.dev/address/0x147abEE959A578F2ae5F9bC996dcf6259EBd3a89)
+| Aurora      | [0xf705ceB44C1330766185459afaF9aA41A3288ca2](https://aurorascan.dev/address/0xf705ceb44c1330766185459afaf9aa41a3288ca2) | [0x147abEE959A578F2ae5F9bC996dcf6259EBd3a89](https://testnet.aurorascan.dev/address/0x147abEE959A578F2ae5F9bC996dcf6259EBd3a89)
 | Avalanche   | [0xb9b31A45bEe57cF30b68a49899021FfCF1930b68](https://snowtrace.io/address/0xb9b31A45bEe57cF30b68a49899021FfCF1930b68) | [0x9C0dd87c001eE4A864b9a394Ea722a4382424005](https://testnet.snowtrace.io/address/0x9C0dd87c001eE4A864b9a394Ea722a4382424005)
-| Polygon     |  | [0x6809aadCc6b54926c8bAB1DF52CB85b833dcFb33](https://mumbai.polygonscan.com/address/0x6809aadCc6b54926c8bAB1DF52CB85b833dcFb33)
+| Polygon     | [0x2EDd4b5513e0A9C96921D9e1e9234Fe28cB5519C](https://polygonscan.com/address/0x2edd4b5513e0a9c96921d9e1e9234fe28cb5519c) | [0x6809aadCc6b54926c8bAB1DF52CB85b833dcFb33](https://mumbai.polygonscan.com/address/0x6809aadCc6b54926c8bAB1DF52CB85b833dcFb33)
 
 
 ### Products
