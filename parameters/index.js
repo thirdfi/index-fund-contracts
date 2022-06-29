@@ -1,7 +1,7 @@
 module.exports = {
   common: {
     admin: "0x3f68A3c1023d736D8Be867CA49Cb18c543373B99",
-    treasury: "0x59E83877bD248cBFe392dbB5A8a29959bcb48592",
+    treasury: "0x3f68A3c1023d736D8Be867CA49Cb18c543373B99",
   },
 
   auroraMainnet: {

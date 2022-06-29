@@ -75,6 +75,7 @@ describe("BNI on Aurora", async () => {
         await expectRevert(vault.rebalance(0, parseEther('0.1'), a2.address), "Only owner or admin");
         await expectRevert(vault.emergencyWithdraw(), "Only owner or admin");
         await expectRevert(vault.reinvest([a2.address], [10000]), "Only owner or admin");
+        await expectRevert(vault.setTreasuryWallet(a2.address), "Ownable: caller is not the owner");
 
         await expectRevert(strategy.addToken(a1.address), "Ownable: caller is not the owner");
         await expectRevert(strategy.removeToken(1), "Ownable: caller is not the owner");

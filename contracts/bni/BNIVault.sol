@@ -44,6 +44,7 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     event Withdraw(address caller, uint amtWithdraw, address tokenWithdraw, uint sharePerc);
     event Rebalance(uint pid, uint sharePerc, uint amount, address target);
     event Reinvest(uint amount);
+    event SetTreasuryWallet(address oldTreasuryWallet, address newTreasuryWallet);
     event SetAdminWallet(address oldAdmin, address newAdmin);
     event CollectProfitAndUpdateWatermark(uint currentWatermark, uint lastWatermark, uint fee);
     event AdjustWatermark(uint currentWatermark, uint lastWatermark);
@@ -242,6 +243,12 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     function setProfitFeePerc(uint _profitFeePerc) external onlyOwner {
         require(profitFeePerc < 3001, "Profit fee cannot > 30%");
         profitFeePerc = _profitFeePerc;
+    }
+
+    function setTreasuryWallet(address _treasuryWallet) external onlyOwner {
+        address oldTreasuryWallet = treasuryWallet;
+        treasuryWallet = _treasuryWallet;
+        emit SetTreasuryWallet(oldTreasuryWallet, _treasuryWallet);
     }
 
     function setAdmin(address _admin) external onlyOwner {
