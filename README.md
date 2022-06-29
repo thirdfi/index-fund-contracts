@@ -113,4 +113,4 @@ npx hardhat deploy --network avaxMainnet --tags avaxMainnet_mwi
 
 | Products    | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| BNIVault    | [0x1Ec9e11960CC071A10Dc403aa77074Fa6E258FB1](https://polygonscan.com/address/0x1Ec9e11960CC071A10Dc403aa77074Fa6E258FB1) | [0xE276b8197D61D1b5da0d50E0B6c7B41937da29C3](https://mumbai.polygonscan.com/address/0xe276b8197d61d1b5da0d50e0b6c7b41937da29c3)
+| BNIVault    | [0xF9258759bADb75a9eAb16933ADd056c9F4E489b6](https://polygonscan.com/address/0xF9258759bADb75a9eAb16933ADd056c9F4E489b6) | [0xE276b8197D61D1b5da0d50E0B6c7B41937da29C3](https://mumbai.polygonscan.com/address/0xe276b8197d61d1b5da0d50e0b6c7b41937da29c3)
