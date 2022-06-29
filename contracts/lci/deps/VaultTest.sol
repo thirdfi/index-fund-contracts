@@ -325,6 +325,13 @@ contract BscVaultTest is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pa
         return (_lpRewardApr + _farmRewardApr);
     }
 
+    function resetLpRewardApr() external onlyOwner {
+        lpRewardApr = 0;
+        lpReservePerShare = 0;
+        lpDataLastUpdate = 0;
+        _updateLpRewardApr();
+    }
+
     function _updateLpRewardApr() private {
         (uint _lpRewardApr, uint _lpReservePerShare, bool _update) = getLpRewardApr();
         if (_update) {
@@ -338,7 +345,7 @@ contract BscVaultTest is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pa
         uint _totalSupply = lpToken.totalSupply();
         if (_totalSupply == 0) return 0;
         (uint reserve0, uint reserve1) = lpToken.getReserves();
-        return Math.sqrt(reserve0 * reserve1) / _totalSupply;
+        return Math.sqrt(reserve0 * reserve1) *1e18 / _totalSupply;
     }
 
     function getLpRewardApr() public view returns (uint, uint, bool) {
