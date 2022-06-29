@@ -167,6 +167,8 @@ describe("LCI", async () => {
         await expectRevert(USDTUSDCVault.reinvest(), "Only owner or admin");
         await USDTUSDCVault.connect(admin).reinvest();
         await expectRevert(USDTUSDCVault.connect(deployer).reinvest(), "Pausable: not paused");
+
+        await expectRevert(USDTUSDCVault.resetLpRewardApr(), "Ownable: caller is not the owner");
       });
     });
 
