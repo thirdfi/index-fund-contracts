@@ -59,6 +59,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     IPriceOracle public priceOracle;
 
     string[] public urls;
+    address public gatewaySigner;
 
     event SetAdminWallet(address oldAdmin, address newAdmin);
     event AddToken(uint chainID, address token, uint tid);
@@ -95,6 +96,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         updateTid();
 
         urls.push("http://localhost:8000/");
+        gatewaySigner = _admin;
     }
 
     function updateTid() private {
@@ -111,6 +113,10 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         address oldAdmin = admin;
         admin = _admin;
         emit SetAdminWallet(oldAdmin, _admin);
+    }
+
+    function setGatewaySigner(address _signer) external onlyOwner {
+        gatewaySigner = _signer;
     }
 
     /// @notice After this method called, setTokenCompositionTargetPerc should be called to adjust percentages.
@@ -223,7 +229,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
             abi.encodePacked("\x19Ethereum Signed Message:\n32",
             keccak256(abi.encodePacked(_chainIDs, _tokens, _poolInUSDs))
         )).recover(sig);
-        require(admin == recovered, "Signer is incorrect");
+        require(gatewaySigner == recovered, "Signer is incorrect");
 
         return getCurrentTokenCompositionPerc(_chainIDs, _tokens, _poolInUSDs);
     }
@@ -252,7 +258,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
             abi.encodePacked("\x19Ethereum Signed Message:\n32",
             keccak256(abi.encodePacked(_allPoolInUSDs))
         )).recover(sig);
-        require(admin == recovered, "Signer is incorrect");
+        require(gatewaySigner == recovered, "Signer is incorrect");
 
         return getAllPoolInUSD(_allPoolInUSDs);
     }
@@ -278,7 +284,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
             abi.encodePacked("\x19Ethereum Signed Message:\n32",
             keccak256(abi.encodePacked(_allPoolInUSDs))
         )).recover(sig);
-        require(admin == recovered, "Signer is incorrect");
+        require(gatewaySigner == recovered, "Signer is incorrect");
 
         return getPricePerFullShare(_allPoolInUSDs);
     }
@@ -312,7 +318,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
             abi.encodePacked("\x19Ethereum Signed Message:\n32",
             keccak256(abi.encodePacked(_allPoolInUSDs, _APRs))
         )).recover(sig);
-        require(admin == recovered, "Signer is incorrect");
+        require(gatewaySigner == recovered, "Signer is incorrect");
 
         return getAPR(_allPoolInUSDs, _APRs);
     }
@@ -377,7 +383,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
             abi.encodePacked("\x19Ethereum Signed Message:\n32",
             keccak256(abi.encodePacked(_chainIDs, _tokens, _poolInUSDs))
         )).recover(sig);
-        require(admin == recovered, "Signer is incorrect");
+        require(gatewaySigner == recovered, "Signer is incorrect");
 
         return getDepositTokenComposition(_chainIDs, _tokens, _poolInUSDs, _USDTAmt);
     }

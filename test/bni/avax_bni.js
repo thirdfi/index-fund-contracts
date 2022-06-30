@@ -113,6 +113,7 @@ describe("BNI on Avalanche", async () => {
         await expectRevert(bni.mint(a2.address, parseEther('1')), "Mintable: caller is not the minter");
 
         await expectRevert(minter.setAdmin(a2.address), "Ownable: caller is not the owner");
+        await expectRevert(minter.setGatewaySigner(a2.address), "Ownable: caller is not the owner");
         await expectRevert(minter.addToken(1, a1.address), "Ownable: caller is not the owner");
         await expectRevert(minter.removeToken(1), "Ownable: caller is not the owner");
         await expectRevert(minter.setTokenCompositionTargetPerc([10000]), "Ownable: caller is not the owner");
