@@ -8,9 +8,9 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./Aave3DataTypes.sol";
-import "../libs/Price.sol";
+import "../../bni/priceOracle/IPriceOracle.sol";
 import "../../../interfaces/IERC20UpgradeableExt.sol";
-import "../../../interfaces/IUniRouter.sol";
+import "../../../libs/Token.sol";
 
 interface IAToken is IERC20Upgradeable {
     function UNDERLYING_ASSET_ADDRESS() external view returns (address);
@@ -42,10 +42,6 @@ interface IRewardsController {
 contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable{
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    IERC20Upgradeable public constant WAVAX = IERC20Upgradeable(0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7);
-
-    IUniRouter public constant JoeRouter = IUniRouter(0x60aE616a2155Ee3d9A68541Ba4544862310933d4);
-
     uint constant DENOMINATOR = 10000;
     uint public yieldFee;
 
@@ -57,6 +53,7 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
 
     address public treasuryWallet;
     address public admin;
+    IPriceOracle public priceOracle;
 
     mapping(address => uint) private depositedBlock;
 
@@ -70,8 +67,6 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
     event SetYieldFeePerc(uint _fee);
     event SetTreasuryWallet(address _wallet);
     event Withdraw(address _user, uint _amount, uint _shares);
-    event YieldFee(uint _amount);
-    event Yield(uint _amount);
 
     modifier onlyOwnerOrAdmin {
         require(msg.sender == owner() || msg.sender == admin, "Only owner or admin");
@@ -79,12 +74,17 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
     }
 
     function initialize(string memory _name, string memory _symbol, 
-        IAToken _aToken,
-        address _treasury, address _admin
-    ) external initializer {
+        address _treasury, address _admin,
+        address _priceOracle,
+        IAToken _aToken
+    ) public virtual initializer {
 
         __ERC20_init(_name, _symbol);
         __Ownable_init();
+
+        treasuryWallet = _treasury;
+        admin = _admin;
+        priceOracle = IPriceOracle(_priceOracle);
 
         yieldFee = 2000; //20%
         aToken = _aToken;
@@ -94,12 +94,8 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
         aPool = IPool(aToken.POOL());
         aRewardsController = IRewardsController(aToken.getIncentivesController());
         
-        treasuryWallet = _treasury;
-        admin = _admin;
-        
         token.approve(address(aPool), type(uint).max);
         aToken.approve(address(aPool), type(uint).max);
-        WAVAX.approve(address(JoeRouter), type(uint).max);
     }
     
     /**
@@ -142,7 +138,7 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
         emit Withdraw(msg.sender, _amountToWithdraw, _shares);
     }
 
-    function _invest() private returns (uint available){
+    function _invest() internal returns (uint available){
         available = token.balanceOf(address(this));
         if(available > 0) {
             aPool.supply(address(token), available, address(this), 0);
@@ -191,44 +187,7 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
         _yield();
     }
 
-    function _yield() private {
-        address[] memory assets = new address[](1);
-        assets[0] = address(aToken);
-        (address[] memory rewards, uint[] memory amounts) = aRewardsController.claimAllRewardsToSelf(assets);
-
-        uint rewardsCount = rewards.length;
-        for (uint i = 0; i < rewardsCount; i ++) {
-            address reward = rewards[i];
-            uint amount = amounts[i];
-            if (0 < amount && reward != address(WAVAX)) {
-                IERC20Upgradeable(reward).safeTransfer(treasuryWallet, amount);
-            }
-        }
-
-        uint AVAXAmt = WAVAX.balanceOf(address(this));
-        if(AVAXAmt > 0) {
-            uint fee = AVAXAmt * yieldFee / DENOMINATOR; //yield fee
-            WAVAX.safeTransfer(treasuryWallet, fee);
-            AVAXAmt -= fee;
-
-            if (token != WAVAX) {
-                _swap(address(WAVAX), address(token), AVAXAmt);
-            }
-            _invest();
-
-            uint AVAXPriceInUSD = PriceLib.getAssetPrice(address(WAVAX));
-            emit Yield((AVAXAmt + fee) * AVAXPriceInUSD / 1e8);
-            emit YieldFee(fee * AVAXPriceInUSD / 1e8);
-        }
-    }
-
-    function _swap(address _tokenA, address _tokenB, uint _amt) private returns (uint[] memory amounts){
-        address[] memory path = new address[](2);
-
-        path[0] = address(_tokenA);
-        path[1] = address(_tokenB);
-
-        amounts = JoeRouter.swapExactTokensForTokens(_amt, 0, path, address(this), block.timestamp);
+    function _yield() internal virtual {
     }
 
     function getAllPool() public view returns (uint ) {
@@ -236,12 +195,8 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
     }
 
     function getAllPoolInUSD() public view returns (uint) {
-        uint priceInUSD = PriceLib.getAssetPrice(address(token));
         uint _pool = getAllPool();
-        if (tokenDecimals < 18) {
-            _pool = _pool * (10 ** (18-tokenDecimals));
-        }
-        return _pool * priceInUSD / 1e8;
+        return getValueInUSD(address(token), _pool);
     }
 
     function getPricePerFullShare(bool inUSD) external view returns (uint) {
@@ -250,6 +205,12 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
         return inUSD == true ?
             getAllPoolInUSD() * 1e18 / _totalSupply :
             getAllPool() * 1e18 / _totalSupply;
+    }
+
+    function getValueInUSD(address asset, uint amount) internal view returns(uint) {
+        (uint priceInUSD, uint8 priceDecimals) = priceOracle.getAssetPrice(asset);
+        uint8 _decimals = IERC20UpgradeableExt(asset).decimals();
+        return Token.changeDecimals(amount, _decimals, 18) * priceInUSD / (10 ** (priceDecimals));
     }
 
     ///@notice Returns the pending rewards in USD.
@@ -261,15 +222,7 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
         uint rewardsCount = rewards.length;
         uint pending;
         for (uint i = 0; i < rewardsCount; i ++) {
-            address reward = rewards[i];
-            uint priceInUSD = PriceLib.getAssetPrice(address(reward));
-            uint numeratorDecimals = 18; // USD precision
-            uint denominatorDecimals = IERC20UpgradeableExt(address(reward)).decimals() // against to amounts
-                                    + 8; // against to priceInUSD
-            uint _pending = (numeratorDecimals < denominatorDecimals)
-                            ? amounts[i] * priceInUSD / (10 ** (denominatorDecimals-numeratorDecimals))
-                            : amounts[i] * priceInUSD * (10 ** (numeratorDecimals-denominatorDecimals));
-            pending += _pending;
+            pending += getValueInUSD(rewards[i], amounts[i]);
         }
         return pending;
     }
@@ -280,19 +233,12 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
 
         address[] memory rewards = aRewardsController.getRewardsByAsset(address(aToken));
         uint rewardsCount = rewards.length;
-        uint _totalSupply = aToken.totalSupply();
-        uint TokenPriceInUSD = PriceLib.getAssetPrice(address(token));
+        uint aTokenInUSD = getValueInUSD(address(token), aToken.totalSupply());
         uint rewardsApr;
         for (uint i = 0; i < rewardsCount; i ++) {
             address reward = rewards[i];
             (, uint emissionPerSecond,,) = aRewardsController.getRewardsData(address(aToken), reward);
-            uint priceInUSD = PriceLib.getAssetPrice(address(reward));
-            uint numeratorDecimals = 18 // APR precision
-                                    + tokenDecimals; // against to totalSupply
-            uint denominatorDecimals = IERC20UpgradeableExt(address(reward)).decimals(); // against to emissionPerSecond
-            uint rewardApr = YEAR_IN_SEC * emissionPerSecond * priceInUSD * (10 ** (numeratorDecimals-denominatorDecimals))
-                            / (_totalSupply * TokenPriceInUSD);
-            rewardsApr += rewardApr;
+            rewardsApr += getValueInUSD(reward, YEAR_IN_SEC * emissionPerSecond) * 1e18 / aTokenInUSD;
         }
 
         return liquidityApr + (rewardsApr * (DENOMINATOR-yieldFee) / DENOMINATOR);
