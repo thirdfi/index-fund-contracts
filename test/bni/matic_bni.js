@@ -18,7 +18,7 @@ function getUsdtAmount(amount) {
 describe("BNI on Polygon", async () => {
 
     let vault, strategy, priceOracle, usdt;
-    let vaultArtifact, strategyArtifact;
+    let vaultArtifact, strategyArtifact, l2VaultArtifact;
     let admin;
 
     before(async () => {
@@ -26,7 +26,8 @@ describe("BNI on Polygon", async () => {
   
       vaultArtifact = await deployments.getArtifact("BNIVault");
       strategyArtifact = await deployments.getArtifact("MaticBNIStrategy");
-      priceOracleArtifact = await deployments.getArtifact("AvaxPriceOracle");
+      priceOracleArtifact = await deployments.getArtifact("MaticPriceOracle");
+      l2VaultArtifact = await deployments.getArtifact("MaticAave3Vault");
     });
   
     beforeEach(async () => {
@@ -64,6 +65,15 @@ describe("BNI on Polygon", async () => {
         expect(await strategy.USDT()).equal(network_.Swap.USDT);
         expect(await strategy.tokens(0)).equal(network_.Swap.WMATIC);
         expect(await strategy.pid(network_.Swap.WMATIC)).equal(0);
+        const WMATICVaultAddr = await strategy.WMATICVault();
+
+        const WMATICVault = new ethers.Contract(WMATICVaultAddr, l2VaultArtifact.abi, a1);
+        expect(await WMATICVault.name()).equal('BNI L2 WMATIC');
+        expect(await WMATICVault.symbol()).equal('bniL2WMATIC');
+        expect(await WMATICVault.aToken()).equal(network_.Aave3.aPolWMATIC);
+        expect(await WMATICVault.admin()).equal(common.admin);
+        expect(await WMATICVault.treasuryWallet()).equal(common.treasury);
+        expect(await WMATICVault.yieldFee()).equal(2000);
       });
 
       it("Should be set by only owner", async () => {
@@ -81,10 +91,37 @@ describe("BNI on Polygon", async () => {
         await expectRevert(strategy.setTreasuryWallet(a2.address), "Ownable: caller is not the owner");
         await expectRevert(strategy.setAdmin(a2.address), "Ownable: caller is not the owner");
         await expectRevert(strategy.setVault(a2.address), "Ownable: caller is not the owner");
+
+        const WMATICVault = new ethers.Contract(await strategy.WMATICVault(), l2VaultArtifact.abi, a1);
+
+        await expectRevert(WMATICVault.setAdmin(a2.address), "Ownable: caller is not the owner");
+        await WMATICVault.connect(deployer).setAdmin(a2.address);
+        expect(await WMATICVault.admin()).equal(a2.address);
+        await WMATICVault.connect(deployer).setAdmin(admin.address);
+
+        await expectRevert(WMATICVault.setTreasuryWallet(a2.address), "Ownable: caller is not the owner");
+        await WMATICVault.connect(deployer).setTreasuryWallet(a2.address);
+        expect(await WMATICVault.treasuryWallet()).equal(a2.address);
+        await WMATICVault.connect(deployer).setTreasuryWallet(common.treasury);
+
+        await expectRevert(WMATICVault.setFee(1000), "Ownable: caller is not the owner");
+        await WMATICVault.connect(deployer).setFee(1000);
+        expect(await WMATICVault.yieldFee()).equal(1000);
+
+        await expectRevert(WMATICVault.yield(), "Only owner or admin");
+        await WMATICVault.connect(admin).yield();
+
+        await expectRevert(WMATICVault.emergencyWithdraw(), "Only owner or admin");
+        await WMATICVault.connect(admin).emergencyWithdraw();
+        await expectRevert(WMATICVault.connect(deployer).emergencyWithdraw(), "Pausable: paused");
+
+        await expectRevert(WMATICVault.reinvest(), "Only owner or admin");
+        await WMATICVault.connect(admin).reinvest();
+        await expectRevert(WMATICVault.connect(deployer).reinvest(), "Pausable: not paused");
       });
 
       it("Should be returned with correct default vaule", async () => {
-        expect(await vault.getAPR()).equal(0);
+        expect(await vault.getAPR()).gt(0);
         expect(await vault.getAllPoolInUSD()).equal(0);
 
         var ret = await vault.getEachPoolInUSD();
@@ -103,11 +140,18 @@ describe("BNI on Polygon", async () => {
         await usdt.transfer(a1.address, getUsdtAmount('50000'));
         await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
 
+        const WMATICVault = new ethers.Contract(await strategy.WMATICVault(), l2VaultArtifact.abi, a1);
+        expect(await WMATICVault.getAPR()).gt(0);
+
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
         await vault.connect(admin).deposit(a1.address, tokens, [getUsdtAmount('50000')]);
         expect(await usdt.balanceOf(a1.address)).equal(0);
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(10));
+
+        await increaseTime(DAY);
+        expect(await WMATICVault.getPendingRewards()).equal(0);
+        await WMATICVault.connect(admin).yield();
 
         await vault.connect(admin).withdrawPerc(a1.address, parseEther('1'));
         expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(10));

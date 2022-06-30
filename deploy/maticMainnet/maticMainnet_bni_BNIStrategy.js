@@ -1,5 +1,6 @@
 const { ethers } = require("hardhat");
 const { common, maticMainnet: network_ } = require("../../parameters");
+const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
@@ -26,6 +27,16 @@ module.exports = async ({ deployments }) => {
     },
   });
   console.log("  MaticBNIStrategy_Proxy contract address: ", proxy.address);
+
+  const MaticBNIStrategy = await ethers.getContractFactory("MaticBNIStrategy");
+  const strategy = MaticBNIStrategy.attach(proxy.address);
+  const WMATICVault = await strategy.WMATICVault();
+  if (WMATICVault === AddressZero) {
+    const vaultFactory = await ethers.getContract("Aave3VaultFactory");
+    const WMATICVaultAddr = await vaultFactory.getVaultByUnderlying(network_.Swap.WMATIC);
+    const tx = await strategy.setWMATICVault(WMATICVaultAddr);
+    await tx.wait();
+  }
 
   // Verify the implementation contract
   try {

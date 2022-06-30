@@ -286,7 +286,7 @@ contract BNIStrategy is OwnableUpgradeable {
         return (tokens, percentages);
     }
 
-    function getAPR() external view virtual returns (uint) {
+    function getAPR() public view virtual returns (uint) {
         return 0;
     }
 

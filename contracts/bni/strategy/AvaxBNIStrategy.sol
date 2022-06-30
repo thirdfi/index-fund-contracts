@@ -74,4 +74,17 @@ contract AvaxBNIStrategy is BNIStrategy {
             pool = super._getPoolInUSD(_pid);
         }
     }
+
+    function getAPR() public view override returns (uint) {
+        (address[] memory _tokens, uint[] memory perc) = getCurrentTokenCompositionPerc();
+        uint allApr;
+        uint poolCnt = _tokens.length;
+        for (uint i = 0; i < poolCnt; i ++) {
+            address token = _tokens[i];
+            if (token == address(WAVAX)) {
+                allApr += WAVAXVault.getAPR() * perc[i];
+            }
+        }
+        return (allApr / DENOMINATOR);
+    }
 }

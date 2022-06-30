@@ -32,8 +32,8 @@ module.exports = async ({ deployments }) => {
   const strategy = AvaxBNIStrategy.attach(proxy.address);
   const WAVAXVault = await strategy.WAVAXVault();
   if (WAVAXVault === AddressZero) {
-    const avaxVaultFactory = await ethers.getContract("Aave3VaultFactory");
-    const WAVAXVaultAddr = await avaxVaultFactory.getVaultByUnderlying(network_.Token.WAVAX);
+    const vaultFactory = await ethers.getContract("Aave3VaultFactory");
+    const WAVAXVaultAddr = await vaultFactory.getVaultByUnderlying(network_.Token.WAVAX);
     const tx = await strategy.setWAVAXVault(WAVAXVaultAddr);
     await tx.wait();
   }

@@ -19,7 +19,7 @@ function getUsdtAmount(amount) {
 describe("BNI on Avalanche", async () => {
 
     let bni, minter, vault, strategy, priceOracle, usdt;
-    let bniArtifact, minterArtifact, vaultArtifact, strategyArtifact;
+    let bniArtifact, minterArtifact, vaultArtifact, strategyArtifact, l2VaultArtifact;
     let admin;
 
     before(async () => {
@@ -30,6 +30,7 @@ describe("BNI on Avalanche", async () => {
       vaultArtifact = await deployments.getArtifact("BNIVault");
       strategyArtifact = await deployments.getArtifact("AvaxBNIStrategy");
       priceOracleArtifact = await deployments.getArtifact("AvaxPriceOracle");
+      l2VaultArtifact = await deployments.getArtifact("Aave3Vault");
     });
   
     beforeEach(async () => {
@@ -94,7 +95,15 @@ describe("BNI on Avalanche", async () => {
         expect(await strategy.USDT()).equal(network_.Swap.USDT);
         expect(await strategy.tokens(0)).equal(network_.Swap.WAVAX);
         expect(await strategy.pid(network_.Swap.WAVAX)).equal(0);
-        expect(await strategy.WAVAXVault()).not.equal(AddressZero);
+        const WAVAXVaultAddr = await strategy.WAVAXVault();
+
+        const WAVAXVault = new ethers.Contract(WAVAXVaultAddr, l2VaultArtifact.abi, a1);
+        expect(await WAVAXVault.name()).equal('MWI L2 WAVAX');
+        expect(await WAVAXVault.symbol()).equal('mwiL2WAVAX');
+        expect(await WAVAXVault.aToken()).equal(network_.Aave3.aAvaWAVAX);
+        expect(await WAVAXVault.admin()).equal(common.admin);
+        expect(await WAVAXVault.treasuryWallet()).equal(common.treasury);
+        expect(await WAVAXVault.yieldFee()).equal(2000);
       });
 
       it("Should be set by only owner", async () => {
@@ -130,7 +139,7 @@ describe("BNI on Avalanche", async () => {
       it("Should be returned with correct default vaule", async () => {
         var avaxAPR = await vault.getAPR();
         var avaxPool = await vault.getAllPoolInUSD();
-        expect(avaxAPR).equal(0);
+        expect(avaxAPR).gt(0);
         expect(avaxPool).equal(0);
         expect(await minter.getAPR([avaxPool], [avaxAPR])).equal(0);
         expect(await minter.getPricePerFullShare([avaxPool])).equal(parseEther('1'));
@@ -170,6 +179,9 @@ describe("BNI on Avalanche", async () => {
         await usdt.transfer(a1.address, getUsdtAmount('50000'));
         await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
 
+        const WAVAXVault = new ethers.Contract(await strategy.WAVAXVault(), l2VaultArtifact.abi, a1);
+        expect(await WAVAXVault.getAPR()).gt(0);
+
         var ret = await vault.getEachPoolInUSD();
         var chainIDs = ret[0];
         var tokens = ret[1];
@@ -187,12 +199,18 @@ describe("BNI on Avalanche", async () => {
         await vault.connect(admin).deposit(a1.address, tokens, USDTAmts);
         expect(await usdt.balanceOf(a1.address)).equal(0);
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(100));
+        var avaxAPR = await vault.getAPR();
         var avaxPool = await vault.getAllPoolInUSD();
         var allPool = await minter.getAllPoolInUSD([avaxPool]);
         expect(allPool).closeTo(parseEther('50000'), parseEther('50000').div(100));
         await minter.connect(admin).mint(allPool, a1.address, getUsdtAmount('50000'));
         expect(await bni.balanceOf(a1.address)).closeTo(parseEther('50000'), parseEther('50000').div(100));
         expect(await minter.getPricePerFullShare([avaxPool])).closeTo(parseEther('1'), parseEther('1').div(100));
+        expect(await minter.getAPR([avaxPool], [avaxAPR])).gt(0);
+
+        await increaseTime(DAY);
+        expect(await WAVAXVault.getPendingRewards()).gt(0);
+        await WAVAXVault.connect(admin).yield();
 
         const share = await bni.balanceOf(a1.address);
         await expectRevert(minter.getWithdrawPerc(a1.address, share.add(1)), "Invalid share amount");
