@@ -7,49 +7,39 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
-import "./Aave3DataTypes.sol";
 import "../../bni/priceOracle/IPriceOracle.sol";
 import "../../../interfaces/IERC20UpgradeableExt.sol";
 import "../../../libs/Token.sol";
 
-interface IAToken is IERC20Upgradeable {
-    function UNDERLYING_ASSET_ADDRESS() external view returns (address);
-    function POOL() external view returns (address);
-    function getIncentivesController() external view returns (address);
+interface ICToken is IERC20Upgradeable {
+    function comptroller() external view returns (address);
+    function underlying() external view returns (address);
+    function exchangeRateStored() external view returns (uint);
+    function supplyRatePerBlock() external view returns (uint);
+
+    function mint(uint mintAmount) external returns (uint);
+    function redeem(uint redeemTokens) external returns (uint);
+    function redeemUnderlying(uint redeemAmount) external returns (uint);
+    function borrow(uint borrowAmount) external returns (uint);
+    function repayBorrow(uint repayAmount) external returns (uint);
+    function repayBorrowBehalf(address borrower, uint repayAmount) external returns (uint);
 }
 
-interface IPool {
-    function supply(address asset, uint256 amount, address onBehalfOf, uint16 referralCode) external;
-    function withdraw(address asset, uint256 amount, address to ) external returns (uint256);
-    function getReserveData(address asset) external view returns (Aave3DataTypes.ReserveData memory);
+interface IComptroller {
+    function enterMarkets(address[] calldata cTokens) external returns (uint[] memory);
+    function exitMarket(address cToken) external returns (uint);
 }
 
-interface IRewardsController {
-    /// @dev asset The incentivized asset. It should be address of AToken
-    function getRewardsByAsset(address asset) external view returns (address[] memory);
-    function getRewardsData(address asset, address reward) external view returns (
-      uint256 index,
-      uint256 emissionPerSecond,
-      uint256 lastUpdateTimestamp,
-      uint256 distributionEnd
-    );
-    function getAllUserRewards(address[] calldata assets, address user) external view returns (address[] memory, uint256[] memory);
-    function getUserRewards(address[] calldata assets, address user, address reward) external view returns (uint256);
-    function claimAllRewards(address[] calldata assets, address to) external returns (address[] memory rewardsList, uint256[] memory claimedAmounts);
-    function claimAllRewardsToSelf(address[] calldata assets) external returns (address[] memory rewardsList, uint256[] memory claimedAmounts);
-}
-
-contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable{
+contract BasicCompoundVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable{
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     uint constant DENOMINATOR = 10000;
     uint public yieldFee;
 
-    IAToken public aToken;
+    ICToken public cToken;
     IERC20Upgradeable public token;
     uint8 private tokenDecimals;
-    IPool public aPool;
-    IRewardsController public aRewardsController;
+    IComptroller public comptroller;
 
     address public treasuryWallet;
     address public admin;
@@ -59,6 +49,8 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
 
     uint constant DAY_IN_SEC = 86400; // 3600 * 24
     uint constant YEAR_IN_SEC = 365 * DAY_IN_SEC;
+
+    uint constant MANTISSA_ONE = 1e18;
 
     event Deposit(address _user, uint _amount, uint _shares);
     event EmergencyWithdraw(uint _amount);
@@ -76,7 +68,7 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
     function initialize(string memory _name, string memory _symbol, 
         address _treasury, address _admin,
         address _priceOracle,
-        IAToken _aToken
+        ICToken _cToken
     ) public virtual initializer {
 
         __ERC20_init(_name, _symbol);
@@ -87,15 +79,16 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
         priceOracle = IPriceOracle(_priceOracle);
 
         yieldFee = 2000; //20%
-        aToken = _aToken;
+        cToken = _cToken;
 
-        token = IERC20Upgradeable(aToken.UNDERLYING_ASSET_ADDRESS());
-        tokenDecimals = IERC20UpgradeableExt(address(token)).decimals();
-        aPool = IPool(aToken.POOL());
-        aRewardsController = IRewardsController(aToken.getIncentivesController());
+        token = IERC20Upgradeable(_cToken.underlying());
+        tokenDecimals = IERC20UpgradeableExt(address(_cToken)).decimals();
+        comptroller = IComptroller(_cToken.comptroller());
         
-        token.approve(address(aPool), type(uint).max);
-        aToken.approve(address(aPool), type(uint).max);
+        address[] memory cTokens = new address[](1);
+        cTokens[0] = address(_cToken);
+        comptroller.enterMarkets(cTokens);
+        token.approve(address(_cToken), type(uint).max);
     }
     
     /**
@@ -109,7 +102,7 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
 
         depositedBlock[msg.sender] = block.number;
 
-        aPool.supply(address(token), token.balanceOf(address(this)), address(this), 0);
+        cToken.mint(token.balanceOf(address(this)));
 
         uint _totalSupply = totalSupply();
         uint _shares = _totalSupply == 0 ? _amount : _amount * _totalSupply / _pool;
@@ -126,11 +119,12 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
         require(balanceOf(msg.sender) >= _shares, "Not enough balance");
         require(depositedBlock[msg.sender] != block.number, "Withdraw within same block");
 
-        uint _amountToWithdraw = getAllPool() * _shares / totalSupply(); 
+        uint _pool = getAllPool();
+        uint _amountToWithdraw = _pool * _shares / totalSupply(); 
 
         uint available = token.balanceOf(address(this));
         if(available < _amountToWithdraw) {
-            aPool.withdraw(address(token), _amountToWithdraw - available, address(this));
+            cToken.redeem(cToken.balanceOf(address(this)) * (_amountToWithdraw - available) / (_pool - available));
             _amountToWithdraw = token.balanceOf(address(this));
         }
         _burn(msg.sender, _shares);
@@ -142,7 +136,7 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
     function _invest() internal returns (uint available){
         available = token.balanceOf(address(this));
         if(available > 0) {
-            aPool.supply(address(token), available, address(this), 0);
+            cToken.mint(available);
         }
     }
 
@@ -150,9 +144,9 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
     function emergencyWithdraw() external onlyOwnerOrAdmin whenNotPaused{ 
         _pause();
         _yield();
-        uint stakedTokens = aToken.balanceOf(address(this));
+        uint stakedTokens = cToken.balanceOf(address(this));
         if(stakedTokens > 0 ) {
-            aPool.withdraw(address(token), stakedTokens, address(this));
+            cToken.redeem(stakedTokens);
         }
         emit EmergencyWithdraw(stakedTokens);
     }
@@ -191,8 +185,10 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
     function _yield() internal virtual {
     }
 
-    function getAllPool() public view returns (uint ) {
-        return token.balanceOf(address(this)) + aToken.balanceOf(address(this));
+    function getAllPool() public view returns (uint) {
+        uint rate = cToken.exchangeRateStored();
+        uint underlyingAmount = (cToken.balanceOf(address(this)) * rate) / MANTISSA_ONE;
+        return token.balanceOf(address(this)) + underlyingAmount;
     }
 
     function getAllPoolInUSD() public view returns (uint) {
@@ -215,34 +211,17 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
     }
 
     ///@notice Returns the pending rewards in USD.
-    function getPendingRewards() public view returns (uint) {
-        address[] memory assets = new address[](1);
-        assets[0] = address(aToken);
-        (address[] memory rewards, uint[] memory amounts) = aRewardsController.getAllUserRewards(assets, address(this));
-
-        uint rewardsCount = rewards.length;
-        uint pending;
-        for (uint i = 0; i < rewardsCount; i ++) {
-            pending += getValueInUSD(rewards[i], amounts[i]);
-        }
-        return pending;
+    function getPendingRewards() public view virtual returns (uint) {
+        return 0;
     }
 
-    function getAPR() external view returns (uint) {
-        Aave3DataTypes.ReserveData memory reserveData = aPool.getReserveData(address(token));
-        uint liquidityApr = reserveData.currentLiquidityRate / 1e9; // currentLiquidityRate is expressed in ray, 1e27
+    function getBlocksPerYear() public view virtual returns (uint) {
+        return 0;
+    }
 
-        address[] memory rewards = aRewardsController.getRewardsByAsset(address(aToken));
-        uint rewardsCount = rewards.length;
-        uint aTokenInUSD = getValueInUSD(address(token), aToken.totalSupply());
-        uint rewardsApr;
-        for (uint i = 0; i < rewardsCount; i ++) {
-            address reward = rewards[i];
-            (, uint emissionPerSecond,,) = aRewardsController.getRewardsData(address(aToken), reward);
-            rewardsApr += getValueInUSD(reward, YEAR_IN_SEC * emissionPerSecond) * 1e18 / aTokenInUSD;
-        }
-
-        return liquidityApr + (rewardsApr * (DENOMINATOR-yieldFee) / DENOMINATOR);
+    ///@dev It's scaled by 1e18
+    function getAPR() public view virtual returns (uint) {
+        return cToken.supplyRatePerBlock() * getBlocksPerYear();
     }
 
 }
