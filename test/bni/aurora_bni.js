@@ -30,7 +30,7 @@ describe("BNI on Aurora", async () => {
     });
   
     beforeEach(async () => {
-      await deployments.fixture(["hardhat_aurora_bni"])
+      await deployments.fixture(["hardhat_aurora_bni2"])
 
       const vaultProxy = await ethers.getContract("BNIVault_Proxy");
       vault = new ethers.Contract(vaultProxy.address, vaultArtifact.abi, a1);

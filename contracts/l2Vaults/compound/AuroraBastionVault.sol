@@ -159,7 +159,7 @@ contract AuroraBastionVault is BasicCompoundVault {
                 rewardsPerYear += getValueInUSD(reward, supplySpeed * YEAR_IN_SEC);
             }
         }
-        uint rewardApr = (rewardsPerYear > 0) ? rewardsPerYear * 1e18 / getAllPoolInUSD() : 0;
-        return super.getAPR() + rewardApr;
+        uint rewardsApr = (rewardsPerYear > 0) ? rewardsPerYear * 1e18 / getAllPoolInUSD() : 0;
+        return super.getAPR() + (rewardsApr * (DENOMINATOR-yieldFee) / DENOMINATOR);
     }
 }

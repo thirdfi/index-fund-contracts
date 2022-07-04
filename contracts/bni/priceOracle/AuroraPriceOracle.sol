@@ -19,6 +19,7 @@ contract AuroraPriceOracle is PriceOracle {
 
     IUniPair constant WNEARUSDT = IUniPair(0x03B666f3488a7992b2385B12dF7f35156d7b29cD);
     IUniPair constant WNEARUSDC = IUniPair(0x20F8AeFB5697B77E0BB835A8518BE70775cdA1b0);
+    IUniPair constant BSTNWNEAR = IUniPair(0xBBf3D4281F10E537d5b13CA80bE22362310b2bf9);
 
     function initialize() public virtual override initializer {
         super.initialize();
@@ -30,6 +31,8 @@ contract AuroraPriceOracle is PriceOracle {
             return (1e8, 8);
         } else if (asset == AuroraConstant.WNEAR) {
             return getWNEARPrice();
+        } else if (asset == AuroraConstant.BSTN) {
+            return getBSTNPrice();
         }
         return super.getAssetPrice(asset);
     }
@@ -38,6 +41,13 @@ contract AuroraPriceOracle is PriceOracle {
         uint priceInUSDT = getPriceFromPair(WNEARUSDT, AuroraConstant.WNEAR);
         uint priceInUSDC = getPriceFromPair(WNEARUSDC, AuroraConstant.WNEAR);
         return ((priceInUSDT + priceInUSDC) / 2, 18);
+    }
+
+    function getBSTNPrice() private view returns (uint price, uint8 decimals) {
+        uint priceInWNEAR = getPriceFromPair(BSTNWNEAR, AuroraConstant.BSTN);
+        (uint WNEARPriceInUSD, uint8 WNEARPriceDecimals) = getWNEARPrice();
+        price = priceInWNEAR * WNEARPriceInUSD / 1e24; // WNEAR decimals is 24;
+        decimals = WNEARPriceDecimals;
     }
 
     ///@return the value denominated with other token. It's 18 decimals.

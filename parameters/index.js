@@ -10,6 +10,9 @@ module.exports = {
       SWAP_BASE_TOKEN: "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d", // WNEAR
       USDT: "0x4988a896b1227218e4A686fdE5EabdcAbd91571f",
       WNEAR: "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d",
+    },
+    Bastion: {
+      cNEAR: "0x8C14ea853321028a7bb5E4FB0d0147F183d3B677",
     }
   },
 
