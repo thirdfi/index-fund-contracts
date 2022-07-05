@@ -270,11 +270,13 @@ describe("BNI on Aurora", async () => {
 
         await increaseTime(DAY);
         expect(await WNEARVault.getPendingRewards()).equal(0);
-        await WNEARVault.connect(admin).yield();
 
         const balanceBefore = await cNEAR.balanceOf(WNEARVault.address);
+        const aprBefore = await WNEARVault.getAPR();
         expect(await BSTN.balanceOf(common.treasury)).equal(0);
         await rewardDistributor._setRewardSpeed(0, network_.Bastion.cNEAR, parseEther('0.1'), 0);
+        expect(await WNEARVault.getAPR()).gt(aprBefore);
+
         await increaseTime(DAY);
         expect(await WNEARVault.getPendingRewards()).gt(0);
         await WNEARVault.connect(admin).yield();

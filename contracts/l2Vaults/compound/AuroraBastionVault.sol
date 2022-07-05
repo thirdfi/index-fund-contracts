@@ -60,8 +60,8 @@ contract AuroraBastionVault is BasicCompoundVault {
     function _updateRewardDistributor() private {
         rewardDistributor = IRewardDistributor(IBastionComptroller(address(comptroller)).rewardDistributor());
         // It needs to approve router for reward token
-        for (uint i = 0; i < REWARD_COUNT; i ++) {
-            address reward = rewardDistributor.getRewardAddress(i);
+        for (uint8 rewardType = 0; rewardType < REWARD_COUNT; rewardType ++) {
+            address reward = rewardDistributor.getRewardAddress(rewardType);
             IERC20Upgradeable(reward).safeApprove(address(Router), type(uint).max);
         }
     }
@@ -115,10 +115,10 @@ contract AuroraBastionVault is BasicCompoundVault {
 
     function getPendingRewards() public view override returns (uint) {
         uint pending;
-        for (uint8 i = 0; i < REWARD_COUNT; i ++) {
-            uint amount = _getPendingRewardAmount(i);
+        for (uint8 rewardType = 0; rewardType < REWARD_COUNT; rewardType ++) {
+            uint amount = _getPendingRewardAmount(rewardType);
             if (amount > 0) {
-                address reward = rewardDistributor.getRewardAddress(i);
+                address reward = rewardDistributor.getRewardAddress(rewardType);
                 pending += getValueInUSD(reward, amount);
             }
         }
@@ -159,7 +159,12 @@ contract AuroraBastionVault is BasicCompoundVault {
                 rewardsPerYear += getValueInUSD(reward, supplySpeed * YEAR_IN_SEC);
             }
         }
-        uint rewardsApr = (rewardsPerYear > 0) ? rewardsPerYear * 1e18 / getAllPoolInUSD() : 0;
-        return super.getAPR() + (rewardsApr * (DENOMINATOR-yieldFee) / DENOMINATOR);
+        if (rewardsPerYear > 0) {
+            uint underlyingSupply = (cToken.totalSupply() * cToken.exchangeRateStored()) / MANTISSA_ONE;
+            uint rewardsApr = rewardsPerYear * 1e18 / getValueInUSD(address(token), underlyingSupply);
+            return super.getAPR() + (rewardsApr * (DENOMINATOR-yieldFee) / DENOMINATOR);
+        } else {
+            return super.getAPR();
+        }
     }
 }

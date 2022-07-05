@@ -46,7 +46,7 @@ contract AuroraPriceOracle is PriceOracle {
     function getBSTNPrice() private view returns (uint price, uint8 decimals) {
         uint priceInWNEAR = getPriceFromPair(BSTNWNEAR, AuroraConstant.BSTN);
         (uint WNEARPriceInUSD, uint8 WNEARPriceDecimals) = getWNEARPrice();
-        price = priceInWNEAR * WNEARPriceInUSD / 1e24; // WNEAR decimals is 24;
+        price = priceInWNEAR * WNEARPriceInUSD / 1e18;
         decimals = WNEARPriceDecimals;
     }
 
