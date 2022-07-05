@@ -17,5 +17,7 @@ module.exports = async () => {
 module.exports.tags = ["hardhat_matic_bni"];
 module.exports.dependencies = [
   "hardhat_matic_reset",
-  "maticMainnet_bni"
+  "maticMainnet_bni_PriceOracle",
+  "maticMainnet_bni2",
+  "maticMainnet_bni_BNIVault",
 ];

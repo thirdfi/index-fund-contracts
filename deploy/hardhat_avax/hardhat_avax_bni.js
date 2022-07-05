@@ -17,5 +17,11 @@ module.exports = async () => {
 module.exports.tags = ["hardhat_avax_bni"];
 module.exports.dependencies = [
   "hardhat_avax_reset",
-  "avaxMainnet_bni"
+  "avaxMainnet_mwi_L2Factory",
+  "avaxMainnet_mwi_L2Vaults",
+  "avaxMainnet_bni_PriceOracle",
+  "avaxMainnet_bni_BNI",
+  "avaxMainnet_bni_BNIMinter",
+  "avaxMainnet_bni2",
+  "avaxMainnet_bni_BNIVault",
 ];

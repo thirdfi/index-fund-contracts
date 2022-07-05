@@ -18,7 +18,7 @@ function getUsdtAmount(amount) {
 describe("BNI on Aurora", async () => {
 
     let vault, strategy, priceOracle, usdt;
-    let vaultArtifact, strategyArtifact;
+    let vaultArtifact, strategyArtifact, l2VaultArtifact;
     let admin;
 
     before(async () => {
@@ -27,10 +27,11 @@ describe("BNI on Aurora", async () => {
       vaultArtifact = await deployments.getArtifact("BNIVault");
       strategyArtifact = await deployments.getArtifact("AuroraBNIStrategy");
       priceOracleArtifact = await deployments.getArtifact("AuroraPriceOracle");
+      l2VaultArtifact = await deployments.getArtifact("AuroraBastionVault");
     });
   
     beforeEach(async () => {
-      await deployments.fixture(["hardhat_aurora_bni2"])
+      await deployments.fixture(["hardhat_aurora_bni"])
 
       const vaultProxy = await ethers.getContract("BNIVault_Proxy");
       vault = new ethers.Contract(vaultProxy.address, vaultArtifact.abi, a1);
@@ -64,6 +65,15 @@ describe("BNI on Aurora", async () => {
         expect(await strategy.USDT()).equal(network_.Swap.USDT);
         expect(await strategy.tokens(0)).equal(network_.Swap.WNEAR);
         expect(await strategy.pid(network_.Swap.WNEAR)).equal(0);
+        const WNEARVaultAddr = await strategy.WNEARVault();
+
+        const WNEARVault = new ethers.Contract(WNEARVaultAddr, l2VaultArtifact.abi, a1);
+        expect(await WNEARVault.name()).equal('BNI L2 WNEAR');
+        expect(await WNEARVault.symbol()).equal('bniL2WNEAR');
+        expect(await WNEARVault.cToken()).equal(network_.Bastion.cNEAR);
+        expect(await WNEARVault.admin()).equal(common.admin);
+        expect(await WNEARVault.treasuryWallet()).equal(common.treasury);
+        expect(await WNEARVault.yieldFee()).equal(2000);
       });
 
       it("Should be set by only owner", async () => {
@@ -82,10 +92,39 @@ describe("BNI on Aurora", async () => {
         await expectRevert(strategy.setTreasuryWallet(a2.address), "Ownable: caller is not the owner");
         await expectRevert(strategy.setAdmin(a2.address), "Ownable: caller is not the owner");
         await expectRevert(strategy.setVault(a2.address), "Ownable: caller is not the owner");
+
+        const WNEARVault = new ethers.Contract(await strategy.WNEARVault(), l2VaultArtifact.abi, a1);
+
+        await expectRevert(WNEARVault.setAdmin(a2.address), "Ownable: caller is not the owner");
+        await WNEARVault.connect(deployer).setAdmin(a2.address);
+        expect(await WNEARVault.admin()).equal(a2.address);
+        await WNEARVault.connect(deployer).setAdmin(accounts[0].address);
+
+        await expectRevert(WNEARVault.setTreasuryWallet(a2.address), "Ownable: caller is not the owner");
+        await WNEARVault.connect(deployer).setTreasuryWallet(a2.address);
+        expect(await WNEARVault.treasuryWallet()).equal(a2.address);
+        await WNEARVault.connect(deployer).setTreasuryWallet(common.treasury);
+
+        await expectRevert(WNEARVault.setFee(1000), "Ownable: caller is not the owner");
+        await WNEARVault.connect(deployer).setFee(1000);
+        expect(await WNEARVault.yieldFee()).equal(1000);
+
+        await expectRevert(WNEARVault.yield(), "Only owner or admin");
+        await WNEARVault.connect(accounts[0]).yield();
+
+        await expectRevert(WNEARVault.emergencyWithdraw(), "Only owner or admin");
+        await WNEARVault.connect(accounts[0]).emergencyWithdraw();
+        await expectRevert(WNEARVault.connect(deployer).emergencyWithdraw(), "Pausable: paused");
+
+        await expectRevert(WNEARVault.reinvest(), "Only owner or admin");
+        await WNEARVault.connect(accounts[0]).reinvest();
+        await expectRevert(WNEARVault.connect(deployer).reinvest(), "Pausable: not paused");
+
+        await expectRevert(WNEARVault.updateRewardDistributor(), "Ownable: caller is not the owner");
       });
 
       it("Should be returned with correct default vaule", async () => {
-        expect(await vault.getAPR()).equal(0);
+        expect(await vault.getAPR()).gt(0);
         expect(await vault.getAllPoolInUSD()).equal(0);
 
         var ret = await vault.getEachPoolInUSD();
@@ -109,11 +148,19 @@ describe("BNI on Aurora", async () => {
         await usdt.transfer(a1.address, getUsdtAmount('50000'));
         await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
 
+        const WNEARVault = new ethers.Contract(await strategy.WNEARVault(), l2VaultArtifact.abi, a1);
+        expect(await WNEARVault.getAPR()).gt(0);
+
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
         await vault.connect(admin).deposit(a1.address, tokens, [getUsdtAmount('50000')]);
         expect(await usdt.balanceOf(a1.address)).equal(0);
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(10));
+
+        await increaseTime(DAY);
+        expect(await WNEARVault.getPendingRewards()).equal(0);
+        await WNEARVault.connect(deployer).setAdmin(admin.address);
+        await WNEARVault.connect(admin).yield();
 
         await vault.connect(admin).withdrawPerc(a1.address, parseEther('1'));
         expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(10));

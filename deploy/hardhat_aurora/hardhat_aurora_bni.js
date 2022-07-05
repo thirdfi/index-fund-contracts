@@ -14,7 +14,7 @@ module.exports = async () => {
   await usdt.transfer(deployer.address, await usdt.balanceOf(usdtHolder.address));
 };
 
-module.exports.tags = ["hardhat_aurora_bni2"];
+module.exports.tags = ["hardhat_aurora_bni"];
 module.exports.dependencies = [
   "hardhat_aurora_reset",
   "auroraMainnet_bni2",

@@ -1,5 +1,6 @@
 const { ethers } = require("hardhat");
 const { common, auroraMainnet: network_ } = require("../../parameters");
+const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
@@ -26,6 +27,16 @@ module.exports = async ({ deployments }) => {
     },
   });
   console.log("  AuroraBNIStrategy_Proxy contract address: ", proxy.address);
+
+  const AuroraBNIStrategy = await ethers.getContractFactory("AuroraBNIStrategy");
+  const strategy = AuroraBNIStrategy.attach(proxy.address);
+  const WNEARVault = await strategy.WNEARVault();
+  if (WNEARVault === AddressZero) {
+    const vaultFactory = await ethers.getContract("CompoundVaultFactory");
+    const WNEARVaultAddr = await vaultFactory.getVaultByUnderlying(network_.Swap.WNEAR);
+    const tx = await strategy.setWNEARVault(WNEARVaultAddr);
+    await tx.wait();
+  }
 
   // Verify the implementation contract
   try {
