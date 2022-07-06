@@ -1,10 +1,10 @@
 const { ethers } = require("hardhat");
-const { common, auroraMainnet: network_ } = require("../../parameters");
+const { common, auroraTestnet: network_ } = require("../../parameters/testnet");
 const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
 
-  const vaultArtifact = await deployments.getArtifact("AuroraBastionVault");
+  const vaultArtifact = await deployments.getArtifact("BasicCompoundVaultTest");
   const vaultIface = new ethers.utils.Interface(JSON.stringify(vaultArtifact.abi));
 
   const priceOracleProxy = await ethers.getContract("AuroraPriceOracle_Proxy");
@@ -39,4 +39,4 @@ module.exports = async ({ deployments }) => {
   }
 
 };
-module.exports.tags = ["auroraMainnet_l2_BastionVaults"];
+module.exports.tags = ["auroraTestnet_l2_BastionVaults"];

@@ -250,6 +250,7 @@ describe("BNI on Aurora", async () => {
         const rewardAdmin = await ethers.getSigner('0x4f44d184908AE367CAD0cb1b332A11545d76Bc87');
         rewardDistributor = new ethers.Contract('0x98E8d4b4F53FA2a2d1b9C651AF919Fc839eE4c1a', [
           'function _setRewardSpeed(uint8 rewardType, address cToken, uint256 rewardSupplySpeed, uint256 rewardBorrowSpeed)',
+          'function rewardSupplySpeeds(uint8 rewardType, address cToken) external view returns (uint)',
         ], rewardAdmin);
 
         cNEAR = new ethers.Contract(network_.Bastion.cNEAR, ERC20_ABI, deployer);

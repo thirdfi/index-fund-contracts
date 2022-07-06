@@ -1,10 +1,10 @@
 const { ethers } = require("hardhat");
-const { common, maticMainnet: network_ } = require("../../parameters");
+const { common, maticMumbai: network_ } = require("../../parameters/testnet");
 const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
 
-  const vaultArtifact = await deployments.getArtifact("MaticAave3Vault");
+  const vaultArtifact = await deployments.getArtifact("BasicAave3VaultTest");
   const vaultIface = new ethers.utils.Interface(JSON.stringify(vaultArtifact.abi));
 
   const priceOracleProxy = await ethers.getContract("MaticPriceOracle_Proxy");
@@ -39,4 +39,4 @@ module.exports = async ({ deployments }) => {
   }
 
 };
-module.exports.tags = ["maticMainnet_l2_Aave3Vaults"];
+module.exports.tags = ["maticMumbai_l2_Aave3Vaults"];
