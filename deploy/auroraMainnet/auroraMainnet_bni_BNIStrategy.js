@@ -28,14 +28,17 @@ module.exports = async ({ deployments }) => {
   });
   console.log("  AuroraBNIStrategy_Proxy contract address: ", proxy.address);
 
-  const AuroraBNIStrategy = await ethers.getContractFactory("AuroraBNIStrategy");
-  const strategy = AuroraBNIStrategy.attach(proxy.address);
-  const WNEARVault = await strategy.WNEARVault();
-  if (WNEARVault === AddressZero) {
-    const vaultFactory = await ethers.getContract("CompoundVaultFactory");
-    const WNEARVaultAddr = await vaultFactory.getVaultByUnderlying(network_.Swap.WNEAR);
-    const tx = await strategy.setWNEARVault(WNEARVaultAddr);
-    await tx.wait();
+  try {
+    const AuroraBNIStrategy = await ethers.getContractFactory("AuroraBNIStrategy");
+    const strategy = AuroraBNIStrategy.attach(proxy.address);
+    const WNEARVault = await strategy.WNEARVault();
+    if (WNEARVault === AddressZero) {
+      const vaultFactory = await ethers.getContract("CompoundVaultFactory");
+      const WNEARVaultAddr = await vaultFactory.getVaultByUnderlying(network_.Swap.WNEAR);
+      const tx = await strategy.setWNEARVault(WNEARVaultAddr); // It can be failed if the deployer is not owner of the SC
+      await tx.wait();
+    }
+  } catch(e) {
   }
 
   // Verify the implementation contract

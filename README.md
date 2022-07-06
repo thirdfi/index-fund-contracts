@@ -107,7 +107,7 @@ npx hardhat deploy --network avaxMainnet --tags avaxMainnet_mwi
 
 | Products    | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| LCI         | [0x8FD52c2156a0475e35E0FEf37Fa396611062c9b6](https://bscscan.com/address/0x8FD52c2156a0475e35E0FEf37Fa396611062c9b6#readProxyContract) | [0x69380cc2169046f8A3B2c03D58Fe206475aAe3CB](https://testnet.bscscan.com/address/0x69380cc2169046f8a3b2c03d58fe206475aae3cb)
+| LCI         | [0x8FD52c2156a0475e35E0FEf37Fa396611062c9b6](https://bscscan.com/address/0x8FD52c2156a0475e35E0FEf37Fa396611062c9b6) | [0x69380cc2169046f8A3B2c03D58Fe206475aAe3CB](https://testnet.bscscan.com/address/0x69380cc2169046f8a3b2c03d58fe206475aae3cb)
 
 #### Polygon Products
 

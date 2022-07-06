@@ -28,14 +28,17 @@ module.exports = async ({ deployments }) => {
   });
   console.log("  AvaxBNIStrategy_Proxy contract address: ", proxy.address);
 
-  const AvaxBNIStrategy = await ethers.getContractFactory("AvaxBNIStrategy");
-  const strategy = AvaxBNIStrategy.attach(proxy.address);
-  const WAVAXVault = await strategy.WAVAXVault();
-  if (WAVAXVault === AddressZero) {
-    const vaultFactory = await ethers.getContract("Aave3VaultFactory");
-    const WAVAXVaultAddr = await vaultFactory.getVaultByUnderlying(network_.Token.WAVAX);
-    const tx = await strategy.setWAVAXVault(WAVAXVaultAddr);
-    await tx.wait();
+  try {
+    const AvaxBNIStrategy = await ethers.getContractFactory("AvaxBNIStrategy");
+    const strategy = AvaxBNIStrategy.attach(proxy.address);
+    const WAVAXVault = await strategy.WAVAXVault();
+    if (WAVAXVault === AddressZero) {
+      const vaultFactory = await ethers.getContract("Aave3VaultFactory");
+      const WAVAXVaultAddr = await vaultFactory.getVaultByUnderlying(network_.Token.WAVAX);
+      const tx = await strategy.setWAVAXVault(WAVAXVaultAddr);  // It can be failed if the deployer is not owner of the SC
+      await tx.wait();
+    }
+  } catch(e) {
   }
 
   // Verify the implementation contract
