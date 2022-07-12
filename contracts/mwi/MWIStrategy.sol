@@ -297,6 +297,13 @@ contract MWIStrategy is OwnableUpgradeable {
         vault = _vault;
     }
 
+    function setL2Vault(IL2Vault _WBTCVault, IL2Vault _WETHVault, IL2Vault _WAVAXVault, IL2Vault _USDTVault) external onlyOwner {
+        WBTCVault = _WBTCVault;
+        WETHVault = _WETHVault;
+        WAVAXVault = _WAVAXVault;
+        USDTVault = _USDTVault;
+    }
+
     function setTokenCompositionTargetPerc(uint[] calldata _targetPerc) external onlyOwner {
         uint targetCnt = _targetPerc.length;
         require(targetCnt == targetPercentages.length, "Invalid count");
