@@ -37,6 +37,10 @@ interface IStVault is IERC20Upgradeable {
     
     // the seconds to wait for unbonded since withdarwal requested. For example, 30 days in case of unstaking stDOT to get xcDOT
     function unbondingPeriod() external view returns(uint);
+    // the minimum amount of token to invest.
+    function minInvestAmount() external view returns(uint);
+    // the minimum amount of stToken to redeem.
+    function minRedeemAmount() external view returns(uint);
 
     // the timestamp that the last investment was executed on.
     function lastInvestTs() external view returns(uint);
@@ -65,7 +69,9 @@ interface IStVault is IERC20Upgradeable {
     ///@dev deposit `_amount` of token.
     function deposit(uint _amount) external;
     ///@dev request a withdrawal that corresponds to `_shares` of shares.
-    function requestWithdraw(uint _shares) external;
+    ///@return amount is the amount of withdrawn token.
+    ///@return reqId is the NFT token id indicating the request for rest of withdrawal. 0 if no request is made.
+    function withdraw(uint _shares) external returns (uint amount, uint reqId);
     ///@dev stake the buffered deposits into the staking pool. It's called by admin.
     function invest() external;
     ///@dev redeem the requested withdrawals from the staking pool. It's called by admin.

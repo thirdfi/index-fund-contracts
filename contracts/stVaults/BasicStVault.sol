@@ -1,41 +1,53 @@
 //SPDX-License-Identifier: MIT
 pragma solidity  0.8.9;
 
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "../bni/priceOracle/IPriceOracle.sol";
+import "../../interfaces/IERC20UpgradeableExt.sol";
 import "../../interfaces/IStVault.sol";
+import "../../interfaces/IStVaultNFT.sol";
 
-contract BasicStVault is IStVault, ERC20Upgradeable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable{
+contract BasicStVault is IStVault,
+    ERC20Upgradeable,
+    PausableUpgradeable,
+    ReentrancyGuardUpgradeable,
+    OwnableUpgradeable
+{
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     uint constant DENOMINATOR = 10000;
-    uint public override yieldFee;
+    uint public yieldFee;
 
-    address public override treasuryWallet;
-    address public override admin;
+    address public treasuryWallet;
+    address public admin;
     IPriceOracle public priceOracle;
+    IStVaultNFT public nft;
 
-    address public override token;
-    address public override stToken;
+    address public token;
+    address public stToken;
+    uint8 private tokenDecimals;
+    uint8 private stTokenDecimals;
 
-    bool public override rebaseable;
+    bool public rebaseable;
 
-    uint public override bufferedDeposits;
-    uint public override bufferedWithdrawals;
-    uint public override pendingRedeems;
-    uint public override unbondingRedeems;
+    uint public bufferedDeposits;
+    uint public bufferedWithdrawals;
+    uint public pendingRedeems;
+    uint public unbondingRedeems;
 
-    uint public override unbondingPeriod;
+    uint public unbondingPeriod;
+    uint public minInvestAmount;
+    uint public minRedeemAmount;
 
-    uint public override lastInvestTs;
-    uint public override investInterval;
-    uint public override lastRedeemTs;
-    uint public override redeemInterval;
+    uint public lastInvestTs;
+    uint public investInterval;
+    uint public lastRedeemTs;
+    uint public redeemInterval;
 
     mapping(address => uint) private depositedBlock;
 
@@ -45,9 +57,6 @@ contract BasicStVault is IStVault, ERC20Upgradeable, OwnableUpgradeable, Pausabl
     event Deposit(address _user, uint _amount, uint _shares);
     event EmergencyWithdraw(uint _amount);
     event Invest(uint _amount);
-    event SetAdmin(address _oldAdmin, address _newAdmin);
-    event SetYieldFeePerc(uint _fee);
-    event SetTreasuryWallet(address _wallet);
     event Withdraw(address _user, uint _amount, uint _shares);
 
     modifier onlyOwnerOrAdmin {
@@ -55,29 +64,27 @@ contract BasicStVault is IStVault, ERC20Upgradeable, OwnableUpgradeable, Pausabl
         _;
     }
 
-    function initialize(string memory _name, string memory _symbol, 
+    function initialize(
+        string memory _name, string memory _symbol,
         address _treasury, address _admin,
-        address _priceOracle,
+        address _priceOracle, address _nft,
         address _token, address _stToken
     ) public virtual initializer {
 
-        __ERC20_init(_name, _symbol);
-        __Ownable_init();
+        __Ownable_init_unchained();
+        __ReentrancyGuard_init_unchained();
+        __ERC20_init_unchained(_name, _symbol);
 
         yieldFee = 2000; //20%
         treasuryWallet = _treasury;
         admin = _admin;
         priceOracle = IPriceOracle(_priceOracle);
+        nft = IStVaultNFT(_nft);
 
         token = _token;
         stToken = _stToken;
-    }
-
-    function setAdmin(address _newAdmin) external onlyOwner{
-        address oldAdmin = admin;
-        admin = _newAdmin;
-
-        emit SetAdmin(oldAdmin, _newAdmin);
+        tokenDecimals = IERC20UpgradeableExt(token).decimals();
+        stTokenDecimals = IERC20UpgradeableExt(stToken).decimals();
     }
 
     ///@notice Function to set deposit and yield fee
@@ -85,13 +92,19 @@ contract BasicStVault is IStVault, ERC20Upgradeable, OwnableUpgradeable, Pausabl
     function setFee(uint _yieldFeePerc) external onlyOwner{
         require(_yieldFeePerc < 3001, "Yield Fee cannot > 30%");
         yieldFee = _yieldFeePerc;
-        emit SetYieldFeePerc(_yieldFeePerc);
+    }
+
+    function setAdmin(address _newAdmin) external onlyOwner{
+        admin = _newAdmin;
     }
 
     function setTreasuryWallet(address _wallet) external onlyOwner {
         require(_wallet != address(0), "wallet invalid");
         treasuryWallet = _wallet;
-        emit SetTreasuryWallet(_wallet);
+    }
+
+    function setNFT(address _nft) external onlyOwner {
+        nft = IStVaultNFT(_nft);
     }
 
     function deposit(uint _amount) external nonReentrant whenNotPaused{
@@ -111,7 +124,7 @@ contract BasicStVault is IStVault, ERC20Upgradeable, OwnableUpgradeable, Pausabl
         // emit Deposit(msg.sender, _amount, _shares);
     }
 
-    function requestWithdraw(uint _shares) external nonReentrant{
+    function withdraw(uint _shares) external nonReentrant returns (uint amount, uint reqId) {
         // require(_shares > 0, "Invalid Amount");
         // require(balanceOf(msg.sender) >= _shares, "Not enough balance");
         // require(depositedBlock[msg.sender] != block.number, "Withdraw within same block");
@@ -127,6 +140,7 @@ contract BasicStVault is IStVault, ERC20Upgradeable, OwnableUpgradeable, Pausabl
 
         // token.safeTransfer(msg.sender, _amountToWithdraw);
         // emit Withdraw(msg.sender, _amountToWithdraw, _shares);
+        return (0, 0);
     }
 
     // function _invest() internal returns (uint available){
