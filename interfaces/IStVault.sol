@@ -18,9 +18,9 @@ interface IStVault is IERC20Upgradeable {
     function admin() external view returns(address);
 
     // underlying token such as ETH, WMATIC, and so on.
-    function token() external view returns(address);
+    function token() external view returns(IERC20Upgradeable);
     // staked token such as stETH, stMATIC, and so on.
-    function stToken() external view returns(address);
+    function stToken() external view returns(IERC20Upgradeable);
 
     // If it's true, stToken is a rebaseable ERC20 token like stETH. The holder's balance is automatically grown by reward.
     // Otherwise, stToken is a non-rebaseable token like wstETH. The holder's balance is not changed and value is grown by reward.
@@ -72,6 +72,9 @@ interface IStVault is IERC20Upgradeable {
     ///@return amount is the amount of withdrawn token.
     ///@return reqId is the NFT token id indicating the request for rest of withdrawal. 0 if no request is made.
     function withdraw(uint _shares) external returns (uint amount, uint reqId);
+    ///@dev claim token with NFT token
+    ///@return amount is the amount of claimed token.
+    function claim(uint _reqId) external returns (uint amount);
     ///@dev stake the buffered deposits into the staking pool. It's called by admin.
     function invest() external;
     ///@dev redeem the requested withdrawals from the staking pool. It's called by admin.
@@ -84,4 +87,6 @@ interface IStVault is IERC20Upgradeable {
     function reinvest() external;
     ///@dev take rewards and reinvest them. It's called by admin.
     function yield() external;
+    ///@dev transfer out fees.
+    function withdrawFees() external;
 }

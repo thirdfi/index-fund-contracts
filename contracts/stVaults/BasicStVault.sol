@@ -11,6 +11,7 @@ import "../bni/priceOracle/IPriceOracle.sol";
 import "../../interfaces/IERC20UpgradeableExt.sol";
 import "../../interfaces/IStVault.sol";
 import "../../interfaces/IStVaultNFT.sol";
+import "../../libs/Token.sol";
 
 contract BasicStVault is IStVault,
     ERC20Upgradeable,
@@ -22,20 +23,21 @@ contract BasicStVault is IStVault,
 
     uint constant DENOMINATOR = 10000;
     uint public yieldFee;
+    uint public watermark;
+    uint public fees;
 
     address public treasuryWallet;
     address public admin;
     IPriceOracle public priceOracle;
     IStVaultNFT public nft;
 
-    address public token;
-    address public stToken;
+    IERC20Upgradeable public token;
+    IERC20Upgradeable public stToken;
+    bool public rebaseable;
     uint8 private tokenDecimals;
     uint8 private stTokenDecimals;
+    uint private oneToken;
 
-    bool public rebaseable;
-
-    uint public bufferedDeposits;
     uint public bufferedWithdrawals;
     uint public pendingRedeems;
     uint public unbondingRedeems;
@@ -50,14 +52,17 @@ contract BasicStVault is IStVault,
     uint public redeemInterval;
 
     mapping(address => uint) private depositedBlock;
+    mapping(uint => RequestWithdraw) public nft2WithdrawRequest;
 
     uint constant DAY_IN_SEC = 86400; // 3600 * 24
     uint constant YEAR_IN_SEC = 365 * DAY_IN_SEC;
 
-    event Deposit(address _user, uint _amount, uint _shares);
-    event EmergencyWithdraw(uint _amount);
-    event Invest(uint _amount);
-    event Withdraw(address _user, uint _amount, uint _shares);
+    event Deposit(address user, uint amount, uint shares);
+    event Withdraw(address user, uint shares, uint amount, uint reqId, uint pendingAmount);
+    event Claim(address user, uint reqId, uint amount);
+    event Invest(uint amount);
+    event EmergencyWithdraw(uint amount);
+    event TransferredOutFees(uint fees, address token);
 
     modifier onlyOwnerOrAdmin {
         require(msg.sender == owner() || msg.sender == admin, "Only owner or admin");
@@ -70,6 +75,7 @@ contract BasicStVault is IStVault,
         address _priceOracle, address _nft,
         address _token, address _stToken
     ) public virtual initializer {
+        require(_treasury != address(0), "treasury invalid");
 
         __Ownable_init_unchained();
         __ReentrancyGuard_init_unchained();
@@ -81,10 +87,11 @@ contract BasicStVault is IStVault,
         priceOracle = IPriceOracle(_priceOracle);
         nft = IStVaultNFT(_nft);
 
-        token = _token;
-        stToken = _stToken;
-        tokenDecimals = IERC20UpgradeableExt(token).decimals();
-        stTokenDecimals = IERC20UpgradeableExt(stToken).decimals();
+        token = IERC20Upgradeable(_token);
+        stToken = IERC20Upgradeable(_stToken);
+        tokenDecimals = IERC20UpgradeableExt(address(token)).decimals();
+        stTokenDecimals = IERC20UpgradeableExt(address(stToken)).decimals();
+        oneToken = 10**tokenDecimals;
     }
 
     ///@notice Function to set deposit and yield fee
@@ -94,13 +101,13 @@ contract BasicStVault is IStVault,
         yieldFee = _yieldFeePerc;
     }
 
-    function setAdmin(address _newAdmin) external onlyOwner{
-        admin = _newAdmin;
-    }
-
     function setTreasuryWallet(address _wallet) external onlyOwner {
         require(_wallet != address(0), "wallet invalid");
         treasuryWallet = _wallet;
+    }
+
+    function setAdmin(address _newAdmin) external onlyOwner{
+        admin = _newAdmin;
     }
 
     function setNFT(address _nft) external onlyOwner {
@@ -108,116 +115,197 @@ contract BasicStVault is IStVault,
     }
 
     function deposit(uint _amount) external nonReentrant whenNotPaused{
-        // require(_amount > 0, "Invalid amount");
+        require(_amount > 0, "Invalid amount");
+        depositedBlock[msg.sender] = block.number;
 
-        // uint _pool = getAllPool();
-        // token.safeTransferFrom(msg.sender, address(this), _amount);
+        uint _shares = getSharesByPool(_amount);
+        token.safeTransferFrom(msg.sender, address(this), _amount);
+        watermark += _amount;
 
-        // depositedBlock[msg.sender] = block.number;
-
-        // aPool.supply(address(token), token.balanceOf(address(this)), address(this), 0);
-
-        // uint _totalSupply = totalSupply();
-        // uint _shares = _totalSupply == 0 ? _amount : _amount * _totalSupply / _pool;
-        // _mint(msg.sender, _shares);
-
-        // emit Deposit(msg.sender, _amount, _shares);
+        _mint(msg.sender, _shares);
+        emit Deposit(msg.sender, _amount, _shares);
     }
 
     function withdraw(uint _shares) external nonReentrant returns (uint amount, uint reqId) {
-        // require(_shares > 0, "Invalid Amount");
-        // require(balanceOf(msg.sender) >= _shares, "Not enough balance");
-        // require(depositedBlock[msg.sender] != block.number, "Withdraw within same block");
+        require(_shares > 0, "Invalid Amount");
+        require(balanceOf(msg.sender) >= _shares, "Not enough balance");
+        require(depositedBlock[msg.sender] != block.number, "Withdraw within same block");
 
-        // uint _amountToWithdraw = getAllPool() * _shares / totalSupply(); 
+        uint _amountToWithdraw = getPoolByShares(_shares);
+        _burn(msg.sender, _shares);
 
-        // uint available = token.balanceOf(address(this));
-        // if(available < _amountToWithdraw) {
-        //     aPool.withdraw(address(token), _amountToWithdraw - available, address(this));
-        //     _amountToWithdraw = token.balanceOf(address(this));
-        // }
-        // _burn(msg.sender, _shares);
+        uint _buffered = bufferedDeposits();
+        if (_buffered >= _amountToWithdraw) {
+            amount = _amountToWithdraw;
+        } else {
+            amount = _buffered;
+            _amountToWithdraw -= _buffered;
+            pendingRedeems += getStTokenByToken(_amountToWithdraw);
+            reqId = nft.mint(msg.sender);
+            nft2WithdrawRequest[reqId] = RequestWithdraw({
+                tokenAmt: _amountToWithdraw,
+                requestTs: block.timestamp
+            });
+        }
 
-        // token.safeTransfer(msg.sender, _amountToWithdraw);
-        // emit Withdraw(msg.sender, _amountToWithdraw, _shares);
-        return (0, 0);
+        if (amount > 0) {
+            token.safeTransfer(msg.sender, _amountToWithdraw);
+        }
+        emit Withdraw(msg.sender, _shares, amount, reqId, reqId==0 ? 0 : _amountToWithdraw);
     }
 
-    // function _invest() internal returns (uint available){
-    //     available = token.balanceOf(address(this));
-    //     if(available > 0) {
-    //         aPool.supply(address(token), available, address(this), 0);
-    //     }
-    // }
+    function claim(uint _reqId) external nonReentrant returns (uint amount) {
+        require(nft.isApprovedOrOwner(msg.sender, _reqId), "Not owner");
+        RequestWithdraw memory usersRequest = nft2WithdrawRequest[_reqId];
+        amount = usersRequest.tokenAmt;
 
-    function invest() external onlyOwnerOrAdmin whenNotPaused{ 
+        uint _buffered = bufferedDeposits();
+        require(_buffered >= amount, "No enough token");
+        require(block.timestamp >= (usersRequest.requestTs + unbondingPeriod), "Not able to claim yet");
+
+        nft.burn(_reqId);
+        token.safeTransfer(msg.sender, amount);
+        emit Claim(msg.sender, _reqId, amount);
     }
 
-    function redeem() external onlyOwnerOrAdmin whenNotPaused{ 
+    function invest() external onlyOwnerOrAdmin whenNotPaused {
+        _investInternal(true);
     }
+    function _investInternal(bool raiseFail) internal {
+        string memory _failMsg;
+        bool _fail;
 
-    function claimUnbonded() external onlyOwnerOrAdmin whenNotPaused{ 
+        uint _buffered = _transferOutFees();
+        if (_buffered < minInvestAmount) {
+            _fail = true;
+            _failMsg = "No enough token";
+        }
+        if (block.timestamp < (lastInvestTs + investInterval)) {
+            _fail = true;
+            _failMsg = "Not able to invest yet";
+        }
+
+        if (_fail == false) {
+            _invest(_buffered);
+            lastInvestTs = block.timestamp;
+            emit Invest(_buffered);
+        } else if (raiseFail == true) {
+            require(false, _failMsg);
+        }
     }
+    function _invest(uint _amount) internal virtual {}
+
+    function redeem() external onlyOwnerOrAdmin whenNotPaused { 
+        require(pendingRedeems >= minRedeemAmount, "No enough pending redeem");
+        require(block.timestamp >= (lastRedeemTs + redeemInterval), "Not able to redeem yet");
+        _redeem();
+    }
+    function _redeem() internal virtual {}
+
+    function claimUnbonded() external onlyOwnerOrAdmin whenNotPaused {
+        uint _unbondedAmt = getUnbondedToken();
+        require(_unbondedAmt >= 0, "No unbonded");
+        _claimUnbonded(_unbondedAmt);
+    }
+    function _claimUnbonded(uint _unbondedAmt) internal virtual {}
 
     ///@notice Withdraws funds staked in mirror to this vault and pauses deposit, yield, invest functions
-    function emergencyWithdraw() external onlyOwnerOrAdmin whenNotPaused{ 
+    function emergencyWithdraw() external onlyOwnerOrAdmin whenNotPaused {
         _pause();
-        // _yield();
-        // uint stakedTokens = aToken.balanceOf(address(this));
-        // if(stakedTokens > 0 ) {
-        //     aPool.withdraw(address(token), stakedTokens, address(this));
-        // }
-        // emit EmergencyWithdraw(stakedTokens);
+        _yield();
+        _emergencyWithdraw();
     }
+    function _emergencyWithdraw() internal virtual {}
 
     ///@notice Unpauses deposit, yield, invest functions, and invests funds.
     function reinvest() external onlyOwnerOrAdmin whenPaused {
         _unpause();
-        // _invest();
+        _investInternal(false);
     }
 
     function yield() external onlyOwnerOrAdmin whenNotPaused {
         _yield();
     }
+    function _yield() internal virtual {}
 
-    function _yield() internal virtual {
+    function withdrawFees() external onlyOwnerOrAdmin {
+        _transferOutFees();
     }
 
-    function getAllPool() public view returns (uint ) {
-        // return token.balanceOf(address(this)) + aToken.balanceOf(address(this));
-        return 0;
+    function _transferOutFees() internal returns (uint tokenAmt) {
+        tokenAmt = token.balanceOf(address(this)) - bufferedWithdrawals;
+        uint _fees = fees;
+        if (_fees != 0 && tokenAmt != 0) {
+            uint feeAmt = _fees;
+            if (feeAmt < tokenAmt) {
+                _fees = 0;
+                tokenAmt -= feeAmt;
+            } else {
+                _fees -= tokenAmt;
+                feeAmt = tokenAmt;
+                tokenAmt = 0;
+            }
+            fees = _fees;
+
+            token.safeTransfer(treasuryWallet, feeAmt);
+            emit TransferredOutFees(feeAmt, address(token)); // Decimal follows token
+        }
+    }
+
+    function bufferedDeposits() public view returns(uint) {
+        uint _amount = token.balanceOf(address(this)) - bufferedWithdrawals;
+        return (_amount > fees) ? _amount - fees : 0;
+    }
+
+    ///@param _amount Amount of tokens
+    function getStTokenByToken(uint _amount) public virtual view returns(uint) {
+        return Token.changeDecimals(_amount, tokenDecimals, stTokenDecimals);
+    }
+
+    ///@param _stAmount Amount of stTokens
+    function getTokenByStToken(uint _stAmount) public virtual view returns(uint) {
+        return _stAmount * oneToken / getStTokenByToken(oneToken);
+    }
+
+    function getAllPool() public virtual view returns (uint pool) {
+        uint stBalance = stToken.balanceOf(address(this));
+        pool = (stBalance == 0) ? 0 : getTokenByStToken(stBalance);
+        pool += token.balanceOf(address(this));
+        pool -= fees;
     }
 
     function getSharesByPool(uint _amount) public view returns (uint) {
-        return 0;
+        uint pool = getAllPool();
+        return (pool == 0) ? 0 : _amount * totalSupply() / pool;
     }
 
     function getPoolByShares(uint _shares) public view returns (uint) {
-        return 0;
+        uint _totalSupply = totalSupply();
+        return (_totalSupply == 0) ? 0 : _shares * getAllPool() / _totalSupply;
     }
 
     function getAllPoolInUSD() public view returns (uint) {
-        // uint _pool = getAllPool();
-        // return getValueInUSD(address(token), _pool);
-        return 0;
+        uint pool = getAllPool();
+        return getValueInUSD(address(token), pool);
     }
 
-    // function getValueInUSD(address asset, uint amount) internal view returns(uint) {
-    //     (uint priceInUSD, uint8 priceDecimals) = priceOracle.getAssetPrice(asset);
-    //     uint8 _decimals = IERC20UpgradeableExt(asset).decimals();
-    //     return Token.changeDecimals(amount, _decimals, 18) * priceInUSD / (10 ** (priceDecimals));
-    // }
+    ///@return the value in USD. it's scaled by 1e18;
+    function getValueInUSD(address _asset, uint _amount) internal view returns(uint) {
+        (uint priceInUSD, uint8 priceDecimals) = priceOracle.getAssetPrice(_asset);
+        uint8 _decimals = IERC20UpgradeableExt(_asset).decimals();
+        return Token.changeDecimals(_amount, _decimals, 18) * priceInUSD / (10 ** (priceDecimals));
+    }
 
     ///@notice Returns the pending rewards in USD.
-    function getPendingRewards() public view returns (uint) {
+    function getPendingRewards() public virtual view returns (uint) {
         return 0;
     }
 
-    function getAPR() public view returns (uint) {
+    function getAPR() public virtual view returns (uint) {
         return 0;
     }
 
-    function getUnbondedToken() public view returns (uint) {
+    function getUnbondedToken() public virtual view returns (uint) {
         return 0;
     }
 
@@ -226,5 +314,5 @@ contract BasicStVault is IStVault,
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[40] private __gap;
+    uint256[27] private __gap;
 }
