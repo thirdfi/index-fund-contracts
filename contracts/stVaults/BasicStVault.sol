@@ -34,9 +34,9 @@ contract BasicStVault is IStVault,
     IERC20Upgradeable public token;
     IERC20Upgradeable public stToken;
     bool public rebaseable;
-    uint8 private tokenDecimals;
-    uint8 private stTokenDecimals;
-    uint private oneToken;
+    uint8 internal tokenDecimals;
+    uint8 internal stTokenDecimals;
+    uint internal oneToken;
 
     uint public bufferedWithdrawals;
     uint public pendingRedeems;
@@ -51,7 +51,7 @@ contract BasicStVault is IStVault,
     uint public lastRedeemTs;
     uint public redeemInterval;
 
-    mapping(address => uint) private depositedBlock;
+    mapping(address => uint) internal depositedBlock;
     mapping(uint => RequestWithdraw) public nft2WithdrawRequest;
 
     uint constant DAY_IN_SEC = 86400; // 3600 * 24
@@ -72,7 +72,7 @@ contract BasicStVault is IStVault,
     function initialize(
         string memory _name, string memory _symbol,
         address _treasury, address _admin,
-        address _priceOracle, address _nft,
+        address _priceOracle,
         address _token, address _stToken
     ) public virtual initializer {
         require(_treasury != address(0), "treasury invalid");
@@ -85,7 +85,6 @@ contract BasicStVault is IStVault,
         treasuryWallet = _treasury;
         admin = _admin;
         priceOracle = IPriceOracle(_priceOracle);
-        nft = IStVaultNFT(_nft);
 
         token = IERC20Upgradeable(_token);
         stToken = IERC20Upgradeable(_stToken);
@@ -111,6 +110,7 @@ contract BasicStVault is IStVault,
     }
 
     function setNFT(address _nft) external onlyOwner {
+        require(address(nft) == address(0), "Already set");
         nft = IStVaultNFT(_nft);
     }
 
@@ -204,7 +204,7 @@ contract BasicStVault is IStVault,
 
     function claimUnbonded() external onlyOwnerOrAdmin whenNotPaused {
         uint _unbondedAmt = getUnbondedToken();
-        require(_unbondedAmt >= 0, "No unbonded");
+        require(_unbondedAmt != 0, "No unbonded");
         _claimUnbonded(_unbondedAmt);
     }
     function _claimUnbonded(uint _unbondedAmt) internal virtual {}
