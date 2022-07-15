@@ -7,6 +7,7 @@ interface IStVault is IERC20Upgradeable {
 
     struct RequestWithdraw {
         uint tokenAmt;
+        uint stTokenAmt;
         uint requestTs;
     }
 
@@ -30,10 +31,12 @@ interface IStVault is IERC20Upgradeable {
     function bufferedDeposits() external view returns(uint);
     // the buffered withdrawal token amount that is unstaked from the staking pool but not yet withdrawn from the user.
     function bufferedWithdrawals() external view returns(uint);
+    // the token amount that shares is already burnt but not withdrawn.
+    function pendingWithdrawals() external view returns(uint);
     // the total amount of withdrawal stToken that is not yet requested to the staking pool.
     function pendingRedeems() external view returns(uint);
-    // the total amount of withdrawal stToken that is requested and waiting for unbonded.
-    function unbondingRedeems() external view returns(uint);
+    // the amount of stToken that is emergency redeemed, and shares according to them are not burnt yet.
+    function emergencyRedeems() external view returns(uint);
     
     // the seconds to wait for unbonded since withdarwal requested. For example, 30 days in case of unstaking stDOT to get xcDOT
     function unbondingPeriod() external view returns(uint);

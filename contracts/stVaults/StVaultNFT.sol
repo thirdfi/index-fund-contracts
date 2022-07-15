@@ -11,7 +11,8 @@ contract StVaultNFT is IStVaultNFT,
     OwnableUpgradeable
 {
     address public stVault;
-    uint256 public tokenIdIndex;
+    uint public tokenIdIndex;
+    uint public totalSupply;
 
     modifier isStVault() {
         require(msg.sender == stVault, "Caller is not stVault contract");
@@ -32,14 +33,13 @@ contract StVaultNFT is IStVaultNFT,
      * @param _to - Address that will be the owner of minted token
      * @return Index of the minted token
      */
-    function mint(address _to) external override isStVault returns (uint256) {
-        uint256 currentIndex = tokenIdIndex;
+    function mint(address _to) external override isStVault returns (uint) {
+        uint currentIndex = tokenIdIndex;
         currentIndex++;
 
         _mint(_to, currentIndex);
 
         tokenIdIndex = currentIndex;
-
         return currentIndex;
     }
 
@@ -47,8 +47,16 @@ contract StVaultNFT is IStVaultNFT,
      * @dev Burn the token with specified _tokenId
      * @param _tokenId - Id of the token that will be burned
      */
-    function burn(uint256 _tokenId) external override isStVault {
+    function burn(uint _tokenId) external override isStVault {
         _burn(_tokenId);
+    }
+
+    function _afterTokenTransfer(address from, address to, uint256 tokenId) internal override {
+        if (from == address(0)) {
+            totalSupply ++;
+        } else if (to == address(0)) {
+            totalSupply --;
+        }
     }
 
     function isApprovedOrOwner(address _spender, uint _tokenId) external view returns (bool) {

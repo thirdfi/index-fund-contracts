@@ -39,8 +39,9 @@ contract BasicStVault is IStVault,
     uint internal oneToken;
 
     uint public bufferedWithdrawals;
+    uint public pendingWithdrawals;
     uint public pendingRedeems;
-    uint public unbondingRedeems;
+    uint public emergencyRedeems;
 
     uint public unbondingPeriod;
     uint public minInvestAmount;
@@ -126,52 +127,66 @@ contract BasicStVault is IStVault,
         emit Deposit(msg.sender, _amount, _shares);
     }
 
-    function withdraw(uint _shares) external nonReentrant returns (uint amount, uint reqId) {
+    function withdraw(uint _shares) external nonReentrant returns (uint _amount, uint _reqId) {
         require(_shares > 0, "Invalid Amount");
         require(balanceOf(msg.sender) >= _shares, "Not enough balance");
         require(depositedBlock[msg.sender] != block.number, "Withdraw within same block");
 
-        uint _amountToWithdraw = getPoolByShares(_shares);
+        uint withdrawAmt = getPoolByShares(_shares);
         _burn(msg.sender, _shares);
 
         uint _buffered = bufferedDeposits();
-        if (_buffered >= _amountToWithdraw) {
-            amount = _amountToWithdraw;
+        if (_buffered >= withdrawAmt) {
+            _amount = withdrawAmt;
+            withdrawAmt = 0;
         } else {
-            amount = _buffered;
-            _amountToWithdraw -= _buffered;
-            pendingRedeems += getStTokenByToken(_amountToWithdraw);
-            reqId = nft.mint(msg.sender);
-            nft2WithdrawRequest[reqId] = RequestWithdraw({
-                tokenAmt: _amountToWithdraw,
+            _amount = _buffered;
+            withdrawAmt -= _buffered;
+
+            uint stTokenAmt = getStTokenByToken(withdrawAmt);
+            pendingWithdrawals += withdrawAmt;
+            if (paused() == false) {
+                pendingRedeems += stTokenAmt;
+            } else {
+                uint _emergencyRedeems = emergencyRedeems;
+                emergencyRedeems = (_emergencyRedeems <= stTokenAmt) ? 0 : _emergencyRedeems - stTokenAmt;
+            }
+
+            _reqId = nft.mint(msg.sender);
+            nft2WithdrawRequest[_reqId] = RequestWithdraw({
+                tokenAmt: withdrawAmt,
+                stTokenAmt: stTokenAmt,
                 requestTs: block.timestamp
             });
         }
 
-        if (amount > 0) {
-            token.safeTransfer(msg.sender, _amountToWithdraw);
+        if (_amount > 0) {
+            token.safeTransfer(msg.sender, _amount);
         }
-        emit Withdraw(msg.sender, _shares, amount, reqId, reqId==0 ? 0 : _amountToWithdraw);
+        emit Withdraw(msg.sender, _shares, _amount, _reqId, withdrawAmt);
     }
 
-    function claim(uint _reqId) external nonReentrant returns (uint amount) {
+    function claim(uint _reqId) external nonReentrant returns (uint _amount) {
         require(nft.isApprovedOrOwner(msg.sender, _reqId), "Not owner");
         RequestWithdraw memory usersRequest = nft2WithdrawRequest[_reqId];
-        amount = usersRequest.tokenAmt;
 
-        uint _buffered = bufferedDeposits();
-        require(_buffered >= amount, "No enough token");
         require(block.timestamp >= (usersRequest.requestTs + unbondingPeriod), "Not able to claim yet");
 
+        _amount = usersRequest.tokenAmt;
+        require(bufferedWithdrawals >= _amount, "No enough token");
+
         nft.burn(_reqId);
-        token.safeTransfer(msg.sender, amount);
-        emit Claim(msg.sender, _reqId, amount);
+        token.safeTransfer(msg.sender, _amount);
+
+        pendingWithdrawals -= _amount;
+        bufferedWithdrawals -= _amount;
+        emit Claim(msg.sender, _reqId, _amount);
     }
 
     function invest() external onlyOwnerOrAdmin whenNotPaused {
         _investInternal(true);
     }
-    function _investInternal(bool raiseFail) internal {
+    function _investInternal(bool _raiseFail) internal {
         string memory _failMsg;
         bool _fail;
 
@@ -189,33 +204,34 @@ contract BasicStVault is IStVault,
             _invest(_buffered);
             lastInvestTs = block.timestamp;
             emit Invest(_buffered);
-        } else if (raiseFail == true) {
+        } else if (_raiseFail == true) {
             require(false, _failMsg);
         }
     }
     function _invest(uint _amount) internal virtual {}
 
     function redeem() external onlyOwnerOrAdmin whenNotPaused { 
-        require(pendingRedeems >= minRedeemAmount, "No enough pending redeem");
+        uint _pendingRedeems = pendingRedeems;
+        require(_pendingRedeems >= minRedeemAmount, "No enough pending redeem");
         require(block.timestamp >= (lastRedeemTs + redeemInterval), "Not able to redeem yet");
-        _redeem();
+        _redeem(_pendingRedeems);
+        pendingRedeems = 0;
     }
-    function _redeem() internal virtual {}
+    function _redeem(uint _pendingRedeems) internal virtual {}
 
-    function claimUnbonded() external onlyOwnerOrAdmin whenNotPaused {
-        uint _unbondedAmt = getUnbondedToken();
-        require(_unbondedAmt != 0, "No unbonded");
-        _claimUnbonded(_unbondedAmt);
+    function claimUnbonded() external onlyOwnerOrAdmin {
+        _claimUnbonded();
     }
-    function _claimUnbonded(uint _unbondedAmt) internal virtual {}
+    function _claimUnbonded() internal virtual {}
 
     ///@notice Withdraws funds staked in mirror to this vault and pauses deposit, yield, invest functions
     function emergencyWithdraw() external onlyOwnerOrAdmin whenNotPaused {
         _pause();
         _yield();
-        _emergencyWithdraw();
+        _emergencyWithdraw(pendingRedeems);
+        pendingRedeems = 0;
     }
-    function _emergencyWithdraw() internal virtual {}
+    function _emergencyWithdraw(uint _pendingRedeems) internal virtual {}
 
     ///@notice Unpauses deposit, yield, invest functions, and invests funds.
     function reinvest() external onlyOwnerOrAdmin whenPaused {
@@ -232,18 +248,18 @@ contract BasicStVault is IStVault,
         _transferOutFees();
     }
 
-    function _transferOutFees() internal returns (uint tokenAmt) {
-        tokenAmt = token.balanceOf(address(this)) - bufferedWithdrawals;
+    function _transferOutFees() internal returns (uint _tokenAmt) {
+        _tokenAmt = token.balanceOf(address(this)) - bufferedWithdrawals;
         uint _fees = fees;
-        if (_fees != 0 && tokenAmt != 0) {
+        if (_fees != 0 && _tokenAmt != 0) {
             uint feeAmt = _fees;
-            if (feeAmt < tokenAmt) {
+            if (feeAmt < _tokenAmt) {
                 _fees = 0;
-                tokenAmt -= feeAmt;
+                _tokenAmt -= feeAmt;
             } else {
-                _fees -= tokenAmt;
-                feeAmt = tokenAmt;
-                tokenAmt = 0;
+                _fees -= _tokenAmt;
+                feeAmt = _tokenAmt;
+                _tokenAmt = 0;
             }
             fees = _fees;
 
@@ -267,11 +283,11 @@ contract BasicStVault is IStVault,
         return _stAmount * oneToken / getStTokenByToken(oneToken);
     }
 
-    function getAllPool() public virtual view returns (uint pool) {
-        uint stBalance = stToken.balanceOf(address(this));
-        pool = (stBalance == 0) ? 0 : getTokenByStToken(stBalance);
-        pool += token.balanceOf(address(this));
-        pool -= fees;
+    function getAllPool() public virtual view returns (uint _pool) {
+        uint stBalance = stToken.balanceOf(address(this)) + emergencyRedeems - pendingRedeems;
+        _pool = (stBalance == 0) ? 0 : getTokenByStToken(stBalance);
+        _pool += (token.balanceOf(address(this)) - bufferedWithdrawals);
+        _pool -= fees;
     }
 
     function getSharesByPool(uint _amount) public view returns (uint) {
@@ -314,5 +330,5 @@ contract BasicStVault is IStVault,
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[27] private __gap;
+    uint256[26] private __gap;
 }
