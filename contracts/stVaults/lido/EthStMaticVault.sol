@@ -9,6 +9,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "../BasicStVault.sol";
+import "../../bni/constant/EthConstant.sol";
 
 interface IStakeManager {
     function epoch() external view returns (uint);
@@ -53,8 +54,8 @@ contract EthStMaticVault is BasicStVault {
             "STI L2 stMATIC", "stiL2StMATIC",
             _treasury, _admin,
             _priceOracle,
-            0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0,
-            0x9ee91F9f426fA633d227f7a9b000E28b9dfd8599
+            EthConstant.MATIC,
+            EthConstant.stMATIC
         );
 
         unbondingPeriod = 4 days;

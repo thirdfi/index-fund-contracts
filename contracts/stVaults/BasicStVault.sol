@@ -314,12 +314,12 @@ contract BasicStVault is IStVault,
 
     function getSharesByPool(uint _amount) public view returns (uint) {
         uint pool = getAllPool();
-        return (pool == 0) ? 0 : _amount * totalSupply() / pool;
+        return (pool == 0) ? _amount : _amount * totalSupply() / pool;
     }
 
     function getPoolByShares(uint _shares) public view returns (uint) {
         uint _totalSupply = totalSupply();
-        return (_totalSupply == 0) ? 0 : _shares * getAllPool() / _totalSupply;
+        return (_totalSupply == 0) ? _shares : _shares * getAllPool() / _totalSupply;
     }
 
     function getAllPoolInUSD() public view returns (uint) {
@@ -370,7 +370,7 @@ contract BasicStVault is IStVault,
         uint _baseAprLastUpdate = baseAprLastUpdate;
 
         if (_baseApr == 0 || (_baseAprLastUpdate + 1 weeks) <= block.timestamp) {
-            uint newTokenRate = getPooledTokenByStToken(oneStToken);
+            uint newTokenRate = getPoolByShares(1e18);
             if (0 < _baseTokenRate && _baseTokenRate < newTokenRate) {
                 uint newApr = (newTokenRate-_baseTokenRate) * Const.YEAR_IN_SEC * Const.APR_SCALE
                             / (_baseTokenRate * (block.timestamp-_baseAprLastUpdate));
