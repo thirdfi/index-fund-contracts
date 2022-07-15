@@ -22,7 +22,7 @@ contract BasicStVault is IStVault,
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    uint constant DENOMINATOR = 10000;
+    uint internal constant DENOMINATOR = 10000;
     uint public yieldFee;
     uint public watermark;
     uint public fees;
@@ -54,12 +54,12 @@ contract BasicStVault is IStVault,
     uint public lastRedeemTs;
     uint public redeemInterval;
 
-    mapping(address => uint) internal depositedBlock;
-    mapping(uint => RequestWithdraw) public nft2WithdrawRequest;
+    mapping(address => uint) depositedBlock;
+    mapping(uint => WithdrawRequest) nft2WithdrawRequest;
 
-    uint public baseApr;
-    uint public baseTokenRate;
-    uint public baseAprLastUpdate;
+    uint baseApr;
+    uint baseTokenRate;
+    uint baseAprLastUpdate;
 
     event Deposit(address user, uint amount, uint shares);
     event Withdraw(address user, uint shares, uint amount, uint reqId, uint pendingAmount);
@@ -162,7 +162,7 @@ contract BasicStVault is IStVault,
             }
 
             _reqId = nft.mint(msg.sender);
-            nft2WithdrawRequest[_reqId] = RequestWithdraw({
+            nft2WithdrawRequest[_reqId] = WithdrawRequest({
                 tokenAmt: withdrawAmt,
                 stTokenAmt: stTokenAmt,
                 requestTs: block.timestamp
@@ -177,7 +177,7 @@ contract BasicStVault is IStVault,
 
     function claim(uint _reqId) external nonReentrant returns (uint _amount) {
         require(nft.isApprovedOrOwner(msg.sender, _reqId), "Not owner");
-        RequestWithdraw memory usersRequest = nft2WithdrawRequest[_reqId];
+        WithdrawRequest memory usersRequest = nft2WithdrawRequest[_reqId];
 
         require(block.timestamp >= (usersRequest.requestTs + unbondingPeriod), "Not able to claim yet");
 
@@ -380,6 +380,28 @@ contract BasicStVault is IStVault,
             }
         } else {
             return (_baseApr, _baseTokenRate, false);
+        }
+    }
+
+    function getBaseAprData() public view returns (uint, uint, uint) {
+        return (baseApr, baseTokenRate, baseAprLastUpdate);
+    }
+
+    function getWithdrawRequest(uint _reqId) public view returns (
+        bool _claimable,
+        uint _tokenAmt, uint _stTokenAmt,
+        uint _requestTs, uint _waitForTs
+    ) {
+        WithdrawRequest memory usersRequest = nft2WithdrawRequest[_reqId];
+        _tokenAmt = usersRequest.tokenAmt;
+        _stTokenAmt = usersRequest.stTokenAmt;
+        _requestTs = usersRequest.requestTs;
+
+        uint endTs = _requestTs + unbondingPeriod;
+        if (endTs > block.timestamp) {
+            _waitForTs = endTs - block.timestamp;
+        } else if (bufferedWithdrawals >= _tokenAmt) {
+            _claimable = true;
         }
     }
 

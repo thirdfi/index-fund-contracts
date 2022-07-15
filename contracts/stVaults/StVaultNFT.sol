@@ -63,6 +63,10 @@ contract StVaultNFT is IStVaultNFT,
         return _isApprovedOrOwner(_spender, _tokenId);
     }
 
+    function exists(uint _tokenId) external view returns (bool) {
+        return _exists(_tokenId);
+    }
+
     /**
      * @dev Set stVault contract address
      * @param _stVault - address of the stVault contract

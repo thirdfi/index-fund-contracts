@@ -1,4 +1,8 @@
 //SPDX-License-Identifier: MIT
+//
+///@notice The EthStMaticVault contract stakes MATIC tokens into stMATIC on Ethereum.
+///@dev https://docs.polygon.lido.fi/contracts/st-matic
+//
 pragma solidity  0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
@@ -52,6 +56,8 @@ contract EthStMaticVault is BasicStVault {
             0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0,
             0x9ee91F9f426fA633d227f7a9b000E28b9dfd8599
         );
+
+        unbondingPeriod = 4 days;
 
         token.safeApprove(address(stToken), type(uint).max);
     }

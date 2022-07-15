@@ -5,7 +5,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 
 interface IStVault is IERC20Upgradeable {
 
-    struct RequestWithdraw {
+    struct WithdrawRequest {
         uint tokenAmt;
         uint stTokenAmt;
         uint requestTs;
@@ -66,18 +66,28 @@ interface IStVault is IERC20Upgradeable {
     function getPendingRewards() external view returns (uint);
     ///@return the APR in the vault. It's scaled by 1e18.
     function getAPR() external view returns (uint);
+    ///@return _claimable specifys whether user can claim tokens for it.
+    ///@return _tokenAmt is amount of token to claim.
+    ///@return _stTokenAmt is amount of stToken to redeem.
+    ///@return _requestTs is timestmap when withdrawal requested.
+    ///@return _waitForTs is timestamp to wait for.
+    function getWithdrawRequest(uint _reqId) external view returns (
+        bool _claimable,
+        uint _tokenAmt, uint _stTokenAmt,
+        uint _requestTs, uint _waitForTs
+    );
     ///@return the unbonded token amount that is claimable from the staking pool.
     function getUnbondedToken() external view returns (uint);
 
     ///@dev deposit `_amount` of token.
     function deposit(uint _amount) external;
     ///@dev request a withdrawal that corresponds to `_shares` of shares.
-    ///@return amount is the amount of withdrawn token.
-    ///@return reqId is the NFT token id indicating the request for rest of withdrawal. 0 if no request is made.
-    function withdraw(uint _shares) external returns (uint amount, uint reqId);
+    ///@return _amount is the amount of withdrawn token.
+    ///@return _reqId is the NFT token id indicating the request for rest of withdrawal. 0 if no request is made.
+    function withdraw(uint _shares) external returns (uint _amount, uint _reqId);
     ///@dev claim token with NFT token
-    ///@return amount is the amount of claimed token.
-    function claim(uint _reqId) external returns (uint amount);
+    ///@return _amount is the amount of claimed token.
+    function claim(uint _reqId) external returns (uint _amount);
     ///@dev stake the buffered deposits into the staking pool. It's called by admin.
     function invest() external;
     ///@dev redeem the requested withdrawals from the staking pool. It's called by admin.
@@ -90,6 +100,8 @@ interface IStVault is IERC20Upgradeable {
     function reinvest() external;
     ///@dev take rewards and reinvest them. It's called by admin.
     function yield() external;
+    ///@dev collect profit and update the watermark
+    function collectProfitAndUpdateWatermark() external;
     ///@dev transfer out fees.
     function withdrawFees() external;
 }

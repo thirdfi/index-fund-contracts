@@ -9,6 +9,7 @@ interface IStVaultNFT is IERC721Upgradeable {
     function burn(uint _tokenId) external;
     function totalSupply() external view returns (uint);
     function isApprovedOrOwner(address _spender, uint _tokenId) external view returns (bool);
+    function exists(uint _tokenId) external view returns (bool);
 
     function setStVault(address _stVault) external;
 }
