@@ -11,6 +11,7 @@ import "../bni/priceOracle/IPriceOracle.sol";
 import "../../interfaces/IERC20UpgradeableExt.sol";
 import "../../interfaces/IStVault.sol";
 import "../../interfaces/IStVaultNFT.sol";
+import "../../libs/Const.sol";
 import "../../libs/Token.sol";
 
 contract BasicStVault is IStVault,
@@ -37,6 +38,7 @@ contract BasicStVault is IStVault,
     uint8 internal tokenDecimals;
     uint8 internal stTokenDecimals;
     uint internal oneToken;
+    uint internal oneStToken;
 
     uint public bufferedWithdrawals;
     uint public pendingWithdrawals;
@@ -55,14 +57,17 @@ contract BasicStVault is IStVault,
     mapping(address => uint) internal depositedBlock;
     mapping(uint => RequestWithdraw) public nft2WithdrawRequest;
 
-    uint constant DAY_IN_SEC = 86400; // 3600 * 24
-    uint constant YEAR_IN_SEC = 365 * DAY_IN_SEC;
+    uint public baseApr;
+    uint public baseTokenRate;
+    uint public baseAprLastUpdate;
 
     event Deposit(address user, uint amount, uint shares);
     event Withdraw(address user, uint shares, uint amount, uint reqId, uint pendingAmount);
     event Claim(address user, uint reqId, uint amount);
     event Invest(uint amount);
-    event EmergencyWithdraw(uint amount);
+    event EmergencyWithdraw(uint stAmount);
+    event CollectProfitAndUpdateWatermark(uint currentWatermark, uint lastWatermark, uint fee);
+    event AdjustWatermark(uint currentWatermark, uint lastWatermark);
     event TransferredOutFees(uint fees, address token);
 
     modifier onlyOwnerOrAdmin {
@@ -92,6 +97,9 @@ contract BasicStVault is IStVault,
         tokenDecimals = IERC20UpgradeableExt(address(token)).decimals();
         stTokenDecimals = IERC20UpgradeableExt(address(stToken)).decimals();
         oneToken = 10**tokenDecimals;
+        oneStToken = 10**stTokenDecimals;
+
+        _updateApr();
     }
 
     ///@notice Function to set deposit and yield fee
@@ -121,9 +129,9 @@ contract BasicStVault is IStVault,
 
         uint _shares = getSharesByPool(_amount);
         token.safeTransferFrom(msg.sender, address(this), _amount);
-        watermark += _amount;
 
         _mint(msg.sender, _shares);
+        adjustWatermark(_amount, true);
         emit Deposit(msg.sender, _amount, _shares);
     }
 
@@ -134,6 +142,7 @@ contract BasicStVault is IStVault,
 
         uint withdrawAmt = getPoolByShares(_shares);
         _burn(msg.sender, _shares);
+        adjustWatermark(withdrawAmt, false);
 
         uint _buffered = bufferedDeposits();
         if (_buffered >= withdrawAmt) {
@@ -143,7 +152,7 @@ contract BasicStVault is IStVault,
             _amount = _buffered;
             withdrawAmt -= _buffered;
 
-            uint stTokenAmt = getStTokenByToken(withdrawAmt);
+            uint stTokenAmt = getStTokenByPooledToken(withdrawAmt);
             pendingWithdrawals += withdrawAmt;
             if (paused() == false) {
                 pendingRedeems += stTokenAmt;
@@ -184,28 +193,15 @@ contract BasicStVault is IStVault,
     }
 
     function invest() external onlyOwnerOrAdmin whenNotPaused {
-        _investInternal(true);
+        _investInternal();
     }
-    function _investInternal(bool _raiseFail) internal {
-        string memory _failMsg;
-        bool _fail;
-
+    function _investInternal() internal {
+        _collectProfitAndUpdateWatermark();
         uint _buffered = _transferOutFees();
-        if (_buffered < minInvestAmount) {
-            _fail = true;
-            _failMsg = "No enough token";
-        }
-        if (block.timestamp < (lastInvestTs + investInterval)) {
-            _fail = true;
-            _failMsg = "Not able to invest yet";
-        }
-
-        if (_fail == false) {
+        if (_buffered >= minInvestAmount && block.timestamp >= (lastInvestTs + investInterval)) {
             _invest(_buffered);
             lastInvestTs = block.timestamp;
             emit Invest(_buffered);
-        } else if (_raiseFail == true) {
-            require(false, _failMsg);
         }
     }
     function _invest(uint _amount) internal virtual {}
@@ -230,19 +226,45 @@ contract BasicStVault is IStVault,
         _yield();
         _emergencyWithdraw(pendingRedeems);
         pendingRedeems = 0;
+        emit EmergencyWithdraw(emergencyRedeems);
     }
     function _emergencyWithdraw(uint _pendingRedeems) internal virtual {}
 
     ///@notice Unpauses deposit, yield, invest functions, and invests funds.
     function reinvest() external onlyOwnerOrAdmin whenPaused {
         _unpause();
-        _investInternal(false);
+        _investInternal();
     }
 
     function yield() external onlyOwnerOrAdmin whenNotPaused {
         _yield();
     }
     function _yield() internal virtual {}
+
+    function collectProfitAndUpdateWatermark() external onlyOwnerOrAdmin whenNotPaused {
+        _collectProfitAndUpdateWatermark();
+    }
+    function _collectProfitAndUpdateWatermark() private {
+        uint currentWatermark = getAllPool();
+        uint lastWatermark = watermark;
+        uint fee;
+        if (currentWatermark > lastWatermark) {
+            uint profit = currentWatermark - lastWatermark;
+            fee = profit * yieldFee / DENOMINATOR;
+            fees += fee;
+            watermark = currentWatermark - fee;
+        }
+        emit CollectProfitAndUpdateWatermark(currentWatermark, lastWatermark, fee);
+    }
+
+    /// @param signs True for positive, false for negative
+    function adjustWatermark(uint amount, bool signs) private {
+        uint lastWatermark = watermark;
+        watermark = signs == true
+                    ? watermark + amount
+                    : (watermark > amount) ? watermark - amount : 0;
+        emit AdjustWatermark(watermark, lastWatermark);
+    }
 
     function withdrawFees() external onlyOwnerOrAdmin {
         _transferOutFees();
@@ -274,18 +296,18 @@ contract BasicStVault is IStVault,
     }
 
     ///@param _amount Amount of tokens
-    function getStTokenByToken(uint _amount) public virtual view returns(uint) {
+    function getStTokenByPooledToken(uint _amount) public virtual view returns(uint) {
         return Token.changeDecimals(_amount, tokenDecimals, stTokenDecimals);
     }
 
     ///@param _stAmount Amount of stTokens
-    function getTokenByStToken(uint _stAmount) public virtual view returns(uint) {
-        return _stAmount * oneToken / getStTokenByToken(oneToken);
+    function getPooledTokenByStToken(uint _stAmount) public virtual view returns(uint) {
+        return _stAmount * oneToken / getStTokenByPooledToken(oneToken);
     }
 
     function getAllPool() public virtual view returns (uint _pool) {
         uint stBalance = stToken.balanceOf(address(this)) + emergencyRedeems - pendingRedeems;
-        _pool = (stBalance == 0) ? 0 : getTokenByStToken(stBalance);
+        _pool = (stBalance == 0) ? 0 : getPooledTokenByStToken(stBalance);
         _pool += (token.balanceOf(address(this)) - bufferedWithdrawals);
         _pool -= fees;
     }
@@ -318,7 +340,47 @@ contract BasicStVault is IStVault,
     }
 
     function getAPR() public virtual view returns (uint) {
-        return 0;
+        (uint _baseApr,,) = getBaseApr();
+        return _baseApr;
+    }
+
+    function resetApr() external onlyOwner {
+        _resetApr();
+        _updateApr();
+    }
+
+    function _resetApr() internal virtual {
+        baseApr = 0;
+        baseTokenRate = 0;
+        baseAprLastUpdate = 0;
+    }
+
+    function _updateApr() internal virtual {
+        (uint _baseApr, uint _baseTokenRate, bool _update) = getBaseApr();
+        if (_update) {
+            baseApr = _baseApr;
+            baseTokenRate = _baseTokenRate;
+            baseAprLastUpdate = block.timestamp;
+        }
+    }
+
+    function getBaseApr() public view returns (uint, uint, bool) {
+        uint _baseApr = baseApr;
+        uint _baseTokenRate = baseTokenRate;
+        uint _baseAprLastUpdate = baseAprLastUpdate;
+
+        if (_baseApr == 0 || (_baseAprLastUpdate + 1 weeks) <= block.timestamp) {
+            uint newTokenRate = getPooledTokenByStToken(oneStToken);
+            if (0 < _baseTokenRate && _baseTokenRate < newTokenRate) {
+                uint newApr = (newTokenRate-_baseTokenRate) * Const.YEAR_IN_SEC * Const.APR_SCALE
+                            / (_baseTokenRate * (block.timestamp-_baseAprLastUpdate));
+                return (newApr, newTokenRate, true);
+            } else {
+                return (0, newTokenRate, true);
+            }
+        } else {
+            return (_baseApr, _baseTokenRate, false);
+        }
     }
 
     function getUnbondedToken() public virtual view returns (uint) {
@@ -330,5 +392,5 @@ contract BasicStVault is IStVault,
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[26] private __gap;
+    uint256[22] private __gap;
 }

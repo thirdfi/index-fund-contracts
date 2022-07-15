@@ -111,20 +111,9 @@ contract EthStMaticVault is BasicStVault {
         }
     }
 
-    function _yield() internal override {}
-
     ///@param _amount Amount of tokens
-    function getStTokenByToken(uint _amount) public override view returns(uint) {
+    function getStTokenByPooledToken(uint _amount) public override view returns(uint) {
         return IStMATIC(address(stToken)).convertMaticToStMatic(_amount);
-    }
-
-    ///@notice Returns the pending rewards in USD.
-    function getPendingRewards() public override view returns (uint) {
-        return 0;
-    }
-
-    function getAPR() public override view returns (uint) {
-        return 0;
     }
 
     function getUnbondedToken() public override view returns (uint _amount) {
