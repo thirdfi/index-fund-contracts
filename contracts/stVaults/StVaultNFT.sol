@@ -52,6 +52,7 @@ contract StVaultNFT is IStVaultNFT,
     }
 
     function _afterTokenTransfer(address from, address to, uint256 tokenId) internal override {
+        tokenId;
         if (from == address(0)) {
             totalSupply ++;
         } else if (to == address(0)) {

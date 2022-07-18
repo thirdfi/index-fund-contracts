@@ -1,6 +1,6 @@
 //SPDX-License-Identifier: MIT
 //
-///@notice The EthStMaticVault contract stakes MATIC tokens into stMATIC on Ethereum.
+///@notice The EthStMATICVault contract stakes MATIC tokens into stMATIC on Ethereum.
 ///@dev https://docs.polygon.lido.fi/contracts/st-matic
 //
 pragma solidity  0.8.9;
@@ -31,7 +31,8 @@ interface IStMATIC {
     function token2WithdrawRequest(uint _tokenId) external view returns (StMATIC_RequestWithdraw memory);
     function stakeManager() external view returns (IStakeManager);
     function poLidoNFT() external view returns (IPoLidoNFT);
-    function convertMaticToStMatic(uint _balance) external view returns (uint);
+    function convertStMaticToMatic(uint _balance) external view returns (uint balanceInMATIC, uint totalShares, uint totalPooledMATIC);
+    function convertMaticToStMatic(uint _balance) external view returns (uint balanceInStMatic, uint totalShares, uint totalPooledMatic);
     function getMaticFromTokenId(uint _tokenId) external view returns (uint);
 
     function submit(uint _amount) external returns (uint);
@@ -39,7 +40,7 @@ interface IStMATIC {
     function claimTokens(uint _tokenId) external;
 }
 
-contract EthStMaticVault is BasicStVault {
+contract EthStMATICVault is BasicStVault {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     mapping(uint => uint) public tokenIds;
@@ -120,7 +121,14 @@ contract EthStMaticVault is BasicStVault {
 
     ///@param _amount Amount of tokens
     function getStTokenByPooledToken(uint _amount) public override view returns(uint) {
-        return IStMATIC(address(stToken)).convertMaticToStMatic(_amount);
+        (uint balanceInStMatic,,) = IStMATIC(address(stToken)).convertMaticToStMatic(_amount);
+        return balanceInStMatic;
+    }
+
+    ///@param _stAmount Amount of stTokens
+    function getPooledTokenByStToken(uint _stAmount) public override view returns(uint) {
+        (uint balanceInMatic,,) = IStMATIC(address(stToken)).convertStMaticToMatic(_stAmount);
+        return balanceInMatic;
     }
 
     function getUnbondedToken() public override view returns (uint _amount) {

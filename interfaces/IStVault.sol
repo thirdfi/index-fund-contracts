@@ -77,6 +77,8 @@ interface IStVault is IERC20Upgradeable {
 
     ///@dev deposit `_amount` of token.
     function deposit(uint _amount) external;
+    ///@dev deposit the native asset.
+    function deposit0() external payable;
     ///@dev request a withdrawal that corresponds to `_shares` of shares.
     ///@return _amount is the amount of withdrawn token.
     ///@return _reqId is the NFT token id indicating the request for rest of withdrawal. 0 if no request is made.

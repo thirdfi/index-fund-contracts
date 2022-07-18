@@ -1,6 +1,6 @@
 //SPDX-License-Identifier: MIT
 //
-///@notice The MoonbeamStDotVault contract stakes xcDOT tokens into stDOT on Moonbeam.
+///@notice The MoonbeamStDOTVault contract stakes xcDOT tokens into stDOT on Moonbeam.
 ///@dev https://docs.polkadot.lido.fi/fundamentals/liquid-staking
 //
 pragma solidity  0.8.9;
@@ -12,15 +12,15 @@ import "../BasicStVault.sol";
 import "../../bni/constant/MoonbeamConstant.sol";
 
 interface IStDOT {
-    function getUnbonded(address _holder) external view returns (uint256 waiting, uint256 unbonded);
-    function deposit(uint256 _amount) external returns (uint256);
-    function redeem(uint256 _amount) external;
+    function getUnbonded(address _holder) external view returns (uint waiting, uint unbonded);
+    function deposit(uint _amount) external returns (uint);
+    function redeem(uint _amount) external;
     function claimUnbonded() external;
-    function getSharesByPooledKSM(uint256 _amount) external view returns (uint256);
-    function getPooledKSMByShares(uint256 _sharesAmount) external view returns (uint256);
+    function getSharesByPooledKSM(uint _amount) external view returns (uint);
+    function getPooledKSMByShares(uint _sharesAmount) external view returns (uint);
 }
 
-contract MoonbeamStDotVault is BasicStVault {
+contract MoonbeamStDOTVault is BasicStVault {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     function initialize(
@@ -73,6 +73,11 @@ contract MoonbeamStDotVault is BasicStVault {
     ///@param _amount Amount of tokens
     function getStTokenByPooledToken(uint _amount) public override view returns(uint) {
         return IStDOT(address(stToken)).getSharesByPooledKSM(_amount);
+    }
+
+    ///@param _stAmount Amount of stTokens
+    function getPooledTokenByStToken(uint _stAmount) public override view returns(uint) {
+        return IStDOT(address(stToken)).getPooledKSMByShares(_stAmount);
     }
 
     function getUnbondedToken() public override view returns (uint _amount) {

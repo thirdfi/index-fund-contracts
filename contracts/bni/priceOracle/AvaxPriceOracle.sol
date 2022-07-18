@@ -18,4 +18,11 @@ contract AvaxPriceOracle is PriceOracle {
 
         setAssetSources(assets, sources);
     }
+
+    function getAssetPrice(address asset) public virtual override view returns (uint price, uint8 decimals) {
+        if (asset == address(0)) {
+            asset = AvaxConstant.WAVAX;
+        }
+        return super.getAssetPrice(asset);
+    }
 }

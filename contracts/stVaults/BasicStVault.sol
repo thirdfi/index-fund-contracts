@@ -93,7 +93,7 @@ contract BasicStVault is IStVault,
 
         token = IERC20Upgradeable(_token);
         stToken = IERC20Upgradeable(_stToken);
-        tokenDecimals = IERC20UpgradeableExt(address(token)).decimals();
+        tokenDecimals = _assetDecimals(address(token));
         stTokenDecimals = IERC20UpgradeableExt(address(stToken)).decimals();
         oneToken = 10**tokenDecimals;
         oneStToken = 10**stTokenDecimals;
@@ -134,15 +134,23 @@ contract BasicStVault is IStVault,
     }
 
     function deposit(uint _amount) external nonReentrant whenNotPaused{
+        _deposit(msg.sender, _amount);
+    }
+
+    function deposit0() external payable nonReentrant whenNotPaused{
+        _deposit(msg.sender, msg.value);
+    }
+
+    function _deposit(address _account, uint _amount) internal {
         require(_amount > 0, "Invalid amount");
-        depositedBlock[msg.sender] = block.number;
+        depositedBlock[_account] = block.number;
 
         uint _shares = getSharesByPool(_amount);
-        token.safeTransferFrom(msg.sender, address(this), _amount);
+        if (address(token) != address(0)) token.safeTransferFrom(_account, address(this), _amount);
 
-        _mint(msg.sender, _shares);
+        _mint(_account, _shares);
         adjustWatermark(_amount, true);
-        emit Deposit(msg.sender, _amount, _shares);
+        emit Deposit(_account, _amount, _shares);
     }
 
     function withdraw(uint _shares) external nonReentrant returns (uint _amount, uint _reqId) {
@@ -180,7 +188,7 @@ contract BasicStVault is IStVault,
         }
 
         if (_amount > 0) {
-            token.safeTransfer(msg.sender, _amount);
+            _transferOutToken(msg.sender, _amount);
         }
         emit Withdraw(msg.sender, _shares, _amount, _reqId, withdrawAmt);
     }
@@ -195,7 +203,7 @@ contract BasicStVault is IStVault,
         require(bufferedWithdrawals >= _amount, "No enough token");
 
         nft.burn(_reqId);
-        token.safeTransfer(msg.sender, _amount);
+        _transferOutToken(msg.sender, _amount);
 
         pendingWithdrawals -= _amount;
         bufferedWithdrawals -= _amount;
@@ -281,7 +289,7 @@ contract BasicStVault is IStVault,
     }
 
     function _transferOutFees() internal returns (uint _tokenAmt) {
-        _tokenAmt = token.balanceOf(address(this)) - bufferedWithdrawals;
+        _tokenAmt = _tokenBalanceOf(address(this)) - bufferedWithdrawals;
         uint _fees = fees;
         if (_fees != 0 && _tokenAmt != 0) {
             uint feeAmt = _fees;
@@ -295,13 +303,29 @@ contract BasicStVault is IStVault,
             }
             fees = _fees;
 
-            token.safeTransfer(treasuryWallet, feeAmt);
+            _transferOutToken(treasuryWallet, feeAmt);
             emit TransferredOutFees(feeAmt, address(token)); // Decimal follows token
         }
     }
 
+    function _transferOutToken(address _to, uint _amount) internal {
+        (address(token) != address(0))
+            ? token.safeTransfer(_to, _amount)
+            : Token.safeTransferETH(_to, _amount);
+    }
+
+    function _tokenBalanceOf(address _account) internal view returns (uint) {
+        return (address(token) != address(0))
+            ? token.balanceOf(_account)
+            : _account.balance;
+    }
+
+    function _assetDecimals(address _asset) internal view returns (uint8 _decimals) {
+        _decimals = (_asset == address(0)) ? 18 : IERC20UpgradeableExt(_asset).decimals();
+    }
+
     function bufferedDeposits() public view returns(uint) {
-        uint _amount = token.balanceOf(address(this)) - bufferedWithdrawals;
+        uint _amount = _tokenBalanceOf(address(this)) - bufferedWithdrawals;
         return (_amount > fees) ? _amount - fees : 0;
     }
 
@@ -318,7 +342,7 @@ contract BasicStVault is IStVault,
     function getAllPool() public virtual view returns (uint _pool) {
         uint stBalance = stToken.balanceOf(address(this)) + emergencyRedeems - pendingRedeems;
         _pool = (stBalance == 0) ? 0 : getPooledTokenByStToken(stBalance);
-        _pool += (token.balanceOf(address(this)) - bufferedWithdrawals);
+        _pool += (_tokenBalanceOf(address(this)) - bufferedWithdrawals);
         _pool -= fees;
     }
 
@@ -340,7 +364,7 @@ contract BasicStVault is IStVault,
     ///@return the value in USD. it's scaled by 1e18;
     function getValueInUSD(address _asset, uint _amount) internal view returns(uint) {
         (uint priceInUSD, uint8 priceDecimals) = priceOracle.getAssetPrice(_asset);
-        uint8 _decimals = IERC20UpgradeableExt(_asset).decimals();
+        uint8 _decimals = _assetDecimals(_asset);
         return Token.changeDecimals(_amount, _decimals, 18) * priceInUSD / (10 ** (priceDecimals));
     }
 
@@ -418,6 +442,8 @@ contract BasicStVault is IStVault,
     function getUnbondedToken() public virtual view returns (uint) {
         return 0;
     }
+
+    receive() external payable {}
 
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new
