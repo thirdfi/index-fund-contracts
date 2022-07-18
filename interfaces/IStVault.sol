@@ -23,10 +23,6 @@ interface IStVault is IERC20Upgradeable {
     // staked token such as stETH, stMATIC, and so on.
     function stToken() external view returns(IERC20Upgradeable);
 
-    // If it's true, stToken is a rebaseable ERC20 token like stETH. The holder's balance is automatically grown by reward.
-    // Otherwise, stToken is a non-rebaseable token like wstETH. The holder's balance is not changed and value is grown by reward.
-    function rebaseable() external view returns(bool);
-
     // the buffered deposit token amount that is not yet staked into the staking pool.
     function bufferedDeposits() external view returns(uint);
     // the buffered withdrawal token amount that is unstaked from the staking pool but not yet withdrawn from the user.

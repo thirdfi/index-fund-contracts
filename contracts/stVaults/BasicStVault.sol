@@ -34,7 +34,6 @@ contract BasicStVault is IStVault,
 
     IERC20Upgradeable public token;
     IERC20Upgradeable public stToken;
-    bool public rebaseable;
     uint8 internal tokenDecimals;
     uint8 internal stTokenDecimals;
     uint internal oneToken;
@@ -121,6 +120,17 @@ contract BasicStVault is IStVault,
     function setNFT(address _nft) external onlyOwner {
         require(address(nft) == address(0), "Already set");
         nft = IStVaultNFT(_nft);
+    }
+
+    function setStakingPeriods(uint _unbondingPeriod, uint _investInterval, uint _redeemInterval) external onlyOwner {
+        unbondingPeriod = _unbondingPeriod;
+        investInterval = _investInterval;
+        redeemInterval = _redeemInterval;
+    }
+
+    function setStakingAmounts(uint _minInvestAmount, uint _minRedeemAmount) external onlyOwner {
+        minInvestAmount = _minInvestAmount;
+        minRedeemAmount = _minRedeemAmount;
     }
 
     function deposit(uint _amount) external nonReentrant whenNotPaused{
