@@ -31,7 +31,7 @@ interface IStMATIC {
     function token2WithdrawRequest(uint _tokenId) external view returns (StMATIC_RequestWithdraw memory);
     function stakeManager() external view returns (IStakeManager);
     function poLidoNFT() external view returns (IPoLidoNFT);
-    function convertStMaticToMatic(uint _balance) external view returns (uint balanceInMATIC, uint totalShares, uint totalPooledMATIC);
+    function convertStMaticToMatic(uint _balance) external view returns (uint balanceInMatic, uint totalShares, uint totalPooledMatic);
     function convertMaticToStMatic(uint _balance) external view returns (uint balanceInStMatic, uint totalShares, uint totalPooledMatic);
     function getMaticFromTokenId(uint _tokenId) external view returns (uint);
 

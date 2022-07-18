@@ -171,26 +171,42 @@ contract BasicStVault is IStVault,
             withdrawAmt -= _buffered;
 
             uint stTokenAmt = getStTokenByPooledToken(withdrawAmt);
-            pendingWithdrawals += withdrawAmt;
-            if (paused() == false) {
-                pendingRedeems += stTokenAmt;
-            } else {
-                uint _emergencyRedeems = emergencyRedeems;
-                emergencyRedeems = (_emergencyRedeems <= stTokenAmt) ? 0 : _emergencyRedeems - stTokenAmt;
+            (uint withdrawnStAmount, uint withdrawnAmount) = withdrawStToken(stTokenAmt);
+            if (withdrawnStAmount > 0) {
+                _amount += withdrawnAmount;
+                uint prevStTokenAmt = stTokenAmt;
+                stTokenAmt -= withdrawnStAmount;
+                withdrawAmt = withdrawAmt * stTokenAmt / prevStTokenAmt;
             }
 
-            _reqId = nft.mint(msg.sender);
-            nft2WithdrawRequest[_reqId] = WithdrawRequest({
-                tokenAmt: withdrawAmt,
-                stTokenAmt: stTokenAmt,
-                requestTs: block.timestamp
-            });
+            if (stTokenAmt > 0) {
+                pendingWithdrawals += withdrawAmt;
+                if (paused() == false) {
+                    pendingRedeems += stTokenAmt;
+                } else {
+                    uint _emergencyRedeems = emergencyRedeems;
+                    emergencyRedeems = (_emergencyRedeems <= stTokenAmt) ? 0 : _emergencyRedeems - stTokenAmt;
+                }
+
+                _reqId = nft.mint(msg.sender);
+                nft2WithdrawRequest[_reqId] = WithdrawRequest({
+                    tokenAmt: withdrawAmt,
+                    stTokenAmt: stTokenAmt,
+                    requestTs: block.timestamp
+                });
+            }
         }
 
         if (_amount > 0) {
             _transferOutToken(msg.sender, _amount);
         }
         emit Withdraw(msg.sender, _shares, _amount, _reqId, withdrawAmt);
+    }
+
+    function withdrawStToken(uint _stAmountToWithdraw) internal virtual returns (
+        uint _withdrawnStAmount,
+        uint _withdrawnAmount
+    ) {
     }
 
     function claim(uint _reqId) external nonReentrant returns (uint _amount) {
