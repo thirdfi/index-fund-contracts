@@ -50,9 +50,9 @@ contract AvaxStAVAXVault is BasicStVault {
         return _amount;
     }
 
-    function _redeem(uint _pendingRedeems) internal override returns (uint _redeemed) {
-        avalanchePool.claimBonds(_pendingRedeems);
-        return _pendingRedeems;
+    function _redeem(uint _stAmount) internal override returns (uint _redeemed) {
+        avalanchePool.claimBonds(_stAmount);
+        return _stAmount;
     }
 
     function getEmergencyUnbondings() public override view returns (uint) {

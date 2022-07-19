@@ -7,7 +7,6 @@ pragma solidity  0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "../BasicStVault.sol";
 import "../../bni/constant/EthConstant.sol";
 
@@ -84,9 +83,9 @@ contract EthStMATICVault is BasicStVault {
         return _amount;
     }
 
-    function _redeem(uint _pendingRedeems) internal override returns (uint _redeemed) {
-        IStMATIC(address(stToken)).requestWithdraw(_pendingRedeems);
-        return _pendingRedeems;
+    function _redeem(uint _stAmount) internal override returns (uint _redeemed) {
+        IStMATIC(address(stToken)).requestWithdraw(_stAmount);
+        return _stAmount;
     }
 
     function _claimUnbonded() internal override {
@@ -102,9 +101,6 @@ contract EthStMATICVault is BasicStVault {
             }
             IStMATIC(address(stToken)).claimTokens(_dequeue());
         }
-
-        uint _bufferedWithdrawals = bufferedWithdrawals + (token.balanceOf(address(this)) - balanceBefore);
-        bufferedWithdrawals = MathUpgradeable.min(_bufferedWithdrawals, pendingWithdrawals);
 
         if (last < first && paused()) {
             // The tokens according to the emergency unbonding has been claimed

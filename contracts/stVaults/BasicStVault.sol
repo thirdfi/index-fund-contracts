@@ -39,7 +39,7 @@ contract BasicStVault is IStVault,
     uint internal oneToken;
     uint internal oneStToken;
 
-    uint public bufferedWithdrawals;
+    uint public bufferedDeposits;
     uint public pendingWithdrawals;
     uint public pendingRedeems;
     uint internal emergencyUnbondings;
@@ -64,6 +64,7 @@ contract BasicStVault is IStVault,
     event Withdraw(address user, uint shares, uint amount, uint reqId, uint pendingAmount);
     event Claim(address user, uint reqId, uint amount);
     event Invest(uint amount);
+    event Redeem(uint stAmount);
     event EmergencyWithdraw(uint stAmount);
     event CollectProfitAndUpdateWatermark(uint currentWatermark, uint lastWatermark, uint fee);
     event AdjustWatermark(uint currentWatermark, uint lastWatermark);
@@ -145,8 +146,16 @@ contract BasicStVault is IStVault,
         require(_amount > 0, "Invalid amount");
         depositedBlock[_account] = block.number;
 
-        uint _shares = getSharesByPool(_amount);
-        if (address(token) != address(0)) token.safeTransferFrom(_account, address(this), _amount);
+        if (address(token) != address(0)) {
+            token.safeTransferFrom(_account, address(this), _amount);
+        } else {
+            // The native asset is already received.
+        }
+        uint pool = getAllPool() - _amount;
+        uint _totalSupply = totalSupply();
+        uint _shares = (_totalSupply == 0) ? _amount : _amount * _totalSupply / pool;
+
+        bufferedDeposits += _amount;
 
         _mint(_account, _shares);
         adjustWatermark(_amount, true);
@@ -162,7 +171,10 @@ contract BasicStVault is IStVault,
         _burn(msg.sender, _shares);
         adjustWatermark(withdrawAmt, false);
 
-        uint _buffered = bufferedDeposits();
+        uint _bufferedDeposits = bufferedDeposits;
+        uint _fees = fees;
+        uint _buffered = (_bufferedDeposits <= _fees) ? 0 : _bufferedDeposits - fees;
+
         if (_buffered >= withdrawAmt) {
             _amount = withdrawAmt;
             withdrawAmt = 0;
@@ -217,13 +229,12 @@ contract BasicStVault is IStVault,
         require(block.timestamp >= (usersRequest.requestTs + unbondingPeriod), "Not able to claim yet");
 
         _amount = usersRequest.tokenAmt;
-        require(bufferedWithdrawals >= _amount, "No enough token");
+        require(bufferedWithdrawals() >= _amount, "No enough token");
 
         nft.burn(_reqId);
         _transferOutToken(msg.sender, _amount);
 
         pendingWithdrawals -= _amount;
-        bufferedWithdrawals -= _amount;
         emit Claim(msg.sender, _reqId, _amount);
     }
 
@@ -235,20 +246,25 @@ contract BasicStVault is IStVault,
         uint _buffered = _transferOutFees();
         if (_buffered >= minInvestAmount && block.timestamp >= (lastInvestTs + investInterval)) {
             uint _invested = _invest(_buffered);
+            bufferedDeposits -= _invested;
             lastInvestTs = block.timestamp;
             emit Invest(_invested);
         }
     }
     function _invest(uint _amount) internal virtual returns (uint _invested) {}
 
-    function redeem() external onlyOwnerOrAdmin whenNotPaused { 
-        uint _pendingRedeems = pendingRedeems;
-        require(_pendingRedeems >= minRedeemAmount, "No enough pending redeem");
-        require(block.timestamp >= (lastRedeemTs + redeemInterval), "Not able to redeem yet");
-        uint redeemed = _redeem(_pendingRedeems);
+    function redeem() external onlyOwnerOrAdmin whenNotPaused {
+        uint redeemed = _redeemInternal(pendingRedeems);
         pendingRedeems -= redeemed;
     }
-    function _redeem(uint _pendingRedeems) internal virtual returns (uint _redeemed) {}
+    function _redeemInternal(uint _stAmount) internal returns (uint _redeemed) {
+        require(_stAmount >= minRedeemAmount, "too small");
+        require(block.timestamp >= (lastRedeemTs + redeemInterval), "Not able to redeem yet");
+
+        _redeemed = _redeem(_stAmount);
+        emit Redeem(_redeemed);
+    }
+    function _redeem(uint _stAmount) internal virtual returns (uint _redeemed) {}
 
     function claimUnbonded() external onlyOwnerOrAdmin {
         _claimUnbonded();
@@ -263,16 +279,28 @@ contract BasicStVault is IStVault,
     function emergencyWithdraw() external onlyOwnerOrAdmin whenNotPaused {
         _pause();
         _yield();
-        uint redeemed = _emergencyWithdraw(pendingRedeems);
-        pendingRedeems = 0;
+        _emergencyWithdrawInternal();
+    }
+    function _emergencyWithdrawInternal() internal returns (uint _redeemed) {
+        uint _pendingRedeems = pendingRedeems;
+        uint redeemed = _emergencyWithdraw(_pendingRedeems);
+        pendingRedeems = (_pendingRedeems <= redeemed) ? 0 : _pendingRedeems - redeemed;
         emit EmergencyWithdraw(redeemed);
     }
     function _emergencyWithdraw(uint _pendingRedeems) internal virtual returns (uint _redeemed) {}
 
+    function emergencyRedeem() external onlyOwnerOrAdmin whenPaused {
+        _emergencyWithdrawInternal();
+    }
+
     ///@notice Unpauses deposit, yield, invest functions, and invests funds.
     function reinvest() external onlyOwnerOrAdmin whenPaused {
         require(getEmergencyUnbondings() == 0, "Emergency unbonding is not finished");
+        require(getUnbondedToken() == 0, "claimUnbonded should be called");
         _unpause();
+
+        emergencyUnbondings = 0;
+        bufferedDeposits = _tokenBalanceOf(address(this)) - pendingWithdrawals;
         _investInternal();
     }
 
@@ -311,7 +339,7 @@ contract BasicStVault is IStVault,
     }
 
     function _transferOutFees() internal returns (uint _tokenAmt) {
-        _tokenAmt = _tokenBalanceOf(address(this)) - bufferedWithdrawals;
+        _tokenAmt = bufferedDeposits;
         uint _fees = fees;
         if (_fees != 0 && _tokenAmt != 0) {
             uint feeAmt = _fees;
@@ -346,9 +374,8 @@ contract BasicStVault is IStVault,
         _decimals = (_asset == address(0)) ? 18 : IERC20UpgradeableExt(_asset).decimals();
     }
 
-    function bufferedDeposits() public view returns(uint) {
-        uint _amount = _tokenBalanceOf(address(this)) - bufferedWithdrawals;
-        return (_amount > fees) ? _amount - fees : 0;
+    function bufferedWithdrawals() public view returns(uint) {
+        return _tokenBalanceOf(address(this)) - bufferedDeposits;
     }
 
     ///@param _amount Amount of tokens
@@ -362,10 +389,21 @@ contract BasicStVault is IStVault,
     }
 
     function getAllPool() public virtual view returns (uint _pool) {
-        uint stBalance = stToken.balanceOf(address(this)) + getEmergencyUnbondings() - pendingRedeems;
-        _pool = (stBalance == 0) ? 0 : getPooledTokenByStToken(stBalance);
-        _pool += (_tokenBalanceOf(address(this)) - bufferedWithdrawals);
-        _pool -= fees;
+        if (paused() == false) {
+            uint stBalance = stToken.balanceOf(address(this)) - pendingRedeems;
+            _pool = (stBalance == 0) ? 0 : getPooledTokenByStToken(stBalance);
+            _pool += bufferedDeposits;
+            _pool -= fees;
+        } else {
+            uint stBalance = stToken.balanceOf(address(this)) + getEmergencyUnbondings() - pendingRedeems;
+            _pool = (stBalance == 0) ? 0 : getPooledTokenByStToken(stBalance);
+            uint balance = _tokenBalanceOf(address(this));
+            uint _pendingWithdrawals = pendingWithdrawals;
+            if (balance > _pendingWithdrawals) {
+                _pool += (balance - _pendingWithdrawals);
+            }
+            _pool -= fees;
+        }
     }
 
     function getSharesByPool(uint _amount) public view returns (uint) {
@@ -456,7 +494,7 @@ contract BasicStVault is IStVault,
         uint endTs = _requestTs + unbondingPeriod;
         if (endTs > block.timestamp) {
             _waitForTs = endTs - block.timestamp;
-        } else if (bufferedWithdrawals >= _tokenAmt) {
+        } else if (bufferedWithdrawals() >= _tokenAmt) {
             _claimable = true;
         }
     }

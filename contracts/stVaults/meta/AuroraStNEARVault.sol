@@ -37,6 +37,7 @@ contract AuroraStNEARVault is BasicStVault {
         );
 
         unbondingPeriod = 3 days;
+        minInvestAmount = oneToken;
         // The stNEAR buffer is replenished automatically every 5 minutes.
         investInterval = 5 minutes;
         // The wNEAR buffer is replenished automatically every 5 minutes.
@@ -59,14 +60,14 @@ contract AuroraStNEARVault is BasicStVault {
         }
     }
 
-    function _redeem(uint _pendingRedeems) internal override returns (uint _redeemed) {
+    function _redeem(uint _stAmount) internal override returns (uint _redeemed) {
         uint buffer = token.balanceOf(address(metaPool));
         if (buffer > 0) {
-            uint wNearAmount = getPooledTokenByStToken(_pendingRedeems);
+            uint wNearAmount = getPooledTokenByStToken(_stAmount);
             if (buffer < wNearAmount) {
-                _redeemed = _pendingRedeems * buffer / wNearAmount;
+                _redeemed = _stAmount * buffer / wNearAmount;
             } else {
-                _redeemed = _pendingRedeems;
+                _redeemed = _stAmount;
             }
             metaPool.swapstNEARForwNEAR(_redeemed);
         }
@@ -75,8 +76,7 @@ contract AuroraStNEARVault is BasicStVault {
     function _emergencyWithdraw(uint _pendingRedeems) internal override returns (uint _redeemed) {
         uint stBalance = stToken.balanceOf(address(this));
         if (stBalance >= minRedeemAmount) {
-            emergencyUnbondings = (stBalance - _pendingRedeems);
-            _redeemed = stBalance;
+            _redeemed = _redeem(stBalance);
         }
     }
 

@@ -7,7 +7,6 @@ pragma solidity  0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "../BasicStVault.sol";
 import "../../bni/constant/MoonbeamConstant.sol";
 
@@ -45,17 +44,14 @@ contract MoonbeamStDOTVault is BasicStVault {
         return _amount;
     }
 
-    function _redeem(uint _pendingRedeems) internal override returns (uint _redeemed) {
-        IStDOT(address(stToken)).redeem(_pendingRedeems);
-        return _pendingRedeems;
+    function _redeem(uint _stAmount) internal override returns (uint _redeemed) {
+        IStDOT(address(stToken)).redeem(_stAmount);
+        return _stAmount;
     }
 
     function _claimUnbonded() internal override {
         uint balanceBefore = token.balanceOf(address(this));
         IStDOT(address(stToken)).claimUnbonded();
-
-        uint _bufferedWithdrawals = bufferedWithdrawals + (token.balanceOf(address(this)) - balanceBefore);
-        bufferedWithdrawals = MathUpgradeable.min(_bufferedWithdrawals, pendingWithdrawals);
 
         if (emergencyUnbondings > 0 && paused() && getUnbondedToken() == 0) {
             // The tokens according to the emergency redeem has been claimed
