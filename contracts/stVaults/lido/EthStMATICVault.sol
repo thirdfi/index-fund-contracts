@@ -76,15 +76,17 @@ contract EthStMATICVault is BasicStVault {
         first += 1;
     }
 
-    function _invest(uint _amount) internal override {
+    function _invest(uint _amount) internal override returns (uint _invested) {
         IStMATIC(address(stToken)).submit(_amount);
 
         IPoLidoNFT poLidoNFT = IStMATIC(address(stToken)).poLidoNFT();
         _enqueue(poLidoNFT.tokenIdIndex());
+        return _amount;
     }
 
-    function _redeem(uint _pendingRedeems) internal override {
+    function _redeem(uint _pendingRedeems) internal override returns (uint _redeemed) {
         IStMATIC(address(stToken)).requestWithdraw(_pendingRedeems);
+        return _pendingRedeems;
     }
 
     function _claimUnbonded() internal override {
@@ -102,20 +104,20 @@ contract EthStMATICVault is BasicStVault {
         }
 
         uint _bufferedWithdrawals = bufferedWithdrawals + (token.balanceOf(address(this)) - balanceBefore);
-        uint _pendingWithdrawals = pendingWithdrawals;
-        bufferedWithdrawals = MathUpgradeable.min(_bufferedWithdrawals, _pendingWithdrawals);
+        bufferedWithdrawals = MathUpgradeable.min(_bufferedWithdrawals, pendingWithdrawals);
 
         if (last < first && paused()) {
-            // The tokens according to the emergency redeem has been claimed
-            emergencyRedeems = 0;
+            // The tokens according to the emergency unbonding has been claimed
+            emergencyUnbondings = 0;
         }
     }
 
-    function _emergencyWithdraw(uint _pendingRedeems) internal override {
+    function _emergencyWithdraw(uint _pendingRedeems) internal override returns (uint _redeemed) {
         uint stBalance = stToken.balanceOf(address(this));
         if (stBalance >= minRedeemAmount) {
             IStMATIC(address(stToken)).requestWithdraw(stBalance);
-            emergencyRedeems = (stBalance - _pendingRedeems);
+            emergencyUnbondings = (stBalance - _pendingRedeems);
+            _redeemed = stBalance;
         }
     }
 

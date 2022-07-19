@@ -27,12 +27,11 @@ interface IAAVAXb {
 contract AvaxStAVAXVault is BasicStVault {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    IAvalanchePool public avalanchePool;
+    IAvalanchePool public avalanchePool = IAvalanchePool(0x7BAa1E3bFe49db8361680785182B80BB420A836D);
 
     function initialize(
         address _treasury, address _admin,
-        address _priceOracle,
-        address _avalanchePool
+        address _priceOracle
     ) public initializer {
         super.initialize(
             "STI L2 stAVAX", "stiL2StAVAX",
@@ -44,23 +43,29 @@ contract AvaxStAVAXVault is BasicStVault {
 
         unbondingPeriod = 28 days;
         minInvestAmount = oneToken;
-
-        avalanchePool = IAvalanchePool(_avalanchePool);
     }
 
-    function _invest(uint _amount) internal override {
+    function _invest(uint _amount) internal override returns (uint _invested) {
         avalanchePool.stakeAndClaimBonds{value: _amount}();
+        return _amount;
     }
 
-    function _redeem(uint _pendingRedeems) internal override {
+    function _redeem(uint _pendingRedeems) internal override returns (uint _redeemed) {
         avalanchePool.claimBonds(_pendingRedeems);
+        return _pendingRedeems;
     }
 
-    function _emergencyWithdraw(uint _pendingRedeems) internal override {
+    function getEmergencyUnbondings() public override view returns (uint) {
+        uint unbondings = avalanchePool.pendingAvaxClaimsOf(address(this));
+        return MathUpgradeable.min(unbondings, emergencyUnbondings);
+    }
+
+    function _emergencyWithdraw(uint _pendingRedeems) internal override returns (uint _redeemed) {
         uint stBalance = stToken.balanceOf(address(this));
         if (stBalance >= minRedeemAmount) {
             avalanchePool.claimBonds(stBalance);
-            emergencyRedeems = (stBalance - _pendingRedeems);
+            emergencyUnbondings = (stBalance - _pendingRedeems);
+            _redeemed = stBalance;
         }
     }
 

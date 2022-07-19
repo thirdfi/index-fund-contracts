@@ -42,7 +42,7 @@ contract BasicStVault is IStVault,
     uint public bufferedWithdrawals;
     uint public pendingWithdrawals;
     uint public pendingRedeems;
-    uint public emergencyRedeems;
+    uint internal emergencyUnbondings;
 
     uint public unbondingPeriod;
     uint public minInvestAmount;
@@ -184,8 +184,9 @@ contract BasicStVault is IStVault,
                 if (paused() == false) {
                     pendingRedeems += stTokenAmt;
                 } else {
-                    uint _emergencyRedeems = emergencyRedeems;
-                    emergencyRedeems = (_emergencyRedeems <= stTokenAmt) ? 0 : _emergencyRedeems - stTokenAmt;
+                    // We reduce the emergency bonding because the share is burnt.
+                    uint _emergencyUnbondings = getEmergencyUnbondings();
+                    emergencyUnbondings = (_emergencyUnbondings <= stTokenAmt) ? 0 : _emergencyUnbondings - stTokenAmt;
                 }
 
                 _reqId = nft.mint(msg.sender);
@@ -233,39 +234,44 @@ contract BasicStVault is IStVault,
         _collectProfitAndUpdateWatermark();
         uint _buffered = _transferOutFees();
         if (_buffered >= minInvestAmount && block.timestamp >= (lastInvestTs + investInterval)) {
-            _invest(_buffered);
+            uint _invested = _invest(_buffered);
             lastInvestTs = block.timestamp;
-            emit Invest(_buffered);
+            emit Invest(_invested);
         }
     }
-    function _invest(uint _amount) internal virtual {}
+    function _invest(uint _amount) internal virtual returns (uint _invested) {}
 
     function redeem() external onlyOwnerOrAdmin whenNotPaused { 
         uint _pendingRedeems = pendingRedeems;
         require(_pendingRedeems >= minRedeemAmount, "No enough pending redeem");
         require(block.timestamp >= (lastRedeemTs + redeemInterval), "Not able to redeem yet");
-        _redeem(_pendingRedeems);
-        pendingRedeems = 0;
+        uint redeemed = _redeem(_pendingRedeems);
+        pendingRedeems -= redeemed;
     }
-    function _redeem(uint _pendingRedeems) internal virtual {}
+    function _redeem(uint _pendingRedeems) internal virtual returns (uint _redeemed) {}
 
     function claimUnbonded() external onlyOwnerOrAdmin {
         _claimUnbonded();
     }
     function _claimUnbonded() internal virtual {}
 
+    function getEmergencyUnbondings() public virtual view returns (uint) {
+        return emergencyUnbondings;
+    }
+
     ///@notice Withdraws funds staked in mirror to this vault and pauses deposit, yield, invest functions
     function emergencyWithdraw() external onlyOwnerOrAdmin whenNotPaused {
         _pause();
         _yield();
-        _emergencyWithdraw(pendingRedeems);
+        uint redeemed = _emergencyWithdraw(pendingRedeems);
         pendingRedeems = 0;
-        emit EmergencyWithdraw(emergencyRedeems);
+        emit EmergencyWithdraw(redeemed);
     }
-    function _emergencyWithdraw(uint _pendingRedeems) internal virtual {}
+    function _emergencyWithdraw(uint _pendingRedeems) internal virtual returns (uint _redeemed) {}
 
     ///@notice Unpauses deposit, yield, invest functions, and invests funds.
     function reinvest() external onlyOwnerOrAdmin whenPaused {
+        require(getEmergencyUnbondings() == 0, "Emergency unbonding is not finished");
         _unpause();
         _investInternal();
     }
@@ -356,7 +362,7 @@ contract BasicStVault is IStVault,
     }
 
     function getAllPool() public virtual view returns (uint _pool) {
-        uint stBalance = stToken.balanceOf(address(this)) + emergencyRedeems - pendingRedeems;
+        uint stBalance = stToken.balanceOf(address(this)) + getEmergencyUnbondings() - pendingRedeems;
         _pool = (stBalance == 0) ? 0 : getPooledTokenByStToken(stBalance);
         _pool += (_tokenBalanceOf(address(this)) - bufferedWithdrawals);
         _pool -= fees;
