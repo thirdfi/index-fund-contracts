@@ -47,9 +47,6 @@ contract BasicCompoundVault is Initializable, ERC20Upgradeable, OwnableUpgradeab
 
     mapping(address => uint) private depositedBlock;
 
-    uint constant DAY_IN_SEC = 86400; // 3600 * 24
-    uint constant YEAR_IN_SEC = 365 * DAY_IN_SEC;
-
     uint constant MANTISSA_ONE = 1e18;
 
     event Deposit(address _user, uint _amount, uint _shares);

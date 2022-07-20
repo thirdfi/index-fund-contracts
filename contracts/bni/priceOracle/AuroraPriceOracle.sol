@@ -17,9 +17,10 @@ interface IERC20UpgradeableExt is IERC20Upgradeable {
 
 contract AuroraPriceOracle is PriceOracle {
 
-    IUniPair constant WNEARUSDT = IUniPair(0x03B666f3488a7992b2385B12dF7f35156d7b29cD);
-    IUniPair constant WNEARUSDC = IUniPair(0x20F8AeFB5697B77E0BB835A8518BE70775cdA1b0);
     IUniPair constant BSTNWNEAR = IUniPair(0xBBf3D4281F10E537d5b13CA80bE22362310b2bf9);
+    IUniPair constant METAWNEAR = IUniPair(0xa8CAaf35c0136033294dD286A14051fBf37aed07);
+    IUniPair constant USDCWNEAR = IUniPair(0x20F8AeFB5697B77E0BB835A8518BE70775cdA1b0);
+    IUniPair constant USDTWNEAR = IUniPair(0x03B666f3488a7992b2385B12dF7f35156d7b29cD);
 
     function initialize() public virtual override initializer {
         super.initialize();
@@ -33,18 +34,27 @@ contract AuroraPriceOracle is PriceOracle {
             return getWNEARPrice();
         } else if (asset == AuroraConstant.BSTN) {
             return getBSTNPrice();
+        } else if (asset == AuroraConstant.META) {
+            return getMETAPrice();
         }
         return super.getAssetPrice(asset);
     }
 
     function getWNEARPrice() public view returns (uint price, uint8 decimals) {
-        uint priceInUSDT = getPriceFromPair(WNEARUSDT, AuroraConstant.WNEAR);
-        uint priceInUSDC = getPriceFromPair(WNEARUSDC, AuroraConstant.WNEAR);
+        uint priceInUSDT = getPriceFromPair(USDTWNEAR, AuroraConstant.WNEAR);
+        uint priceInUSDC = getPriceFromPair(USDCWNEAR, AuroraConstant.WNEAR);
         return ((priceInUSDT + priceInUSDC) / 2, 18);
     }
 
     function getBSTNPrice() private view returns (uint price, uint8 decimals) {
         uint priceInWNEAR = getPriceFromPair(BSTNWNEAR, AuroraConstant.BSTN);
+        (uint WNEARPriceInUSD, uint8 WNEARPriceDecimals) = getWNEARPrice();
+        price = priceInWNEAR * WNEARPriceInUSD / 1e18;
+        decimals = WNEARPriceDecimals;
+    }
+
+    function getMETAPrice() private view returns (uint price, uint8 decimals) {
+        uint priceInWNEAR = getPriceFromPair(METAWNEAR, AuroraConstant.META);
         (uint WNEARPriceInUSD, uint8 WNEARPriceDecimals) = getWNEARPrice();
         price = priceInWNEAR * WNEARPriceInUSD / 1e18;
         decimals = WNEARPriceDecimals;

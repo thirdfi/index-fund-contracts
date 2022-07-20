@@ -10,6 +10,7 @@ import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "./BasicCompoundVault.sol";
 import "../../../interfaces/IERC20UpgradeableExt.sol";
 import "../../../interfaces/IUniRouter.sol";
+import "../../../libs/Const.sol";
 
 interface IBastionComptroller {
     function rewardDistributor() external view returns (address);
@@ -156,7 +157,7 @@ contract AuroraBastionVault is BasicCompoundVault {
             uint supplySpeed = rewardDistributor.rewardSupplySpeeds(uint8(rewardType), address(cToken));
             if (supplySpeed > 0) {
                 address reward = rewardDistributor.getRewardAddress(rewardType);
-                rewardsPerYear += getValueInUSD(reward, supplySpeed * YEAR_IN_SEC);
+                rewardsPerYear += getValueInUSD(reward, supplySpeed * Const.YEAR_IN_SEC);
             }
         }
         if (rewardsPerYear > 0) {

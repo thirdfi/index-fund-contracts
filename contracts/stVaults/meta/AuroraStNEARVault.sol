@@ -11,6 +11,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "../BasicStVault.sol";
 import "../../bni/constant/AuroraConstant.sol";
+import "../../../interfaces/IL2Vault.sol";
 
 interface IMetaPool {
     function swapwNEARForstNEAR(uint _amount) external;
@@ -26,9 +27,12 @@ contract AuroraStNEARVault is BasicStVault {
 
     IMetaPool constant metaPool = IMetaPool(0x534BACf1126f60EA513F796a3377ff432BE62cf9);
 
+    IL2Vault public stNEARVault;
+
     function initialize(
         address _treasury, address _admin,
-        address _priceOracle
+        address _priceOracle,
+        IL2Vault _stNEARVault
     ) public initializer {
         super.initialize(
             "STI L2 stNEAR", "stiL2StNEAR",
@@ -46,8 +50,11 @@ contract AuroraStNEARVault is BasicStVault {
         // The wNEAR buffer is replenished automatically every 5 minutes.
         redeemInterval = 5 minutes;
 
+        stNEARVault = _stNEARVault;
+
         token.safeApprove(address(metaPool), type(uint).max);
         stToken.safeApprove(address(metaPool), type(uint).max);
+        stToken.safeApprove(address(stNEARVault), type(uint).max);
     }
 
     function _invest(uint _amount) internal override returns (uint _invested) {
@@ -106,4 +113,8 @@ contract AuroraStNEARVault is BasicStVault {
         return wNearAmount - feeAmount;
     }
 
+    function setL2Vault(IL2Vault _stNEARVault) external onlyOwner {
+        stNEARVault = _stNEARVault;
+        stToken.safeApprove(address(stNEARVault), type(uint).max);
+    }
 }
