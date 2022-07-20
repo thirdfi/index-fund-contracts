@@ -53,9 +53,12 @@ contract MoonbeamStDOTVault is BasicStVault {
         uint balanceBefore = token.balanceOf(address(this));
         IStDOT(address(stToken)).claimUnbonded();
 
-        if (emergencyUnbondings > 0 && paused() && getUnbondedToken() == 0) {
-            // The tokens according to the emergency redeem has been claimed
-            emergencyUnbondings = 0;
+        uint _emergencyUnbondings = emergencyUnbondings;
+        if (_emergencyUnbondings > 0 && paused()) {
+            (uint unbondings,) = IStDOT(address(stToken)).getUnbonded(address(this));
+            if (_emergencyUnbondings > unbondings) {
+                emergencyUnbondings = unbondings;
+            }
         }
     }
 

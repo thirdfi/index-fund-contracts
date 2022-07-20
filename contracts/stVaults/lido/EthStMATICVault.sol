@@ -77,14 +77,14 @@ contract EthStMATICVault is BasicStVault {
 
     function _invest(uint _amount) internal override returns (uint _invested) {
         IStMATIC(address(stToken)).submit(_amount);
-
-        IPoLidoNFT poLidoNFT = IStMATIC(address(stToken)).poLidoNFT();
-        _enqueue(poLidoNFT.tokenIdIndex());
         return _amount;
     }
 
     function _redeem(uint _stAmount) internal override returns (uint _redeemed) {
         IStMATIC(address(stToken)).requestWithdraw(_stAmount);
+
+        IPoLidoNFT poLidoNFT = IStMATIC(address(stToken)).poLidoNFT();
+        _enqueue(poLidoNFT.tokenIdIndex());
         return _stAmount;
     }
 
