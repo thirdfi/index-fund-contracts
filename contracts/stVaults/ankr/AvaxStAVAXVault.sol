@@ -56,6 +56,7 @@ contract AvaxStAVAXVault is BasicStVault {
     }
 
     function getEmergencyUnbondings() public override view returns (uint) {
+        // The unbonded AVAX is automatically transferred to the claimer. This is why there is no _claimUnbonded here
         uint unbondings = avalanchePool.pendingAvaxClaimsOf(address(this));
         return MathUpgradeable.min(unbondings, emergencyUnbondings);
     }

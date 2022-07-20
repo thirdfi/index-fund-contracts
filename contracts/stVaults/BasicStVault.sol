@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "../bni/priceOracle/IPriceOracle.sol";
 import "../../interfaces/IERC20UpgradeableExt.sol";
 import "../../interfaces/IStVault.sol";
@@ -138,7 +139,7 @@ contract BasicStVault is IStVault,
         _deposit(msg.sender, _amount);
     }
 
-    function deposit0() external payable nonReentrant whenNotPaused{
+    function depositETH() external payable nonReentrant whenNotPaused{
         _deposit(msg.sender, msg.value);
     }
 
@@ -181,7 +182,11 @@ contract BasicStVault is IStVault,
         } else {
             _amount = _buffered;
             withdrawAmt -= _buffered;
+        }
 
+        bufferedDeposits = _bufferedDeposits - _amount;
+
+        if (withdrawAmt > 0) {
             uint stTokenAmt = getStTokenByPooledToken(withdrawAmt);
             (uint withdrawnStAmount, uint withdrawnAmount) = withdrawStToken(stTokenAmt);
             if (withdrawnStAmount > 0) {
@@ -271,14 +276,12 @@ contract BasicStVault is IStVault,
     }
     function _claimUnbonded() internal virtual {}
 
-    function getEmergencyUnbondings() public virtual view returns (uint) {
-        return emergencyUnbondings;
-    }
-
     ///@notice Withdraws funds staked in mirror to this vault and pauses deposit, yield, invest functions
     function emergencyWithdraw() external onlyOwnerOrAdmin whenNotPaused {
         _pause();
         _yield();
+
+        bufferedDeposits = 0;
         _emergencyWithdrawInternal();
     }
     function _emergencyWithdrawInternal() internal returns (uint _redeemed) {
@@ -300,7 +303,7 @@ contract BasicStVault is IStVault,
         _unpause();
 
         emergencyUnbondings = 0;
-        bufferedDeposits = _tokenBalanceOf(address(this)) - pendingWithdrawals;
+        bufferedDeposits = getBufferedDeposits();
         _investInternal();
     }
 
@@ -339,7 +342,7 @@ contract BasicStVault is IStVault,
     }
 
     function _transferOutFees() internal returns (uint _tokenAmt) {
-        _tokenAmt = bufferedDeposits;
+        _tokenAmt = getBufferedDeposits();
         uint _fees = fees;
         if (_fees != 0 && _tokenAmt != 0) {
             uint feeAmt = _fees;
@@ -354,6 +357,7 @@ contract BasicStVault is IStVault,
             fees = _fees;
 
             _transferOutToken(treasuryWallet, feeAmt);
+            bufferedDeposits = _tokenAmt;
             emit TransferredOutFees(feeAmt, address(token)); // Decimal follows token
         }
     }
@@ -374,8 +378,16 @@ contract BasicStVault is IStVault,
         _decimals = (_asset == address(0)) ? 18 : IERC20UpgradeableExt(_asset).decimals();
     }
 
+    function getBufferedDeposits() public virtual view returns (uint) {
+        return MathUpgradeable.max(bufferedDeposits, _tokenBalanceOf(address(this)) - pendingWithdrawals);
+    }
+
     function bufferedWithdrawals() public view returns(uint) {
         return _tokenBalanceOf(address(this)) - bufferedDeposits;
+    }
+
+    function getEmergencyUnbondings() public virtual view returns (uint) {
+        return emergencyUnbondings;
     }
 
     ///@param _amount Amount of tokens

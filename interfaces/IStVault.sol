@@ -25,6 +25,8 @@ interface IStVault is IERC20Upgradeable {
 
     // the buffered deposit token amount that is not yet staked into the staking pool.
     function bufferedDeposits() external view returns(uint);
+    // On some stake pools, the rewards is accumulated until unbonded even though redeem is requested. This function considers it.
+    function getBufferedDeposits() external view returns(uint);
     // the buffered withdrawal token amount that is unstaked from the staking pool but not yet withdrawn from the user.
     function bufferedWithdrawals() external view returns(uint);
     // the token amount that shares is already burnt but not withdrawn.
@@ -78,7 +80,7 @@ interface IStVault is IERC20Upgradeable {
     ///@dev deposit `_amount` of token.
     function deposit(uint _amount) external;
     ///@dev deposit the native asset.
-    function deposit0() external payable;
+    function depositETH() external payable;
     ///@dev request a withdrawal that corresponds to `_shares` of shares.
     ///@return _amount is the amount of withdrawn token.
     ///@return _reqId is the NFT token id indicating the request for rest of withdrawal. 0 if no request is made.

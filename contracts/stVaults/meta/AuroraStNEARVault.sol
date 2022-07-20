@@ -17,6 +17,8 @@ interface IMetaPool {
     function swapstNEARForwNEAR(uint _amount) external;
     ///@dev price of stNEAR in wNEAR.
     function stNearPrice() external view returns (uint);
+    function wNearSwapFee() external view returns (uint16);
+    function stNearSwapFee() external view returns (uint16);
 }
 
 contract AuroraStNEARVault is BasicStVault {
@@ -82,12 +84,16 @@ contract AuroraStNEARVault is BasicStVault {
 
     ///@param _amount Amount of tokens
     function getStTokenByPooledToken(uint _amount) public override view returns(uint) {
-        return _amount * oneStToken / metaPool.stNearPrice();
+        uint stNearAmount = _amount * oneStToken / metaPool.stNearPrice();
+        uint feeAmount = (stNearAmount * metaPool.stNearSwapFee()) / DENOMINATOR;
+        return stNearAmount - feeAmount;
     }
 
     ///@param _stAmount Amount of stTokens
     function getPooledTokenByStToken(uint _stAmount) public override view returns(uint) {
-        return _stAmount * metaPool.stNearPrice() / oneStToken;
+        uint wNearAmount = _stAmount * metaPool.stNearPrice() / oneStToken;
+        uint feeAmount = wNearAmount * metaPool.wNearSwapFee() / DENOMINATOR;
+        return wNearAmount - feeAmount;
     }
 
 }
