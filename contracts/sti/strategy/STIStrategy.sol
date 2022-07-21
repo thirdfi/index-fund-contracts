@@ -7,6 +7,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../../bni/priceOracle/IPriceOracle.sol";
 import "../../../interfaces/IERC20UpgradeableExt.sol";
 import "../../../interfaces/IRouter.sol";
+import "../../../interfaces/IStVault.sol";
 import "../../../libs/Const.sol";
 import "../../../libs/Token.sol";
 
@@ -245,6 +246,43 @@ contract STIStrategy is OwnableUpgradeable {
         delete reqId2Index[_token][_reqId];
     }
 
+    function getStVault(uint _pid) internal view virtual returns (IStVault stVault) {
+    }
+
+    ///@return waiting is token amount that is not unbonded.
+    ///@return waitingInUSD is USD value of token amount that is not unbonded.
+    ///@return unbonded is token amount that is unbonded.
+    ///@return unbondedInUSD is USD value of token amount that is unbonded.
+    ///@return waitForTs is timestamp to wait to the next claim.
+    function getPoolUnbonded(address _claimer, uint _pid) external view returns (
+        uint waiting, uint waitingInUSD,
+        uint unbonded, uint unbondedInUSD,
+        uint waitForTs
+    ) {
+        if (_pid < tokens.length) {
+            IStVault stVault = getStVault(_pid);
+            if (address(stVault) != address(0)) {
+                address token = tokens[_pid];
+                uint[] memory reqIds = claimer2ReqIds[token][_claimer];
+
+                for (uint i = 0; i < reqIds.length; i ++) {
+                    uint reqId = reqIds[i];
+                    (bool _claimable, uint _tokenAmt,,, uint _waitForTs) = stVault.getWithdrawRequest(reqId);
+
+                    if (_claimable) {
+                        unbonded += _tokenAmt;
+                    } else {
+                        waiting += _tokenAmt;
+                        if (waitForTs == 0 || waitForTs > _waitForTs) waitForTs = _waitForTs;
+                    }
+                }
+
+                if (waiting > 0) waitingInUSD = getValueInUSD(token, waiting);
+                if (unbonded > 0) unbondedInUSD = getValueInUSD(token, unbonded);
+            }
+        }
+    }
+
     function setTreasuryWallet(address _treasuryWallet) external onlyOwner {
         address oldTreasuryWallet = treasuryWallet;
         treasuryWallet = _treasuryWallet;
@@ -283,10 +321,15 @@ contract STIStrategy is OwnableUpgradeable {
         IERC20UpgradeableExt token = IERC20UpgradeableExt(tokens[_pid]);
         uint amount = token.balanceOf(address(this));
         if (0 < amount) {
-            (uint TOKENPriceInUSD, uint8 TOKENPriceDecimals) = priceOracle.getAssetPrice(address(token));
-            uint8 tokenDecimals = IERC20UpgradeableExt(token).decimals();
-            pool = Token.changeDecimals(amount, tokenDecimals, 18) * TOKENPriceInUSD / (10 ** (TOKENPriceDecimals));
+            pool = getValueInUSD(address(token), amount);
         }
+    }
+
+    ///@return the value in USD. it's scaled by 1e18;
+    function getValueInUSD(address _asset, uint _amount) internal view returns (uint) {
+        (uint priceInUSD, uint8 priceDecimals) = priceOracle.getAssetPrice(_asset);
+        uint8 _decimals = IERC20UpgradeableExt(_asset).decimals();
+        return Token.changeDecimals(_amount, _decimals, 18) * priceInUSD / (10 ** (priceDecimals));
     }
 
     function getAllPoolInUSD() public view returns (uint) {

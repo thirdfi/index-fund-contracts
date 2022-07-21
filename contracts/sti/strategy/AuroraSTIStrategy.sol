@@ -88,6 +88,13 @@ contract AuroraSTIStrategy is STIStrategy {
         }
     }
 
+    function getStVault(uint _pid) internal view override returns (IStVault stVault) {
+        address token = tokens[_pid];
+        if (token == AuroraConstant.WNEAR) {
+            stVault = WNEARVault;
+        }
+    }
+
     function getWNEARPoolInUSD() private view  returns (uint) {
         uint amt = WNEARVault.getAllPoolInUSD();
         return amt == 0 ? 0 : amt * WNEARVault.balanceOf(address(this)) / WNEARVault.totalSupply(); //to exclude L1 deposits from other addresses

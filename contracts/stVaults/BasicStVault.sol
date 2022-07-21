@@ -381,7 +381,7 @@ contract BasicStVault is IStVault,
         return MathUpgradeable.max(bufferedDeposits, _tokenBalanceOf(address(this)) - pendingWithdrawals);
     }
 
-    function bufferedWithdrawals() public view returns(uint) {
+    function bufferedWithdrawals() public view returns (uint) {
         return _tokenBalanceOf(address(this)) - bufferedDeposits;
     }
 
@@ -446,7 +446,7 @@ contract BasicStVault is IStVault,
     }
 
     ///@return the value in USD. it's scaled by 1e18;
-    function getValueInUSD(address _asset, uint _amount) internal view returns(uint) {
+    function getValueInUSD(address _asset, uint _amount) internal view returns (uint) {
         (uint priceInUSD, uint8 priceDecimals) = priceOracle.getAssetPrice(_asset);
         uint8 _decimals = _assetDecimals(_asset);
         return Token.changeDecimals(_amount, _decimals, 18) * priceInUSD / (10 ** (priceDecimals));
@@ -505,7 +505,7 @@ contract BasicStVault is IStVault,
         return (baseApr, baseTokenRate, baseAprLastUpdate);
     }
 
-    function getWithdrawRequest(uint _reqId) public view returns (
+    function getWithdrawRequest(uint _reqId) external view returns (
         bool _claimable,
         uint _tokenAmt, uint _stTokenAmt,
         uint _requestTs, uint _waitForTs
