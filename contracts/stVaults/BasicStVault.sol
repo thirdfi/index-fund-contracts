@@ -23,7 +23,6 @@ contract BasicStVault is IStVault,
 {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    uint internal constant DENOMINATOR = 10000;
     uint public yieldFee;
     uint public watermark;
     uint public fees;
@@ -321,7 +320,7 @@ contract BasicStVault is IStVault,
         uint fee;
         if (currentWatermark > lastWatermark) {
             uint profit = currentWatermark - lastWatermark;
-            fee = profit * yieldFee / DENOMINATOR;
+            fee = profit * yieldFee / Const.DENOMINATOR;
             fees += fee;
             watermark = currentWatermark - fee;
         }

@@ -12,6 +12,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "../BasicStVault.sol";
 import "../../bni/constant/AuroraConstant.sol";
 import "../../../interfaces/IL2Vault.sol";
+import "../../../libs/Token.sol";
 
 interface IMetaPool {
     function swapwNEARForstNEAR(uint _amount) external;
@@ -116,14 +117,14 @@ contract AuroraStNEARVault is BasicStVault {
     ///@param _amount Amount of tokens
     function getStTokenByPooledToken(uint _amount) public override view returns(uint) {
         uint stNearAmount = _amount * oneStToken / metaPool.stNearPrice();
-        uint feeAmount = (stNearAmount * metaPool.stNearSwapFee()) / DENOMINATOR;
+        uint feeAmount = (stNearAmount * metaPool.stNearSwapFee()) / Const.DENOMINATOR;
         return stNearAmount - feeAmount;
     }
 
     ///@param _stAmount Amount of stTokens
     function getPooledTokenByStToken(uint _stAmount) public override view returns(uint) {
         uint wNearAmount = _stAmount * metaPool.stNearPrice() / oneStToken;
-        uint feeAmount = wNearAmount * metaPool.wNearSwapFee() / DENOMINATOR;
+        uint feeAmount = wNearAmount * metaPool.wNearSwapFee() / Const.DENOMINATOR;
         return wNearAmount - feeAmount;
     }
 
