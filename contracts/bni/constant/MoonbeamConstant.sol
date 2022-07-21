@@ -2,7 +2,7 @@
 pragma solidity  0.8.9;
 
 library MoonbeamConstant {
-    uint internal constant CHAINID = 1;
+    uint internal constant CHAINID = 1284;
 
     address internal constant USDC_mad = 0x8f552a71EFE5eeFc207Bf75485b356A0b3f01eC9;
     address internal constant USDT_mad = 0x8e70cD5B4Ff3f62659049e74b6649c6603A0E594;

@@ -35,6 +35,8 @@ interface IStVault is IERC20Upgradeable {
     function pendingRedeems() external view returns(uint);
     // the amount of stToken that is emergency unbonding, and shares according to them are not burnt yet.
     function getEmergencyUnbondings() external view returns(uint);
+    // the amount of stToken that has invested into L2 vaults to get extra benefit.
+    function getInvestedStTokens() external view returns(uint);
     
     // the seconds to wait for unbonded since withdarwal requested. For example, 30 days in case of unstaking stDOT to get xcDOT
     function unbondingPeriod() external view returns(uint);

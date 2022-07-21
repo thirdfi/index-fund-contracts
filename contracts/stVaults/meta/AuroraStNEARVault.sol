@@ -67,6 +67,8 @@ contract AuroraStNEARVault is BasicStVault {
                 _invested = _amount;
             }
             metaPool.swapwNEARForstNEAR(_invested);
+
+            investStNEAR();
         }
     }
 
@@ -79,6 +81,14 @@ contract AuroraStNEARVault is BasicStVault {
             } else {
                 _redeemed = _stAmount;
             }
+
+            uint stBalance = stToken.balanceOf(address(this));
+            if (stBalance < _redeemed) {
+                withdrawStWNEAR(_redeemed - stBalance);
+                stBalance = stToken.balanceOf(address(this));
+            }
+            _redeemed = MathUpgradeable.min(_redeemed, stBalance);
+
             metaPool.swapstNEARForwNEAR(_redeemed);
         }
     }
@@ -99,6 +109,10 @@ contract AuroraStNEARVault is BasicStVault {
         }
     }
 
+    function getInvestedStTokens() public override view returns (uint _stAmount) {
+        _stAmount = stNEARVault.getAllPool() * stNEARVault.balanceOf(address(this)) / stNEARVault.totalSupply();
+    }
+
     ///@param _amount Amount of tokens
     function getStTokenByPooledToken(uint _amount) public override view returns(uint) {
         uint stNearAmount = _amount * oneStToken / metaPool.stNearPrice();
@@ -116,5 +130,14 @@ contract AuroraStNEARVault is BasicStVault {
     function setL2Vault(IL2Vault _stNEARVault) external onlyOwner {
         stNEARVault = _stNEARVault;
         stToken.safeApprove(address(stNEARVault), type(uint).max);
+    }
+
+    function investStNEAR() private {
+        stNEARVault.deposit(stToken.balanceOf(address(this)));
+    }
+
+    function withdrawStWNEAR(uint _stAmount) private {
+        uint vaultAmount = stNEARVault.totalSupply() * _stAmount / stNEARVault.getAllPool();
+        stNEARVault.withdraw(vaultAmount);
     }
 }

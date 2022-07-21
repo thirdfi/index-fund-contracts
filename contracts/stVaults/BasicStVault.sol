@@ -390,6 +390,10 @@ contract BasicStVault is IStVault,
         return emergencyUnbondings;
     }
 
+    function getInvestedStTokens() public virtual view returns (uint _stAmount) {
+        return 0;
+    }
+
     ///@param _amount Amount of tokens
     function getStTokenByPooledToken(uint _amount) public virtual view returns(uint) {
         return Token.changeDecimals(_amount, tokenDecimals, stTokenDecimals);
@@ -402,13 +406,22 @@ contract BasicStVault is IStVault,
 
     function getAllPool() public virtual view returns (uint _pool) {
         if (paused() == false) {
-            uint stBalance = stToken.balanceOf(address(this)) - pendingRedeems;
-            _pool = (stBalance == 0) ? 0 : getPooledTokenByStToken(stBalance);
+            uint stBalance = stToken.balanceOf(address(this))
+                            + getInvestedStTokens()
+                            - pendingRedeems;
+            if (stBalance > 0) {
+                _pool = getPooledTokenByStToken(stBalance);
+            }
             _pool += bufferedDeposits;
             _pool -= fees;
         } else {
-            uint stBalance = stToken.balanceOf(address(this)) + getEmergencyUnbondings() - pendingRedeems;
-            _pool = (stBalance == 0) ? 0 : getPooledTokenByStToken(stBalance);
+            uint stBalance = stToken.balanceOf(address(this))
+                            + getInvestedStTokens()
+                            + getEmergencyUnbondings()
+                            - pendingRedeems;
+            if (stBalance > 0) {
+                _pool = getPooledTokenByStToken(stBalance);
+            }
             uint balance = _tokenBalanceOf(address(this));
             uint _pendingWithdrawals = pendingWithdrawals;
             if (balance > _pendingWithdrawals) {
