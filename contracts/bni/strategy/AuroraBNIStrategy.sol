@@ -18,7 +18,9 @@ contract AuroraBNIStrategy is BNIStrategy {
 
     function setWNEARVault(IL2Vault _WNEARVault) external onlyOwner {
         WNEARVault = _WNEARVault;
-        WNEAR.safeApprove(address(WNEARVault), type(uint).max);
+        if (WNEAR.allowance(address(this), address(WNEARVault)) == 0) {
+            WNEAR.safeApprove(address(WNEARVault), type(uint).max);
+        }
     }
 
     function _investWNEAR(uint USDTAmt) private {

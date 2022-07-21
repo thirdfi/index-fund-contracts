@@ -18,7 +18,9 @@ contract MaticBNIStrategy is BNIStrategy {
 
     function setWMATICVault(IL2Vault _WMATICVault) external onlyOwner {
         WMATICVault = _WMATICVault;
-        WMATIC.safeApprove(address(WMATICVault), type(uint).max);
+        if (WMATIC.allowance(address(this), address(WMATICVault)) == 0) {
+            WMATIC.safeApprove(address(WMATICVault), type(uint).max);
+        }
     }
 
     function _investWMATIC(uint USDTAmt) private {

@@ -18,7 +18,9 @@ contract AvaxBNIStrategy is BNIStrategy {
 
     function setWAVAXVault(IL2Vault _WAVAXVault) external onlyOwner {
         WAVAXVault = _WAVAXVault;
-        WAVAX.safeApprove(address(WAVAXVault), type(uint).max);
+        if (WAVAX.allowance(address(this), address(WAVAXVault)) == 0) {
+            WAVAX.safeApprove(address(WAVAXVault), type(uint).max);
+        }
     }
 
     function _investWAVAX(uint USDTAmt) private {

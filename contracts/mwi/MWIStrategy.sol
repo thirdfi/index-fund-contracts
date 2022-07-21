@@ -302,10 +302,19 @@ contract MWIStrategy is OwnableUpgradeable {
         WETHVault = _WETHVault;
         WAVAXVault = _WAVAXVault;
         USDTVault = _USDTVault;
-        WBTC.safeApprove(address(WBTCVault), type(uint).max);
-        WETH.safeApprove(address(WETHVault), type(uint).max);
-        WAVAX.safeApprove(address(WAVAXVault), type(uint).max);
-        USDt.safeApprove(address(USDTVault), type(uint).max);
+
+        if (WBTC.allowance(address(this), address(WBTCVault)) == 0) {
+            WBTC.safeApprove(address(WBTCVault), type(uint).max);
+        }
+        if (WETH.allowance(address(this), address(WETHVault)) == 0) {
+            WETH.safeApprove(address(WETHVault), type(uint).max);
+        }
+        if (WAVAX.allowance(address(this), address(WAVAXVault)) == 0) {
+            WAVAX.safeApprove(address(WAVAXVault), type(uint).max);
+        }
+        if (USDt.allowance(address(this), address(USDTVault)) == 0) {
+            USDt.safeApprove(address(USDTVault), type(uint).max);
+        }
     }
 
     function setTokenCompositionTargetPerc(uint[] calldata _targetPerc) external onlyOwner {
