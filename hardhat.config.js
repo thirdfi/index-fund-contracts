@@ -79,7 +79,8 @@ module.exports = {
       accounts: [process.env.PRIVATE_KEY]
     },
     maticMainnet: {
-      url: `https://rpc-mainnet.maticvigil.com`,
+      url: `https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_POLYGON_MAINNET_API_KEY}`,
+      // url: `https://rpc-mainnet.maticvigil.com`, // ethers.provider.getStorageAt is failed with this url
       accounts: [process.env.PRIVATE_KEY]
     },
     maticMumbai: {
