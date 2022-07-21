@@ -26,6 +26,12 @@ contract STIStrategy is OwnableUpgradeable {
     address[] public tokens;
     mapping(address => uint) public pid; // Pool indices in tokens array
 
+    // maps the address to array of the owned tokens, the first key is token address.
+    mapping(address => mapping(address => uint[])) public claimer2ReqIds;
+    // reqId can be owned by only one address at the time, therefore reqId is present in only one of those arrays in the mapping
+    // this mapping stores the index of the reqId in one of those arrays, the first key is token address.
+    mapping(address => mapping(uint => uint)) public reqId2Index;
+
     event AddToken(address token, uint pid);
     event RemoveToken(address token, uint pid);
     event Withdraw(uint sharePerc, uint USDTAmt);
@@ -144,21 +150,23 @@ contract STIStrategy is OwnableUpgradeable {
         }
     }
 
-    function withdrawPerc(uint _sharePerc) external onlyVault returns (uint USDTAmt) {
+    function withdrawPerc(address _claimer, uint _sharePerc) external onlyVault returns (uint USDTAmt) {
         require(_sharePerc <= 1e18, "Over 100%");
-        USDTAmt = _withdraw(_sharePerc);
-        USDT.safeTransfer(vault, USDTAmt);
+        USDTAmt = _withdraw(_claimer, _sharePerc);
+        if (USDTAmt > 0) {
+            USDT.safeTransfer(vault, USDTAmt);
+        }
         emit Withdraw(_sharePerc, USDTAmt);
     }
 
-    function _withdraw(uint _sharePerc) internal virtual returns (uint USDTAmt) {
+    function _withdraw(address _claimer, uint _sharePerc) internal virtual returns (uint USDTAmt) {
         uint poolCnt = tokens.length;
         for (uint i = 0; i < poolCnt; i ++) {
-            USDTAmt += _withdrawFromPool(i, _sharePerc);
+            USDTAmt += _withdrawFromPool(_claimer, i, _sharePerc);
         }
     }
 
-    function _withdrawFromPool(uint _pid, uint _sharePerc) internal virtual returns (uint USDTAmt) {
+    function _withdrawFromPool(address _claimer, uint _pid, uint _sharePerc) internal virtual returns (uint USDTAmt) {
         IERC20UpgradeableExt token = IERC20UpgradeableExt(tokens[_pid]);
         uint amount = token.balanceOf(address(this)) * _sharePerc / 1e18;
         if (0 < amount) {
@@ -200,19 +208,41 @@ contract STIStrategy is OwnableUpgradeable {
         return (router.swapExactTokensForTokens(_amt, _minAmount, path, address(this), block.timestamp))[2];
     }
 
-    function withdrawFromPool(uint _pid, uint _sharePerc) external onlyVault returns (uint USDTAmt) {
+    function withdrawFromPool(address _claimer, uint _pid, uint _sharePerc) external onlyVault returns (uint USDTAmt) {
         require(_sharePerc <= 1e18, "Over 100%");
-        USDTAmt = _withdrawFromPool(_pid, _sharePerc);
+        USDTAmt = _withdrawFromPool(_claimer, _pid, _sharePerc);
         USDT.safeTransfer(vault, USDTAmt);
     }
 
     function emergencyWithdraw() external onlyVault {
         // 1e18 == 100% of share
-        uint USDTAmt = _withdraw(1e18);
-        if (0 < USDTAmt) {
+        uint USDTAmt = _withdraw(address(this), 1e18);
+        if (USDTAmt > 0) {
             USDT.safeTransfer(vault, USDTAmt);
         }
         emit EmergencyWithdraw(USDTAmt);
+    }
+
+    function addReqId(address _token, address _claimer, uint _reqId) internal {
+        uint[] storage reqIds = claimer2ReqIds[_token][_claimer];
+
+        reqIds.push(_reqId);
+        reqId2Index[_token][_reqId] = reqIds.length - 1;
+    }
+
+    function removeReqId(address _token, address _claimer, uint _reqId) internal {
+        uint[] storage reqIds = claimer2ReqIds[_token][_claimer];
+        uint length = reqIds.length;
+        uint reqIdIndex = reqId2Index[_token][_reqId];
+
+        if (reqIdIndex != length-1) {
+            uint256 lastReqId = reqIds[length - 1];
+            reqIds[reqIdIndex] = lastReqId;
+            reqId2Index[_token][lastReqId] = reqIdIndex;
+        }
+
+        reqIds.pop();
+        delete reqId2Index[_token][_reqId];
     }
 
     function setTreasuryWallet(address _treasuryWallet) external onlyOwner {
@@ -294,5 +324,5 @@ contract STIStrategy is OwnableUpgradeable {
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[40] private __gap;
+    uint256[38] private __gap;
 }

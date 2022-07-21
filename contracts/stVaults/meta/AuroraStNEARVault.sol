@@ -130,7 +130,9 @@ contract AuroraStNEARVault is BasicStVault {
 
     function setL2Vault(IL2Vault _stNEARVault) external onlyOwner {
         stNEARVault = _stNEARVault;
-        stToken.safeApprove(address(stNEARVault), type(uint).max);
+        if (stToken.allowance(address(this), address(stNEARVault)) == 0) {
+            stToken.safeApprove(address(stNEARVault), type(uint).max);
+        }
     }
 
     function investStNEAR() private {
