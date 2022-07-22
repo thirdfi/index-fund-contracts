@@ -46,6 +46,7 @@ contract BscStBNBVault is BasicStVault {
         unbondingPeriod = 14 days;
         minInvestAmount = oneToken * 1002 / 1000;
         minRedeemAmount = oneStToken;
+        oneEpoch = 24 hours;
     }
 
     function _invest(uint _amount) internal override returns (uint _invested) {

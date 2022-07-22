@@ -50,6 +50,7 @@ contract AuroraStNEARVault is BasicStVault {
         investInterval = 5 minutes;
         // The wNEAR buffer is replenished automatically every 5 minutes.
         redeemInterval = 5 minutes;
+        oneEpoch = 12 hours;
 
         stNEARVault = _stNEARVault;
 

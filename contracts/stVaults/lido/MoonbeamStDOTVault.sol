@@ -35,6 +35,7 @@ contract MoonbeamStDOTVault is BasicStVault {
         );
 
         unbondingPeriod = 30 days;
+        oneEpoch = 24 hours;
 
         token.safeApprove(address(stToken), type(uint).max);
     }

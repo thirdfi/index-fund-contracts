@@ -52,6 +52,8 @@ contract BasicStVault is IStVault,
     uint public investInterval;
     uint public lastRedeemTs;
     uint public redeemInterval;
+    uint public lastCollectProfitTs;
+    uint public oneEpoch;
 
     mapping(address => uint) depositedBlock;
     mapping(uint => WithdrawRequest) nft2WithdrawRequest;
@@ -124,10 +126,16 @@ contract BasicStVault is IStVault,
         nft = IStVaultNFT(_nft);
     }
 
-    function setStakingPeriods(uint _unbondingPeriod, uint _investInterval, uint _redeemInterval) external onlyOwner {
+    function setStakingPeriods(
+        uint _unbondingPeriod,
+        uint _investInterval,
+        uint _redeemInterval,
+        uint _oneEpoch
+    ) external onlyOwner {
         unbondingPeriod = _unbondingPeriod;
         investInterval = _investInterval;
         redeemInterval = _redeemInterval;
+        oneEpoch = _oneEpoch;
     }
 
     function setStakingAmounts(uint _minInvestAmount, uint _minRedeemAmount) external onlyOwner {
@@ -360,6 +368,7 @@ contract BasicStVault is IStVault,
             fees += fee;
             watermark = currentWatermark - fee;
         }
+        lastCollectProfitTs = block.timestamp;
         emit CollectProfitAndUpdateWatermark(currentWatermark, lastWatermark, fee);
     }
 
@@ -570,5 +579,5 @@ contract BasicStVault is IStVault,
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[22] private __gap;
+    uint256[20] private __gap;
 }

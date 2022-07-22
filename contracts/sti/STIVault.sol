@@ -32,20 +32,11 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     IStrategy public strategy;
     IPriceOracle public priceOracle;
 
-    uint public profitFeePerc;
-    address public treasuryWallet;
-    uint public watermark; // In USD (18 decimals)
-    uint public fees; // In USD (18 decimals)
-
     event Deposit(address caller, uint amtDeposit, address tokenDeposit);
     event Withdraw(address caller, uint amtWithdraw, address tokenWithdraw, uint sharePerc);
     event Rebalance(uint pid, uint sharePerc, uint amount, address target);
     event Reinvest(uint amount);
-    event SetTreasuryWallet(address oldTreasuryWallet, address newTreasuryWallet);
     event SetAdminWallet(address oldAdmin, address newAdmin);
-    event CollectProfitAndUpdateWatermark(uint currentWatermark, uint lastWatermark, uint fee);
-    event AdjustWatermark(uint currentWatermark, uint lastWatermark);
-    event TransferredOutFees(uint fees, address token);
     
     modifier onlyOwnerOrAdmin {
         require(msg.sender == owner() || msg.sender == address(admin), "Only owner or admin");
@@ -53,18 +44,15 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     }
 
     function initialize(
-        address _treasuryWallet, address _admin,
+        address _admin,
         address _strategy, address _priceOracle,
         address _USDT
     ) external initializer {
         __Ownable_init();
 
-        treasuryWallet = _treasuryWallet;
         admin = _admin;
         strategy = IStrategy(_strategy);
         priceOracle = IPriceOracle(_priceOracle);
-
-        profitFeePerc = 2000;
 
         USDT = IERC20UpgradeableExt(_USDT);
         usdtDecimals = USDT.decimals();
@@ -97,17 +85,7 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         require(0 < USDTAmt, "Amounts must > 0");
 
         USDT.safeTransferFrom(_account, address(this), USDTAmt);
-
-        (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
-        uint amtDeposit = USDTAmt * (10 ** (18-usdtDecimals)) * USDTPriceInUSD / (10 ** USDTPriceDecimals);
-
-        if (watermark > 0) _collectProfitAndUpdateWatermark();
-        (uint newUSDTAmt, uint[] memory newUSDTAmts) = _transferOutFees(USDTAmt, _USDTAmts);
-        if (newUSDTAmt > 0) {
-            strategy.invest(_tokens, newUSDTAmts);
-        }
-        adjustWatermark(amtDeposit, true);
-
+        strategy.invest(_tokens, _USDTAmts);
         emit Deposit(_account, USDTAmt, address(USDT));
     }
 
@@ -118,14 +96,12 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         
         uint pool = getAllPoolInUSD();
         uint withdrawAmt = pool * _sharePerc / 1e18;
-        uint sharePerc = withdrawAmt * 1e18 / (pool + fees);
         uint USDTAmt;
         if (!paused()) {
-            strategy.withdrawPerc(sharePerc);
+            strategy.withdrawPerc(_sharePerc);
             USDTAmt = USDT.balanceOf(address(this));
-            adjustWatermark(withdrawAmt, false);
         } else {
-            USDTAmt = USDT.balanceOf(address(this)) * sharePerc / 1e18;
+            USDTAmt = USDT.balanceOf(address(this)) * _sharePerc / 1e18;
         }
         USDT.safeTransfer(_account, USDTAmt);
         emit Withdraw(_account, withdrawAmt, address(USDT), _sharePerc);
@@ -146,7 +122,6 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     function emergencyWithdraw() external onlyOwnerOrAdmin whenNotPaused {
         _pause();
         strategy.emergencyWithdraw();
-        watermark = 0;
     }
 
     function reinvest(address[] memory _tokens, uint[] memory _perc) external onlyOwnerOrAdmin whenPaused {
@@ -169,83 +144,8 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
             }
 
             strategy.invest(_tokens, USMTAmts);
-            adjustWatermark(amtDeposit, true);
             emit Reinvest(USDTAmt);
         }
-    }
-
-    function collectProfitAndUpdateWatermark() external onlyOwnerOrAdmin whenNotPaused {
-        _collectProfitAndUpdateWatermark();
-    }
-    function _collectProfitAndUpdateWatermark() private {
-        uint currentWatermark = strategy.getAllPoolInUSD();
-        uint lastWatermark = watermark;
-        uint fee;
-        if (currentWatermark > lastWatermark) {
-            uint profit = currentWatermark - lastWatermark;
-            fee = profit * profitFeePerc / Const.DENOMINATOR;
-            fees += fee;
-            watermark = currentWatermark;
-        }
-        emit CollectProfitAndUpdateWatermark(currentWatermark, lastWatermark, fee);
-    }
-
-    /// @param signs True for positive, false for negative
-    function adjustWatermark(uint amount, bool signs) private {
-        uint lastWatermark = watermark;
-        watermark = signs == true
-                    ? watermark + amount
-                    : (watermark > amount) ? watermark - amount : 0;
-        emit AdjustWatermark(watermark, lastWatermark);
-    }
-
-    function withdrawFees() external onlyOwnerOrAdmin {
-        if (!paused()) {
-            uint pool = strategy.getAllPoolInUSD();
-            uint _fees = fees;
-            uint sharePerc = _fees < pool ? _fees * 1e18 / pool : 1e18;
-            strategy.withdrawPerc(sharePerc);
-        }
-        _transferOutFees(USDT.balanceOf(address(this)), new uint[](0));
-    }
-
-    function _transferOutFees(uint _USDTAmt, uint[] memory _USDTAmts) private returns (uint, uint[] memory) {
-        uint _fees = fees;
-        if (_fees != 0) {
-            (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
-            uint FeeAmt = _fees * (10 ** USDTPriceDecimals) / ((10 ** (18-usdtDecimals)) * USDTPriceInUSD);
-
-            uint prevUSDTAmt = _USDTAmt;
-            uint poolCnt = _USDTAmts.length;
-            if (FeeAmt < _USDTAmt) {
-                _fees = 0;
-                _USDTAmt -= FeeAmt;
-            } else {
-                _fees -= (_USDTAmt * (10 ** (18-usdtDecimals)) * USDTPriceInUSD / (10 ** USDTPriceDecimals));
-                FeeAmt = _USDTAmt;
-                _USDTAmt = 0;
-            }
-            fees = _fees;
-
-            for (uint i = 0; i < poolCnt; i ++) {
-                _USDTAmts[i] = _USDTAmts[i] * _USDTAmt / prevUSDTAmt;
-            }
-
-            USDT.safeTransfer(treasuryWallet, FeeAmt);
-            emit TransferredOutFees(FeeAmt, address(USDT)); // Decimal follow _token
-        }
-        return (_USDTAmt, _USDTAmts);
-    }
-
-    function setProfitFeePerc(uint _profitFeePerc) external onlyOwner {
-        require(profitFeePerc < 3001, "Profit fee cannot > 30%");
-        profitFeePerc = _profitFeePerc;
-    }
-
-    function setTreasuryWallet(address _treasuryWallet) external onlyOwner {
-        address oldTreasuryWallet = treasuryWallet;
-        treasuryWallet = _treasuryWallet;
-        emit SetTreasuryWallet(oldTreasuryWallet, _treasuryWallet);
     }
 
     function setAdmin(address _admin) external onlyOwner {
@@ -285,7 +185,7 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         } else {
             pool = strategy.getAllPoolInUSD();
         }
-        return (pool > fees ? pool - fees : 0);
+        return pool;
     }
 
     function getCurrentCompositionPerc() external view returns (address[] memory tokens, uint[] memory percentages) {

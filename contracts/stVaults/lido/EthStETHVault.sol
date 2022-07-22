@@ -40,6 +40,8 @@ contract EthStETHVault is BasicStVault {
             EthConstant.stETH
         );
 
+        oneEpoch = 24 hours;
+
         stToken.safeApprove(address(curveStEth), type(uint).max);
     }
 

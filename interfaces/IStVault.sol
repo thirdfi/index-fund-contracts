@@ -53,6 +53,10 @@ interface IStVault is IERC20Upgradeable {
     function lastRedeemTs() external view returns(uint);
     // minimum seconds to wait before next redeem. For example, Lido have up to 20 redeem requests to stDOT in parallel. Therefore, the next redeem should be requested after about 1 day.
     function redeemInterval() external view returns(uint);
+    // the timestamp that the profit last collected on.
+    function lastCollectProfitTs() external view returns(uint);
+    // the timestamp of one epoch. Each epoch, the stToken price or balance will increase as staking-rewards are added to the pool.
+    function oneEpoch() external view returns(uint);
 
     ///@return the total amount of tokens in the vault.
     function getAllPool() external view returns (uint);

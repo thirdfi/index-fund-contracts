@@ -44,6 +44,7 @@ contract AvaxStAVAXVault is BasicStVault {
 
         unbondingPeriod = 28 days;
         minInvestAmount = oneToken;
+        oneEpoch = 24 hours;
     }
 
     function _invest(uint _amount) internal override returns (uint _invested) {

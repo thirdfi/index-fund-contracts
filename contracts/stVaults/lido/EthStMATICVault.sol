@@ -59,6 +59,7 @@ contract EthStMATICVault is BasicStVault {
         );
 
         unbondingPeriod = 4 days;
+        oneEpoch = 24 hours;
 
         token.safeApprove(address(stToken), type(uint).max);
     }
