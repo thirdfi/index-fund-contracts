@@ -50,7 +50,6 @@ contract MoonbeamStDOTVault is BasicStVault {
     }
 
     function _claimUnbonded() internal override {
-        uint balanceBefore = token.balanceOf(address(this));
         IStDOT(address(stToken)).claimUnbonded();
 
         uint _emergencyUnbondings = emergencyUnbondings;

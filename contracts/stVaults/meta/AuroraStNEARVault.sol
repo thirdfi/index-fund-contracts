@@ -104,6 +104,7 @@ contract AuroraStNEARVault is BasicStVault {
     }
 
     function _emergencyWithdraw(uint _pendingRedeems) internal override returns (uint _redeemed) {
+        _pendingRedeems;
         uint stBalance = stToken.balanceOf(address(this));
         if (stBalance >= minRedeemAmount) {
             _redeemed = _redeem(stBalance);

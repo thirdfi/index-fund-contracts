@@ -63,6 +63,7 @@ contract BasicStVault is IStVault,
     event Deposit(address user, uint amount, uint shares);
     event Withdraw(address user, uint shares, uint amount, uint reqId, uint pendingAmount);
     event Claim(address user, uint reqId, uint amount);
+    event ClaimMulti(address user, uint amount, uint claimedCount);
     event Invest(uint amount);
     event Redeem(uint stAmount);
     event EmergencyWithdraw(uint stAmount);
@@ -146,7 +147,7 @@ contract BasicStVault is IStVault,
         require(_amount > 0, "Invalid amount");
         depositedBlock[_account] = block.number;
 
-        if (address(token) != address(0)) {
+        if (address(token) != Const.NATIVE_ASSET) {
             token.safeTransferFrom(_account, address(this), _amount);
         } else {
             // The native asset is already received.
@@ -240,6 +241,41 @@ contract BasicStVault is IStVault,
 
         pendingWithdrawals -= _amount;
         emit Claim(msg.sender, _reqId, _amount);
+    }
+
+    function claimMulti(uint[] memory _reqIds) external nonReentrant returns (
+        uint _amount,
+        uint _claimedCount,
+        bool[] memory _claimed
+    ) {
+        uint buffered = bufferedWithdrawals();
+        uint amount;
+        uint length = _reqIds.length;
+        _claimed = new bool[](length);
+
+        for (uint i = 0; i < length; i++) {
+            uint _reqId = _reqIds[i];
+            if (nft.isApprovedOrOwner(msg.sender, _reqId) == false) continue;
+
+            WithdrawRequest memory usersRequest = nft2WithdrawRequest[_reqId];
+            if (block.timestamp < (usersRequest.requestTs + unbondingPeriod)) continue;
+
+            amount = usersRequest.tokenAmt;
+            if (buffered < amount) continue;
+
+            _amount += amount;
+            buffered -= amount;
+
+            nft.burn(_reqId);
+            _claimedCount ++;
+            _claimed[i] = true;
+        }
+
+        if (_amount > 0) {
+            _transferOutToken(msg.sender, _amount);
+            pendingWithdrawals -= _amount;
+            emit ClaimMulti(msg.sender, _amount, _claimedCount);
+        }
     }
 
     function invest() external onlyOwnerOrAdmin whenNotPaused {
@@ -362,19 +398,19 @@ contract BasicStVault is IStVault,
     }
 
     function _transferOutToken(address _to, uint _amount) internal {
-        (address(token) != address(0))
+        (address(token) != Const.NATIVE_ASSET)
             ? token.safeTransfer(_to, _amount)
             : Token.safeTransferETH(_to, _amount);
     }
 
     function _tokenBalanceOf(address _account) internal view returns (uint) {
-        return (address(token) != address(0))
+        return (address(token) != Const.NATIVE_ASSET)
             ? token.balanceOf(_account)
             : _account.balance;
     }
 
     function _assetDecimals(address _asset) internal view returns (uint8 _decimals) {
-        _decimals = (_asset == address(0)) ? 18 : IERC20UpgradeableExt(_asset).decimals();
+        _decimals = (_asset == Const.NATIVE_ASSET) ? 18 : IERC20UpgradeableExt(_asset).decimals();
     }
 
     function getBufferedDeposits() public virtual view returns (uint) {

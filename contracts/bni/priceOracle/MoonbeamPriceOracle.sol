@@ -3,6 +3,7 @@ pragma solidity  0.8.9;
 
 import "./PriceOracle.sol";
 import "../constant/MoonbeamConstant.sol";
+import "../../../libs/Const.sol";
 
 contract MoonbeamPriceOracle is PriceOracle {
 
@@ -22,7 +23,7 @@ contract MoonbeamPriceOracle is PriceOracle {
     }
 
     function getAssetPrice(address asset) public virtual override view returns (uint price, uint8 decimals) {
-        if (asset == address(0)) {
+        if (asset == Const.NATIVE_ASSET) {
             asset = MoonbeamConstant.WGLMR;
         } else if (asset == MoonbeamConstant.USDT_mad) {
             return (1e8, 8);

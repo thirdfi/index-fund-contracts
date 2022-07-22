@@ -3,6 +3,7 @@ pragma solidity  0.8.9;
 
 import "./PriceOracle.sol";
 import "../constant/AvaxConstant.sol";
+import "../../../libs/Const.sol";
 
 contract AvaxPriceOracle is PriceOracle {
 
@@ -20,7 +21,7 @@ contract AvaxPriceOracle is PriceOracle {
     }
 
     function getAssetPrice(address asset) public virtual override view returns (uint price, uint8 decimals) {
-        if (asset == address(0)) {
+        if (asset == Const.NATIVE_ASSET) {
             asset = AvaxConstant.WAVAX;
         }
         return super.getAssetPrice(asset);

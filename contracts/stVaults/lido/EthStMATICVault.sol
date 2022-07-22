@@ -91,7 +91,6 @@ contract EthStMATICVault is BasicStVault {
     function _claimUnbonded() internal override {
         IStakeManager stakeManager = IStMATIC(address(stToken)).stakeManager();
         uint epoch = stakeManager.epoch();
-        uint balanceBefore = token.balanceOf(address(this));
 
         while (first <= last) {
             StMATIC_RequestWithdraw memory request = IStMATIC(address(stToken)).token2WithdrawRequest(tokenIds[first]);

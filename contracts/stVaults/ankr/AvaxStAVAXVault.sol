@@ -10,6 +10,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "../BasicStVault.sol";
 import "../../bni/constant/AvaxConstant.sol";
+import "../../../libs/Const.sol";
 
 interface IAvalanchePool {
     function stakeAndClaimBonds() external payable;
@@ -37,7 +38,7 @@ contract AvaxStAVAXVault is BasicStVault {
             "STI L2 stAVAX", "stiL2StAVAX",
             _treasury, _admin,
             _priceOracle,
-            address(0), // AVAX
+            Const.NATIVE_ASSET, // AVAX
             AvaxConstant.aAVAXb
         );
 

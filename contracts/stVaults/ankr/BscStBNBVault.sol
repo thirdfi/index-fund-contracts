@@ -10,6 +10,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "../BasicStVault.sol";
 import "../../bni/constant/BscConstant.sol";
+import "../../../libs/Const.sol";
 
 interface IBinancePool {
     function stakeAndClaimBonds() external payable;
@@ -38,7 +39,7 @@ contract BscStBNBVault is BasicStVault {
             "STI L2 stBNB", "stiL2StBNB",
             _treasury, _admin,
             _priceOracle,
-            address(0), // BNB
+            Const.NATIVE_ASSET, // BNB
             BscConstant.aBNBb
         );
 

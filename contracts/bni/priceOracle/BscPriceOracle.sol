@@ -3,6 +3,7 @@ pragma solidity  0.8.9;
 
 import "./PriceOracle.sol";
 import "../constant/BscConstant.sol";
+import "../../../libs/Const.sol";
 
 contract BscPriceOracle is PriceOracle {
 
@@ -22,7 +23,7 @@ contract BscPriceOracle is PriceOracle {
     }
 
     function getAssetPrice(address asset) public virtual override view returns (uint price, uint8 decimals) {
-        if (asset == address(0)) {
+        if (asset == Const.NATIVE_ASSET) {
             asset = BscConstant.WBNB;
         }
         return super.getAssetPrice(asset);

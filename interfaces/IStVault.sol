@@ -90,6 +90,11 @@ interface IStVault is IERC20Upgradeable {
     ///@dev claim token with NFT token
     ///@return _amount is the amount of claimed token.
     function claim(uint _reqId) external returns (uint _amount);
+    ///@dev claim token with NFT tokens
+    ///@return _amount is the amount of claimed token.
+    ///@return _claimedCount is the count of reqIds that are claimed.
+    ///@return _claimed is the flag indicating whether the token is claimed.
+    function claimMulti(uint[] memory _reqIds) external returns (uint _amount, uint _claimedCount, bool[] memory _claimed);
     ///@dev stake the buffered deposits into the staking pool. It's called by admin.
     function invest() external;
     ///@dev redeem the requested withdrawals from the staking pool. It's called by admin.

@@ -11,6 +11,7 @@ import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "../BasicStVault.sol";
 import "../../bni/constant/EthConstant.sol";
 import "../../../interfaces/ICurvePool.sol";
+import "../../../libs/Const.sol";
 
 interface IStETH {
     function getSharesByPooledEth(uint _ethAmount) external view returns (uint);
@@ -35,7 +36,7 @@ contract EthStETHVault is BasicStVault {
             "STI L2 stETH", "stiL2StETH",
             _treasury, _admin,
             _priceOracle,
-            address(0),
+            Const.NATIVE_ASSET, // ETH
             EthConstant.stETH
         );
 
@@ -56,6 +57,7 @@ contract EthStETHVault is BasicStVault {
     }
 
     function _emergencyWithdraw(uint _pendingRedeems) internal override returns (uint _redeemed) {
+        _pendingRedeems;
         uint stBalance = stToken.balanceOf(address(this));
         if (stBalance >= minRedeemAmount) {
             swapStEthForEth(stBalance);

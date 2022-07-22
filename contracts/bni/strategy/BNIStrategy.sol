@@ -6,13 +6,13 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../priceOracle/IPriceOracle.sol";
 import "../../../interfaces/IERC20UpgradeableExt.sol";
-import "../../../interfaces/IRouter.sol";
+import "../../../interfaces/IUniRouter.sol";
 import "../../../libs/Token.sol";
 
 contract BNIStrategy is OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20UpgradeableExt;
 
-    IRouter public router;
+    IUniRouter public router;
     IERC20UpgradeableExt public SWAP_BASE_TOKEN; // It has same role with WETH on Ethereum Swaps. Most of tokens have been paired with this token.
     IERC20UpgradeableExt public USDT;
     uint8 usdtDecimals;
@@ -54,7 +54,7 @@ contract BNIStrategy is OwnableUpgradeable {
         treasuryWallet = _treasuryWallet;
         admin = _admin;
         priceOracle = IPriceOracle(_priceOracle);
-        router = IRouter(_router);
+        router = IUniRouter(_router);
         SWAP_BASE_TOKEN = IERC20UpgradeableExt(_SWAP_BASE_TOKEN);
 
         USDT = IERC20UpgradeableExt(_USDT);

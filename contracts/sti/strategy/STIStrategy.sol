@@ -6,7 +6,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../../bni/priceOracle/IPriceOracle.sol";
 import "../../../interfaces/IERC20UpgradeableExt.sol";
-import "../../../interfaces/IRouter.sol";
+import "../../../interfaces/IUniRouter.sol";
 import "../../../interfaces/IStVault.sol";
 import "../../../libs/Const.sol";
 import "../../../libs/Token.sol";
@@ -14,7 +14,7 @@ import "../../../libs/Token.sol";
 contract STIStrategy is OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20UpgradeableExt;
 
-    IRouter public router;
+    IUniRouter public router;
     IERC20UpgradeableExt public SWAP_BASE_TOKEN; // It has same role with WETH on Ethereum Swaps. Most of tokens have been paired with this token.
     IERC20UpgradeableExt public USDT;
     uint8 usdtDecimals;
@@ -36,6 +36,7 @@ contract STIStrategy is OwnableUpgradeable {
     event AddToken(address token, uint pid);
     event RemoveToken(address token, uint pid);
     event Withdraw(uint sharePerc, uint USDTAmt);
+    event Claim(address claimer, uint tokenAmt, uint USDTAmt);
     event EmergencyWithdraw(uint USDTAmt);
     event SetTreasuryWallet(address oldTreasuryWallet, address newTreasuryWallet);
     event SetAdminWallet(address oldAdmin, address newAdmin);
@@ -60,7 +61,7 @@ contract STIStrategy is OwnableUpgradeable {
         treasuryWallet = _treasuryWallet;
         admin = _admin;
         priceOracle = IPriceOracle(_priceOracle);
-        router = IRouter(_router);
+        router = IUniRouter(_router);
         SWAP_BASE_TOKEN = IERC20UpgradeableExt(_SWAP_BASE_TOKEN);
 
         USDT = IERC20UpgradeableExt(_USDT);
@@ -138,12 +139,14 @@ contract STIStrategy is OwnableUpgradeable {
             uint USDTAmt = _USDTAmts[i];
             (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
             (uint TOKENPriceInUSD, uint8 TOKENPriceDecimals) = priceOracle.getAssetPrice(token);
-            uint8 tokenDecimals = IERC20UpgradeableExt(token).decimals();
+            uint8 tokenDecimals = _assetDecimals(token);
             uint numerator = USDTPriceInUSD * (10 ** (TOKENPriceDecimals + tokenDecimals));
             uint denominator = TOKENPriceInUSD * (10 ** (USDTPriceDecimals + usdtDecimals));
             uint amountOutMin = USDTAmt * numerator * 95 / (denominator * 100);
 
-            if (token == address(SWAP_BASE_TOKEN)) {
+            if (address(token) == address(Const.NATIVE_ASSET)) {
+                _swapForETH(address(USDT), USDTAmt, amountOutMin);
+            } else if (token == address(SWAP_BASE_TOKEN)) {
                 _swap(address(USDT), token, USDTAmt, amountOutMin);
             } else {
                 _swap2(address(USDT), token, USDTAmt, amountOutMin);
@@ -168,8 +171,9 @@ contract STIStrategy is OwnableUpgradeable {
     }
 
     function _withdrawFromPool(address _claimer, uint _pid, uint _sharePerc) internal virtual returns (uint USDTAmt) {
+        _claimer;
         IERC20UpgradeableExt token = IERC20UpgradeableExt(tokens[_pid]);
-        uint amount = token.balanceOf(address(this)) * _sharePerc / 1e18;
+        uint amount = _balanceOf(token, address(this)) * _sharePerc / 1e18;
         if (0 < amount) {
             if (address(token) == address(USDT)) {
                 USDTAmt = amount;
@@ -182,12 +186,14 @@ contract STIStrategy is OwnableUpgradeable {
     function _swapForUSDT(address token, uint amount) internal returns (uint USDTAmt) {
         (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
         (uint TOKENPriceInUSD, uint8 TOKENPriceDecimals) = priceOracle.getAssetPrice(address(token));
-        uint8 tokenDecimals = IERC20UpgradeableExt(token).decimals();
+        uint8 tokenDecimals = _assetDecimals(token);
         uint numerator = TOKENPriceInUSD * (10 ** (USDTPriceDecimals + usdtDecimals));
         uint denominator = USDTPriceInUSD * (10 ** (TOKENPriceDecimals + tokenDecimals));
         uint amountOutMin = amount * numerator * 95 / (denominator * 100);
 
-        if (address(token) == address(SWAP_BASE_TOKEN)) {
+        if (address(token) == address(Const.NATIVE_ASSET)) {
+            USDTAmt = _swapETH(address(USDT), amount, amountOutMin);
+        } else if (address(token) == address(SWAP_BASE_TOKEN)) {
             USDTAmt = _swap(address(token), address(USDT), amount, amountOutMin);
         } else{
             USDTAmt = _swap2(address(token), address(USDT), amount, amountOutMin);
@@ -207,6 +213,20 @@ contract STIStrategy is OwnableUpgradeable {
         path[1] = address(SWAP_BASE_TOKEN);
         path[2] = _tokenB;
         return (router.swapExactTokensForTokens(_amt, _minAmount, path, address(this), block.timestamp))[2];
+    }
+
+    function _swapETH(address _tokenB, uint _amt, uint _minAmount) private returns (uint) {
+        address[] memory path = new address[](2);
+        path[0] = address(SWAP_BASE_TOKEN);
+        path[1] = _tokenB;
+        return (router.swapExactETHForTokens{value: _amt}(_minAmount, path, address(this), block.timestamp))[1];
+    }
+
+    function _swapForETH(address _tokenA, uint _amt, uint _minAmount) private returns (uint) {
+        address[] memory path = new address[](2);
+        path[0] = _tokenA;
+        path[1] = address(SWAP_BASE_TOKEN);
+        return (router.swapExactTokensForETH(_amt, _minAmount, path, address(this), block.timestamp))[1];
     }
 
     function withdrawFromPool(address _claimer, uint _pid, uint _sharePerc) external onlyVault returns (uint USDTAmt) {
@@ -246,6 +266,26 @@ contract STIStrategy is OwnableUpgradeable {
         delete reqId2Index[_token][_reqId];
     }
 
+    function removeReqIds(address _token, address _claimer, uint[] memory _reqIds) internal {
+        uint[] storage reqIds = claimer2ReqIds[_token][_claimer];
+        uint length = reqIds.length;
+
+        for (uint i = 0; i < _reqIds.length; i++) {
+            uint reqId = _reqIds[i];
+            uint reqIdIndex = reqId2Index[_token][reqId];
+
+            if (reqIdIndex != length-1) {
+                uint256 lastReqId = reqIds[length - 1];
+                reqIds[reqIdIndex] = lastReqId;
+                reqId2Index[_token][lastReqId] = reqIdIndex;
+            }
+
+            reqIds.pop();
+            length --;
+            delete reqId2Index[_token][reqId];
+        }
+    }
+
     function getStVault(uint _pid) internal view virtual returns (IStVault stVault) {
     }
 
@@ -281,6 +321,40 @@ contract STIStrategy is OwnableUpgradeable {
                 if (unbonded > 0) unbondedInUSD = getValueInUSD(token, unbonded);
             }
         }
+    }
+
+    function claim(address _claimer, uint _pid) external onlyVault returns (uint USDTAmt) {
+        IStVault stVault = getStVault(_pid);
+        if (address(stVault) != address(0)) {
+            address token = tokens[_pid];
+            uint[] memory reqIds = claimer2ReqIds[token][_claimer];
+
+            (uint amount, uint claimedCount, bool[] memory claimed) = stVault.claimMulti(reqIds);
+            if (amount > 0) {
+                uint[] memory claimedReqIds = new uint[](claimedCount);
+                uint index;
+                for (uint i = 0; i < reqIds.length; i ++) {
+                    if (claimed[i]) {
+                        claimedReqIds[index++] = reqIds[i];
+                    }
+                }
+                removeReqIds(token, _claimer, claimedReqIds);
+
+                USDTAmt = _swapForUSDT(address(token), amount);
+                USDT.safeTransfer(vault, USDTAmt);
+                emit Claim(_claimer, amount, USDTAmt);
+            }
+        }
+    }
+
+    function _balanceOf(IERC20UpgradeableExt _token, address _account) internal view returns (uint) {
+        return (address(_token) != Const.NATIVE_ASSET)
+            ? _token.balanceOf(_account)
+            : _account.balance;
+    }
+
+    function _assetDecimals(address _asset) internal view returns (uint8 _decimals) {
+        _decimals = (_asset == Const.NATIVE_ASSET) ? 18 : IERC20UpgradeableExt(_asset).decimals();
     }
 
     function setTreasuryWallet(address _treasuryWallet) external onlyOwner {
@@ -319,7 +393,7 @@ contract STIStrategy is OwnableUpgradeable {
 
     function _getPoolInUSD(uint _pid) internal view virtual returns (uint pool) {
         IERC20UpgradeableExt token = IERC20UpgradeableExt(tokens[_pid]);
-        uint amount = token.balanceOf(address(this));
+        uint amount = _balanceOf(token, address(this));
         if (0 < amount) {
             pool = getValueInUSD(address(token), amount);
         }
@@ -328,7 +402,7 @@ contract STIStrategy is OwnableUpgradeable {
     ///@return the value in USD. it's scaled by 1e18;
     function getValueInUSD(address _asset, uint _amount) internal view returns (uint) {
         (uint priceInUSD, uint8 priceDecimals) = priceOracle.getAssetPrice(_asset);
-        uint8 _decimals = IERC20UpgradeableExt(_asset).decimals();
+        uint8 _decimals = _assetDecimals(_asset);
         return Token.changeDecimals(_amount, _decimals, 18) * priceInUSD / (10 ** (priceDecimals));
     }
 
