@@ -13,9 +13,6 @@ contract AuroraSTIStrategy is STIStrategy {
 
     IStVault public WNEARVault;
 
-    event InvestWNEAR(uint USDTAmt, uint WNEARAmt);
-    event WithdrawWNEAR(uint WNEARAmt, uint USDTAmt, uint reqId);
-
     function initialize(
         address _treasury, address _admin,
         address _priceOracle,
