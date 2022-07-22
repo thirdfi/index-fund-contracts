@@ -35,56 +35,11 @@ contract AuroraSTIStrategy is STIStrategy {
         IERC20Upgradeable(AuroraConstant.WNEAR).safeApprove(address(WNEARVault), type(uint).max);
     }
 
-    function setWNEARVault(IStVault _WNEARVault) external onlyOwner {
+    function setStVault(IStVault _WNEARVault) external onlyOwner {
         WNEARVault = _WNEARVault;
+
         if (IERC20Upgradeable(AuroraConstant.WNEAR).allowance(address(this), address(WNEARVault)) == 0) {
             IERC20Upgradeable(AuroraConstant.WNEAR).safeApprove(address(WNEARVault), type(uint).max);
-        }
-    }
-
-    function _investWNEAR(uint USDTAmt) private {
-        uint WNEARAmt = IERC20Upgradeable(AuroraConstant.WNEAR).balanceOf(address(this));
-        if (WNEARAmt > 0) {
-            WNEARVault.deposit(WNEARAmt);
-            emit InvestWNEAR(USDTAmt, WNEARAmt);
-        }
-    }
-
-    function _invest(uint[] memory _USDTAmts) internal virtual override {
-        super._invest(_USDTAmts);
-
-        uint poolCnt = _USDTAmts.length;
-        for (uint i = 0; i < poolCnt; i ++) {
-            address token = tokens[i];
-            if (token == AuroraConstant.WNEAR) {
-                _investWNEAR(_USDTAmts[i]);
-            }
-        }
-    }
-
-    function _withdrawWNEAR(uint _sharePerc) private returns (uint USDTAmt, uint reqId) {
-        uint amount = WNEARVault.balanceOf(address(this)) * _sharePerc / 1e18;
-        if (0 < amount) {
-            (uint WNEARAmt, uint _reqId) = WNEARVault.withdraw(amount);
-            if (WNEARAmt > 0) {
-                USDTAmt = _swapForUSDT(AuroraConstant.WNEAR, WNEARAmt);
-            }
-            reqId = _reqId;
-            emit WithdrawWNEAR(WNEARAmt, USDTAmt, reqId);
-        }
-    }
-
-    function _withdrawFromPool(address _claimer, uint _pid, uint _sharePerc) internal virtual override returns (uint USDTAmt) {
-        address token = tokens[_pid];
-        uint reqId;
-        if (token == AuroraConstant.WNEAR) {
-            (USDTAmt, reqId) = _withdrawWNEAR(_sharePerc);
-        } else {
-            USDTAmt = super._withdrawFromPool(_claimer, _pid, _sharePerc);
-        }
-
-        if (reqId > 0) {
-            addReqId(token, _claimer, reqId);
         }
     }
 
@@ -93,33 +48,6 @@ contract AuroraSTIStrategy is STIStrategy {
         if (token == AuroraConstant.WNEAR) {
             stVault = WNEARVault;
         }
-    }
-
-    function getWNEARPoolInUSD() private view  returns (uint) {
-        uint amt = WNEARVault.getAllPoolInUSD();
-        return amt == 0 ? 0 : amt * WNEARVault.balanceOf(address(this)) / WNEARVault.totalSupply(); //to exclude L1 deposits from other addresses
-    }
-
-    function _getPoolInUSD(uint _pid) internal view virtual override returns (uint pool) {
-        address token = tokens[_pid];
-        if (token == AuroraConstant.WNEAR) {
-            pool = getWNEARPoolInUSD();
-        } else {
-            pool = super._getPoolInUSD(_pid);
-        }
-    }
-
-    function getAPR() public view override returns (uint) {
-        (address[] memory _tokens, uint[] memory perc) = getCurrentTokenCompositionPerc();
-        uint allApr;
-        uint poolCnt = _tokens.length;
-        for (uint i = 0; i < poolCnt; i ++) {
-            address token = _tokens[i];
-            if (token == AuroraConstant.WNEAR) {
-                allApr += WNEARVault.getAPR() * perc[i];
-            }
-        }
-        return (allApr / Const.DENOMINATOR);
     }
 
 }

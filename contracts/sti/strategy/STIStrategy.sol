@@ -132,24 +132,32 @@ contract STIStrategy is OwnableUpgradeable {
 
     function _invest(uint[] memory _USDTAmts) internal virtual {
         uint poolCnt = _USDTAmts.length;
-        for (uint i = 0; i < poolCnt; i ++) {
-            address token = tokens[i];
-            if (token == address(USDT)) continue;
+        for (uint pid = 0; pid < poolCnt; pid ++) {
+            address token = tokens[pid];
+            uint tokenAmt;
+            if (token != address(USDT)) {
+                uint USDTAmt = _USDTAmts[pid];
+                (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
+                (uint TOKENPriceInUSD, uint8 TOKENPriceDecimals) = priceOracle.getAssetPrice(token);
+                uint8 tokenDecimals = _assetDecimals(token);
+                uint numerator = USDTPriceInUSD * (10 ** (TOKENPriceDecimals + tokenDecimals));
+                uint denominator = TOKENPriceInUSD * (10 ** (USDTPriceDecimals + usdtDecimals));
+                uint amountOutMin = USDTAmt * numerator * 95 / (denominator * 100);
 
-            uint USDTAmt = _USDTAmts[i];
-            (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
-            (uint TOKENPriceInUSD, uint8 TOKENPriceDecimals) = priceOracle.getAssetPrice(token);
-            uint8 tokenDecimals = _assetDecimals(token);
-            uint numerator = USDTPriceInUSD * (10 ** (TOKENPriceDecimals + tokenDecimals));
-            uint denominator = TOKENPriceInUSD * (10 ** (USDTPriceDecimals + usdtDecimals));
-            uint amountOutMin = USDTAmt * numerator * 95 / (denominator * 100);
-
-            if (address(token) == address(Const.NATIVE_ASSET)) {
-                _swapForETH(address(USDT), USDTAmt, amountOutMin);
-            } else if (token == address(SWAP_BASE_TOKEN)) {
-                _swap(address(USDT), token, USDTAmt, amountOutMin);
+                if (address(token) == address(Const.NATIVE_ASSET)) {
+                    tokenAmt = _swapForETH(address(USDT), USDTAmt, amountOutMin);
+                } else if (token == address(SWAP_BASE_TOKEN)) {
+                    tokenAmt = _swap(address(USDT), token, USDTAmt, amountOutMin);
+                } else {
+                    tokenAmt = _swap2(address(USDT), token, USDTAmt, amountOutMin);
+                }
             } else {
-                _swap2(address(USDT), token, USDTAmt, amountOutMin);
+                tokenAmt = _USDTAmts[pid];
+            }
+
+            IStVault stVault = getStVault(pid);
+            if (address(stVault) != address(0)) {
+                stVault.deposit(tokenAmt);
             }
         }
     }
@@ -171,15 +179,35 @@ contract STIStrategy is OwnableUpgradeable {
     }
 
     function _withdrawFromPool(address _claimer, uint _pid, uint _sharePerc) internal virtual returns (uint USDTAmt) {
-        _claimer;
-        IERC20UpgradeableExt token = IERC20UpgradeableExt(tokens[_pid]);
-        uint amount = _balanceOf(token, address(this)) * _sharePerc / 1e18;
-        if (0 < amount) {
-            if (address(token) == address(USDT)) {
-                USDTAmt = amount;
-            } else {
-                USDTAmt = _swapForUSDT(address(token), amount);
+        IStVault stVault = getStVault(_pid);
+        if (address(stVault) != address(0)) {
+            uint reqId;
+            (USDTAmt, reqId) = _withdrawStVault(stVault, _sharePerc);
+            if (reqId > 0) {
+                addReqId(tokens[_pid], _claimer, reqId);
             }
+        } else {
+            address token = tokens[_pid];
+            uint amount = _balanceOf(token, address(this)) * _sharePerc / 1e18;
+            if (0 < amount) {
+                if (token == address(USDT)) {
+                    USDTAmt = amount;
+                } else {
+                    USDTAmt = _swapForUSDT(token, amount);
+                }
+            }
+        }
+    }
+
+    function _withdrawStVault(IStVault _stVault, uint _sharePerc) private returns (uint USDTAmt, uint reqId) {
+        uint amount = _stVault.balanceOf(address(this)) * _sharePerc / 1e18;
+        if (0 < amount) {
+            address token = address(_stVault.token());
+            (uint tokenAmt, uint _reqId) = _stVault.withdraw(amount);
+            if (tokenAmt > 0) {
+                USDTAmt = _swapForUSDT(token, tokenAmt);
+            }
+            reqId = _reqId;
         }
     }
 
@@ -347,9 +375,9 @@ contract STIStrategy is OwnableUpgradeable {
         }
     }
 
-    function _balanceOf(IERC20UpgradeableExt _token, address _account) internal view returns (uint) {
-        return (address(_token) != Const.NATIVE_ASSET)
-            ? _token.balanceOf(_account)
+    function _balanceOf(address _token, address _account) internal view returns (uint) {
+        return (_token != Const.NATIVE_ASSET)
+            ? IERC20Upgradeable(_token).balanceOf(_account)
             : _account.balance;
     }
 
@@ -392,11 +420,21 @@ contract STIStrategy is OwnableUpgradeable {
     }
 
     function _getPoolInUSD(uint _pid) internal view virtual returns (uint pool) {
-        IERC20UpgradeableExt token = IERC20UpgradeableExt(tokens[_pid]);
-        uint amount = _balanceOf(token, address(this));
-        if (0 < amount) {
-            pool = getValueInUSD(address(token), amount);
+        IStVault stVault = getStVault(_pid);
+        if (address(stVault) != address(0)) {
+            pool = getStVaultPoolInUSD(stVault);
+        } else {
+            address token = tokens[_pid];
+            uint amount = _balanceOf(token, address(this));
+            if (0 < amount) {
+                pool = getValueInUSD(token, amount);
+            }
         }
+    }
+
+    function getStVaultPoolInUSD(IStVault _stVault) internal view returns (uint) {
+        uint amt = _stVault.getAllPoolInUSD();
+        return amt == 0 ? 0 : amt * _stVault.balanceOf(address(this)) / _stVault.totalSupply();
     }
 
     ///@return the value in USD. it's scaled by 1e18;
@@ -433,7 +471,16 @@ contract STIStrategy is OwnableUpgradeable {
     }
 
     function getAPR() public view virtual returns (uint) {
-        return 0;
+        (address[] memory _tokens, uint[] memory perc) = getCurrentTokenCompositionPerc();
+        uint allApr;
+        uint poolCnt = _tokens.length;
+        for (uint pid = 0; pid < poolCnt; pid ++) {
+            IStVault stVault = getStVault(pid);
+            if (address(stVault) != address(0)) {
+                allApr += stVault.getAPR() * perc[pid];
+            }
+        }
+        return (allApr / Const.DENOMINATOR);
     }
 
     /**
