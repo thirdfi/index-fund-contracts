@@ -327,7 +327,7 @@ contract BasicStVault is IStVault,
         bufferedDeposits = 0;
         _emergencyWithdrawInternal();
     }
-    function _emergencyWithdrawInternal() internal returns (uint _redeemed) {
+    function _emergencyWithdrawInternal() internal {
         uint _pendingRedeems = pendingRedeems;
         uint redeemed = _emergencyWithdraw(_pendingRedeems);
         pendingRedeems = (_pendingRedeems <= redeemed) ? 0 : _pendingRedeems - redeemed;

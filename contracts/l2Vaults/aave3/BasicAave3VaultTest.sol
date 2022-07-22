@@ -202,6 +202,7 @@ contract BasicAave3VaultTest is Initializable, ERC20Upgradeable, OwnableUpgradea
     }
 
     function getPricePerFullShare(bool inUSD) external view returns (uint) {
+        inUSD;
         // uint _totalSupply = totalSupply();
         // if (_totalSupply == 0) return 1e18;
         // return inUSD == true ?

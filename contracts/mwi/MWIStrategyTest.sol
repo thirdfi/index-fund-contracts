@@ -296,6 +296,7 @@ contract MWIStrategyTest is OwnableUpgradeable {
     }
 
     function withdrawFromFarm(uint farmIndex, uint sharePerc) external onlyVault returns (uint USDTAmt) {
+        farmIndex;
         require(sharePerc <= 1e18, "Over 100%");
         // uint USDTPriceInUSD = PriceLib.getAssetPrice(address(USDT));
 

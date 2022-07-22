@@ -143,6 +143,7 @@ contract BscVaultTest is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pa
      *@param _amount amount of lptokens to deposit
     */
     function deposit(uint _amount) external nonReentrant whenNotPaused{
+        _amount;
         // require(_amount > 0, "Invalid amount");
 
         // depositedBlock[msg.sender] = block.number;
@@ -162,6 +163,7 @@ contract BscVaultTest is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pa
      *@param _shares amount of shares to burn
     */
     function withdraw(uint _shares) external nonReentrant{
+        _shares;
         // require(_shares > 0, "Invalid Amount");
         // require(balanceOf(msg.sender) >= _shares, "Not enough balance");
         // require(depositedBlock[msg.sender] != block.number, "Withdraw within same block");
@@ -302,6 +304,7 @@ contract BscVaultTest is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pa
     }
 
     function getPricePerFullShare(bool inUSD) external view returns (uint) {
+        inUSD;
         // uint _totalSupply = totalSupply();
         // if (_totalSupply == 0) return 1e18;
         // return inUSD == true ?

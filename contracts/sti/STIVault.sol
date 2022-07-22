@@ -13,9 +13,12 @@ import "../../libs/Const.sol";
 
 interface IStrategy {
     function invest(address[] memory tokens, uint[] memory USDTAmts) external;
-    function withdrawPerc(uint sharePerc) external;
-    function withdrawFromPool(uint pid, uint sharePerc) external returns (uint);
+    function withdrawPerc(address claimer, uint sharePerc) external;
+    function claim(address _claimer) external returns (uint USDTAmt);
     function emergencyWithdraw() external;
+    function claimEmergencyWithdrawal() external;
+    function getUnbondedEmergencyWithdrawal() external view returns (uint waitingInUSD, uint unbondedInUSD, uint waitForTs);
+    function getUnbondedAll(address _claimer) external view returns (uint waitingInUSD, uint unbondedInUSD, uint waitForTs);
     function getEachPoolInUSD() external view returns (address[] memory tokens, uint[] memory pools);
     function getAllPoolInUSD() external view returns (uint);
     function getCurrentTokenCompositionPerc() external view returns (address[] memory tokens, uint[] memory percentages);
@@ -34,7 +37,6 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
 
     event Deposit(address caller, uint amtDeposit, address tokenDeposit);
     event Withdraw(address caller, uint amtWithdraw, address tokenWithdraw, uint sharePerc);
-    event Rebalance(uint pid, uint sharePerc, uint amount, address target);
     event Reinvest(uint amount);
     event SetAdminWallet(address oldAdmin, address newAdmin);
     
@@ -82,7 +84,7 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
             _USDTAmts[i] = _USDTAmts[i] * k;
             USDTAmt += _USDTAmts[i];
         }
-        require(0 < USDTAmt, "Amounts must > 0");
+        require(USDTAmt > 0, "Amounts must > 0");
 
         USDT.safeTransferFrom(_account, address(this), USDTAmt);
         strategy.invest(_tokens, _USDTAmts);
@@ -98,25 +100,29 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         uint withdrawAmt = pool * _sharePerc / 1e18;
         uint USDTAmt;
         if (!paused()) {
-            strategy.withdrawPerc(_sharePerc);
+            strategy.withdrawPerc(_account, _sharePerc);
             USDTAmt = USDT.balanceOf(address(this));
         } else {
             USDTAmt = USDT.balanceOf(address(this)) * _sharePerc / 1e18;
         }
-        USDT.safeTransfer(_account, USDTAmt);
+        if (USDTAmt > 0) {
+            USDT.safeTransfer(_account, USDTAmt);
+        }
         emit Withdraw(_account, withdrawAmt, address(USDT), _sharePerc);
     }
 
-    function rebalance(uint _pid, uint _sharePerc, address _target) external onlyOwnerOrAdmin {
-        uint USDTAmt = strategy.withdrawFromPool(_pid, _sharePerc);
-        if (0 < USDTAmt) {
-            address[] memory targets = new address[](1);
-            targets[0] = _target;
-            uint[] memory USDTAmts = new uint[](1);
-            USDTAmts[0] = USDTAmt;
-            strategy.invest(targets, USDTAmts);
-            emit Rebalance(_pid, _sharePerc, USDTAmt, _target);
-        }
+    function claim() external nonReentrant {
+        strategy.claim(msg.sender);
+    }
+
+    function claimByAdmin(address _account) external onlyOwnerOrAdmin nonReentrant {
+        strategy.claim(_account);
+    }
+
+    function getUnbondedAll(address _account) external view returns (
+        uint waitingInUSD, uint unbondedInUSD, uint waitForTs
+    ) {
+        return strategy.getUnbondedAll(_account);
     }
 
     function emergencyWithdraw() external onlyOwnerOrAdmin whenNotPaused {
@@ -124,15 +130,26 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         strategy.emergencyWithdraw();
     }
 
+    function claimEmergencyWithdrawal() external onlyOwnerOrAdmin whenPaused {
+        strategy.claimEmergencyWithdrawal();
+    }
+
+    function getUnbondedEmergencyWithdrawal() public view returns (
+        uint waitingInUSD, uint unbondedInUSD, uint waitForTs
+    ) {
+        return strategy.getUnbondedEmergencyWithdrawal();
+    }
+
     function reinvest(address[] memory _tokens, uint[] memory _perc) external onlyOwnerOrAdmin whenPaused {
         uint poolCnt = _tokens.length;
         require(poolCnt == _perc.length, "Not match array length");
 
+        (uint waitingInUSD, uint unbondedInUSD,) = getUnbondedEmergencyWithdrawal();
+        require(waitingInUSD + unbondedInUSD == 0, "Need to claim emergency withdrawal first");
+
         _unpause();
         uint USDTAmt = USDT.balanceOf(address(this));
-        if (0 < USDTAmt) {
-            (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
-            uint amtDeposit = USDTAmt * (10 ** (18-usdtDecimals)) * USDTPriceInUSD / (10 ** USDTPriceDecimals);
+        if (USDTAmt > 0) {
             uint totalPerc;
             for (uint i = 0; i < poolCnt; i ++) {
                 totalPerc = _perc[i];

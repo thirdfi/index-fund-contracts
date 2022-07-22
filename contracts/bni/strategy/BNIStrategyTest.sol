@@ -233,6 +233,7 @@ contract BNIStrategyTest is OwnableUpgradeable {
     }
 
     function withdrawFromPool(uint _pid, uint _sharePerc) external onlyVault returns (uint USDTAmt) {
+        _pid;
         require(_sharePerc <= 1e18, "Over 100%");
         // USDTAmt = _withdrawFromPool(_pid, _sharePerc);
         USDTAmt = USDT.balanceOf(address(this)) * _sharePerc / 1e18;
@@ -285,6 +286,7 @@ contract BNIStrategyTest is OwnableUpgradeable {
     }
 
     function _getPoolInUSD(uint _pid) private view returns (uint pool) {
+        _pid;
         // IERC20UpgradeableExt token = IERC20UpgradeableExt(tokens[_pid]);
         // uint amount = token.balanceOf(address(this));
         // if (0 < amount) {

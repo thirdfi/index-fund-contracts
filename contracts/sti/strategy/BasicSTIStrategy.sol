@@ -36,7 +36,7 @@ contract BasicSTIStrategy is OwnableUpgradeable {
     event AddToken(address token, uint pid);
     event RemoveToken(address token, uint pid);
     event Withdraw(uint sharePerc, uint USDTAmt);
-    event Claim(address claimer, uint tokenAmt, uint USDTAmt);
+    event Claim(address claimer, address token, uint tokenAmt, uint USDTAmt);
     event EmergencyWithdraw(uint USDTAmt);
     event SetTreasuryWallet(address oldTreasuryWallet, address newTreasuryWallet);
     event SetAdminWallet(address oldAdmin, address newAdmin);
@@ -132,11 +132,11 @@ contract BasicSTIStrategy is OwnableUpgradeable {
 
     function _invest(uint[] memory _USDTAmts) internal virtual {
         uint poolCnt = _USDTAmts.length;
-        for (uint pid = 0; pid < poolCnt; pid ++) {
-            address token = tokens[pid];
+        for (uint _pid = 0; _pid < poolCnt; _pid ++) {
+            address token = tokens[_pid];
             uint tokenAmt;
             if (token != address(USDT)) {
-                uint USDTAmt = _USDTAmts[pid];
+                uint USDTAmt = _USDTAmts[_pid];
                 (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
                 (uint TOKENPriceInUSD, uint8 TOKENPriceDecimals) = priceOracle.getAssetPrice(token);
                 uint8 tokenDecimals = _assetDecimals(token);
@@ -152,10 +152,10 @@ contract BasicSTIStrategy is OwnableUpgradeable {
                     tokenAmt = _swap2(address(USDT), token, USDTAmt, amountOutMin);
                 }
             } else {
-                tokenAmt = _USDTAmts[pid];
+                tokenAmt = _USDTAmts[_pid];
             }
 
-            IStVault stVault = getStVault(pid);
+            IStVault stVault = getStVault(_pid);
             if (address(stVault) != address(0)) {
                 stVault.deposit(tokenAmt);
             }
@@ -272,6 +272,16 @@ contract BasicSTIStrategy is OwnableUpgradeable {
         emit EmergencyWithdraw(USDTAmt);
     }
 
+    function claimEmergencyWithdrawal() external onlyVault {
+        _claimAllAndTransfer(address(this));
+    }
+
+    function getUnbondedEmergencyWithdrawal() external view onlyVault returns (
+        uint waitingInUSD, uint unbondedInUSD, uint waitForTs
+    ) {
+        return _getUnbondedAll(address(this));
+    }
+
     function addReqId(address _token, address _claimer, uint _reqId) internal {
         uint[] storage reqIds = claimer2ReqIds[_token][_claimer];
 
@@ -322,7 +332,7 @@ contract BasicSTIStrategy is OwnableUpgradeable {
     ///@return unbonded is token amount that is unbonded.
     ///@return unbondedInUSD is USD value of token amount that is unbonded.
     ///@return waitForTs is timestamp to wait to the next claim.
-    function getPoolUnbonded(address _claimer, uint _pid) external view returns (
+    function getPoolUnbonded(address _claimer, uint _pid) public view returns (
         uint waiting, uint waitingInUSD,
         uint unbonded, uint unbondedInUSD,
         uint waitForTs
@@ -351,7 +361,43 @@ contract BasicSTIStrategy is OwnableUpgradeable {
         }
     }
 
-    function claim(address _claimer, uint _pid) external onlyVault returns (uint USDTAmt) {
+    function _getUnbondedAll(address _claimer) internal view returns (
+        uint waitingInUSD, uint unbondedInUSD, uint waitForTs
+    ) {
+        uint poolCnt = tokens.length;
+        for (uint _pid = 0; _pid < poolCnt; _pid ++) {
+            (, uint _waitingInUSD,, uint _unbondedInUSD, uint _waitForTs) = getPoolUnbonded(_claimer, _pid);
+            waitingInUSD += _waitingInUSD;
+            unbondedInUSD += _unbondedInUSD;
+            if (waitingInUSD > 0) {
+                if (waitForTs == 0 || waitForTs > _waitForTs) {
+                    waitForTs = _waitForTs;
+                }
+            }
+        }
+    }
+
+    function getUnbondedAll(address _claimer) external view returns (
+        uint waitingInUSD, uint unbondedInUSD, uint waitForTs
+    ) {
+        return _getUnbondedAll(_claimer);
+    }
+
+    function claim(address _claimer) external onlyVault returns (uint USDTAmt) {
+        USDTAmt = _claimAllAndTransfer(_claimer);
+    }
+
+    function _claimAllAndTransfer(address _claimer) internal returns (uint USDTAmt) {
+        uint poolCnt = tokens.length;
+        for (uint _pid = 0; _pid < poolCnt; _pid ++) {
+            USDTAmt += _claim(_claimer, _pid);
+        }
+        if (USDTAmt > 0) {
+            USDT.safeTransfer(vault, USDTAmt);
+        }
+    }
+
+    function _claim(address _claimer, uint _pid) internal returns (uint USDTAmt) {
         IStVault stVault = getStVault(_pid);
         if (address(stVault) != address(0)) {
             address token = tokens[_pid];
@@ -369,8 +415,7 @@ contract BasicSTIStrategy is OwnableUpgradeable {
                 removeReqIds(token, _claimer, claimedReqIds);
 
                 USDTAmt = _swapForUSDT(address(token), amount);
-                USDT.safeTransfer(vault, USDTAmt);
-                emit Claim(_claimer, amount, USDTAmt);
+                emit Claim(_claimer, token, amount, USDTAmt);
             }
         }
     }
@@ -474,10 +519,10 @@ contract BasicSTIStrategy is OwnableUpgradeable {
         (address[] memory _tokens, uint[] memory perc) = getCurrentTokenCompositionPerc();
         uint allApr;
         uint poolCnt = _tokens.length;
-        for (uint pid = 0; pid < poolCnt; pid ++) {
-            IStVault stVault = getStVault(pid);
+        for (uint _pid = 0; _pid < poolCnt; _pid ++) {
+            IStVault stVault = getStVault(_pid);
             if (address(stVault) != address(0)) {
-                allApr += stVault.getAPR() * perc[pid];
+                allApr += stVault.getAPR() * perc[_pid];
             }
         }
         return (allApr / Const.DENOMINATOR);

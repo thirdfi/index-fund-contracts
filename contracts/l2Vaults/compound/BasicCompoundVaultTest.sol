@@ -197,6 +197,7 @@ contract BasicCompoundVaultTest is Initializable, ERC20Upgradeable, OwnableUpgra
     }
 
     function getPricePerFullShare(bool inUSD) external view returns (uint) {
+        inUSD;
         // uint _totalSupply = totalSupply();
         // if (_totalSupply == 0) return 1e18;
         // return inUSD == true ?

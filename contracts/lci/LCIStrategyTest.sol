@@ -267,6 +267,7 @@ contract LCIStrategyTest is OwnableUpgradeable {
     }
 
     function withdrawFromFarm(uint farmIndex, uint sharePerc) external onlyVault returns (uint USDTAmt) {
+        farmIndex;
         // require(sharePerc <= 1e18, "Over 100%");
         // if (farmIndex == 0) _withdrawUSDTUSDC(sharePerc); 
         // else if (farmIndex == 1) _withdrawUSDTBUSD(sharePerc);
