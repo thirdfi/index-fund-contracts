@@ -3,12 +3,12 @@ pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "./STIStrategy.sol";
+import "./BasicSTIStrategy.sol";
 import "../../bni/constant/AvaxConstant.sol";
 import "../../../interfaces/IStVault.sol";
 import "../../../libs/Const.sol";
 
-contract AvaxSTIStrategy is STIStrategy {
+contract AvaxSTIStrategy is BasicSTIStrategy {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     IStVault public AVAXVault;

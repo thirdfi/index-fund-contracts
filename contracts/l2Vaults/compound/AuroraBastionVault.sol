@@ -79,7 +79,7 @@ contract AuroraBastionVault is BasicCompoundVault {
             address reward = rewardDistributor.getRewardAddress(rewardType);
             uint amount = IERC20Upgradeable(reward).balanceOf(address(this));
             if (0 < amount) {
-                uint fee = amount * yieldFee / DENOMINATOR; //yield fee
+                uint fee = amount * yieldFee / Const.DENOMINATOR; //yield fee
                 IERC20Upgradeable(reward).safeTransfer(treasuryWallet, fee);
                 amount -= fee;
 
@@ -92,7 +92,7 @@ contract AuroraBastionVault is BasicCompoundVault {
                 }
                 uint rewardInUSD = getValueInUSD(reward, amount+fee);
                 emit Yield(rewardInUSD);
-                emit YieldFee(rewardInUSD * yieldFee / DENOMINATOR);
+                emit YieldFee(rewardInUSD * yieldFee / Const.DENOMINATOR);
             }
         }
 
@@ -163,7 +163,7 @@ contract AuroraBastionVault is BasicCompoundVault {
         if (rewardsPerYear > 0) {
             uint underlyingSupply = (cToken.totalSupply() * cToken.exchangeRateStored()) / MANTISSA_ONE;
             uint rewardsApr = rewardsPerYear * 1e18 / getValueInUSD(address(token), underlyingSupply);
-            return super.getAPR() + (rewardsApr * (DENOMINATOR-yieldFee) / DENOMINATOR);
+            return super.getAPR() + (rewardsApr * (Const.DENOMINATOR-yieldFee) / Const.DENOMINATOR);
         } else {
             return super.getAPR();
         }

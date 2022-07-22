@@ -3,12 +3,12 @@ pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "./STIStrategy.sol";
+import "./BasicSTIStrategy.sol";
 import "../../bni/constant/MoonbeamConstant.sol";
 import "../../../interfaces/IStVault.sol";
 import "../../../libs/Const.sol";
 
-contract MoonbeamSTIStrategy is STIStrategy {
+contract MoonbeamSTIStrategy is BasicSTIStrategy {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     IStVault public DOTVault;

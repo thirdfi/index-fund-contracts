@@ -33,7 +33,6 @@ interface IComptroller {
 contract BasicCompoundVault is Initializable, ERC20Upgradeable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable{
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    uint constant DENOMINATOR = 10000;
     uint public yieldFee;
 
     ICToken public cToken;

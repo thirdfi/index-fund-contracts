@@ -11,7 +11,7 @@ import "../../../interfaces/IStVault.sol";
 import "../../../libs/Const.sol";
 import "../../../libs/Token.sol";
 
-contract STIStrategy is OwnableUpgradeable {
+contract BasicSTIStrategy is OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20UpgradeableExt;
 
     IUniRouter public router;
