@@ -240,6 +240,10 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         return (_USDTAmt, _USDTAmts);
     }
 
+    function setStrategy(address _strategy) external onlyOwner {
+        strategy = IStrategy(_strategy);
+    }
+
     function setProfitFeePerc(uint _profitFeePerc) external onlyOwner {
         require(profitFeePerc < 3001, "Profit fee cannot > 30%");
         profitFeePerc = _profitFeePerc;
