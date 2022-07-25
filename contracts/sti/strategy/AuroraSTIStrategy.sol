@@ -13,7 +13,7 @@ contract AuroraSTIStrategy is BasicSTIStrategy {
 
     IStVault public WNEARVault;
 
-    function initialize(
+    function initialize1(
         address _treasury, address _admin,
         address _priceOracle,
         IStVault _WNEARVault

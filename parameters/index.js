@@ -7,12 +7,16 @@ module.exports = {
   auroraMainnet: {
     Bastion: {
       cNEAR: "0x8C14ea853321028a7bb5E4FB0d0147F183d3B677",
+      cstNEAR1: "0xB76108eb764b4427505c4bb020A37D95b3ef5AFE",
     },
     Swap: {
       router: "0x2CB45Edb4517d5947aFdE3BEAbF95A582506858B", // Trisolaris
       SWAP_BASE_TOKEN: "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d", // WNEAR
       USDT: "0x4988a896b1227218e4A686fdE5EabdcAbd91571f",
       WNEAR: "0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d",
+    },
+    Token: {
+      stNEAR: "0x07F9F7f963C5cD2BBFFd30CcfB964Be114332E30",
     },
   },
 

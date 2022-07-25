@@ -13,7 +13,7 @@ contract BscSTIStrategy is BasicSTIStrategy {
 
     IStVault public BNBVault;
 
-    function initialize(
+    function initialize1(
         address _treasury, address _admin,
         address _priceOracle,
         IStVault _BNBVault

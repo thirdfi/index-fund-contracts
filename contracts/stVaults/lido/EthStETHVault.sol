@@ -28,12 +28,12 @@ contract EthStETHVault is BasicStVault {
 
     ICurvePool constant curveStEth = ICurvePool(0xDC24316b9AE028F1497c275EB9192a3Ea0f67022); // ETH + stETH
 
-    function initialize(
+    function initialize1(
         address _treasury, address _admin,
         address _priceOracle
     ) public initializer {
         super.initialize(
-            "STI L2 stETH", "stiL2StETH",
+            "STI Staking ETH", "stiStETH",
             _treasury, _admin,
             _priceOracle,
             Const.NATIVE_ASSET, // ETH

@@ -13,7 +13,7 @@ contract AvaxSTIStrategy is BasicSTIStrategy {
 
     IStVault public AVAXVault;
 
-    function initialize(
+    function initialize1(
         address _treasury, address _admin,
         address _priceOracle,
         IStVault _AVAXVault

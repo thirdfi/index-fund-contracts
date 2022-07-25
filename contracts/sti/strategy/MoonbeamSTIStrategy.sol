@@ -13,7 +13,7 @@ contract MoonbeamSTIStrategy is BasicSTIStrategy {
 
     IStVault public DOTVault;
 
-    function initialize(
+    function initialize1(
         address _treasury, address _admin,
         address _priceOracle,
         IStVault _DOTVault

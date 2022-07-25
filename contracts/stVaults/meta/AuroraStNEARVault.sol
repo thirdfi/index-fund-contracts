@@ -30,13 +30,13 @@ contract AuroraStNEARVault is BasicStVault {
 
     IL2Vault public stNEARVault;
 
-    function initialize(
+    function initialize1(
         address _treasury, address _admin,
         address _priceOracle,
         IL2Vault _stNEARVault
     ) public initializer {
         super.initialize(
-            "STI L2 stNEAR", "stiL2StNEAR",
+            "STI Staking WNEAR", "stiStNEAR",
             _treasury, _admin,
             _priceOracle,
             AuroraConstant.WNEAR,

@@ -31,12 +31,12 @@ contract BscStBNBVault is BasicStVault {
 
     IBinancePool public binancePool = IBinancePool(0x66BEA595AEFD5a65799a920974b377Ed20071118);
 
-    function initialize(
+    function initialize1(
         address _treasury, address _admin,
         address _priceOracle
     ) public initializer {
         super.initialize(
-            "STI L2 stBNB", "stiL2StBNB",
+            "STI Staking BNB", "stiStBNB",
             _treasury, _admin,
             _priceOracle,
             Const.NATIVE_ASSET, // BNB

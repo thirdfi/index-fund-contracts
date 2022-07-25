@@ -14,7 +14,7 @@ contract EthSTIStrategy is BasicSTIStrategy {
     IStVault public ETHVault;
     IStVault public MATICVault;
 
-    function initialize(
+    function initialize1(
         address _treasury, address _admin,
         address _priceOracle,
         IStVault _ETHVault, IStVault _MATICVault

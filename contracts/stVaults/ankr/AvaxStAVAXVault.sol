@@ -30,12 +30,12 @@ contract AvaxStAVAXVault is BasicStVault {
 
     IAvalanchePool public avalanchePool = IAvalanchePool(0x7BAa1E3bFe49db8361680785182B80BB420A836D);
 
-    function initialize(
+    function initialize1(
         address _treasury, address _admin,
         address _priceOracle
     ) public initializer {
         super.initialize(
-            "STI L2 stAVAX", "stiL2StAVAX",
+            "STI Staking AVAX", "stiStAVAX",
             _treasury, _admin,
             _priceOracle,
             Const.NATIVE_ASSET, // AVAX
