@@ -84,6 +84,14 @@ contract BasicSTIStrategy is OwnableUpgradeable {
         }
     }
 
+    function getPoolCount() public view returns (uint) {
+        return tokens.length;
+    }
+
+    function getTokens() external view returns (address[] memory) {
+        return tokens;
+    }
+
     function addToken(address _token) external onlyOwner {
         uint _pid = pid[_token];
         require ((_pid == 0 && _token != tokens[0]), "Already added");
@@ -359,6 +367,32 @@ contract BasicSTIStrategy is OwnableUpgradeable {
                 if (unbonded > 0) unbondedInUSD = getValueInUSD(token, unbonded);
             }
         }
+    }
+
+    function getPoolsUnbonded(address _claimer) external view returns (
+        address[] memory,
+        uint[] memory waitings,
+        uint[] memory waitingInUSDs,
+        uint[] memory unbondeds,
+        uint[] memory unbondedInUSDs,
+        uint[] memory waitForTses
+    ) {
+        uint poolCnt = tokens.length;
+        waitings = new uint[](poolCnt);
+        waitingInUSDs = new uint[](poolCnt);
+        unbondeds = new uint[](poolCnt);
+        unbondedInUSDs = new uint[](poolCnt);
+        waitForTses = new uint[](poolCnt);
+
+        for (uint _pid = 0; _pid < poolCnt; _pid++) {
+            (uint _waiting, uint _waitingInUSD, uint _unbonded, uint _unbondedInUSD, uint _waitForTs) = getPoolUnbonded(_claimer, _pid);
+            waitings[_pid] = _waiting;
+            waitingInUSDs[_pid] = _waitingInUSD;
+            unbondeds[_pid] = _unbonded;
+            unbondedInUSDs[_pid] = _unbondedInUSD;
+            waitForTses[_pid] = _waitForTs;
+        }
+        return (tokens, waitings, waitingInUSDs, unbondeds, unbondedInUSDs, waitForTses);
     }
 
     function _getUnbondedAll(address _claimer) internal view returns (

@@ -18,7 +18,16 @@ interface IStrategy {
     function emergencyWithdraw() external;
     function claimEmergencyWithdrawal() external;
     function getUnbondedEmergencyWithdrawal() external view returns (uint waitingInUSD, uint unbondedInUSD, uint waitForTs);
+    function getPoolsUnbonded(address _claimer) external view returns (
+        address[] memory tokens,
+        uint[] memory waitings,
+        uint[] memory waitingInUSDs,
+        uint[] memory unbondeds,
+        uint[] memory unbondedInUSDs,
+        uint[] memory waitForTses
+    );
     function getUnbondedAll(address _claimer) external view returns (uint waitingInUSD, uint unbondedInUSD, uint waitForTs);
+    function getPoolCount() external view returns (uint);
     function getEachPoolInUSD() external view returns (address[] memory tokens, uint[] memory pools);
     function getAllPoolInUSD() external view returns (uint);
     function getCurrentTokenCompositionPerc() external view returns (address[] memory tokens, uint[] memory percentages);
@@ -119,12 +128,6 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         strategy.claim(_account);
     }
 
-    function getUnbondedAll(address _account) external view returns (
-        uint waitingInUSD, uint unbondedInUSD, uint waitForTs
-    ) {
-        return strategy.getUnbondedAll(_account);
-    }
-
     function emergencyWithdraw() external onlyOwnerOrAdmin whenNotPaused {
         _pause();
         strategy.emergencyWithdraw();
@@ -132,12 +135,6 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
 
     function claimEmergencyWithdrawal() external onlyOwnerOrAdmin whenPaused {
         strategy.claimEmergencyWithdrawal();
-    }
-
-    function getUnbondedEmergencyWithdrawal() public view returns (
-        uint waitingInUSD, uint unbondedInUSD, uint waitForTs
-    ) {
-        return strategy.getUnbondedEmergencyWithdrawal();
     }
 
     function reinvest(address[] memory _tokens, uint[] memory _perc) external onlyOwnerOrAdmin whenPaused {
@@ -165,10 +162,45 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         }
     }
 
+    function setStrategy(address _strategy) external onlyOwner {
+        strategy = IStrategy(_strategy);
+    }
+
     function setAdmin(address _admin) external onlyOwner {
         address oldAdmin = admin;
         admin = _admin;
         emit SetAdminWallet(oldAdmin, _admin);
+    }
+
+    function getPoolsUnbonded(address _account) external view returns (
+        uint[] memory chainIDs,
+        address[] memory tokens,
+        uint[] memory waitings,
+        uint[] memory waitingInUSDs,
+        uint[] memory unbondeds,
+        uint[] memory unbondedInUSDs,
+        uint[] memory waitForTses
+    ) {
+        (tokens, waitings, waitingInUSDs, unbondeds, unbondedInUSDs, waitForTses) = strategy.getPoolsUnbonded(_account);
+
+        uint poolCnt = tokens.length;
+        uint chainID = getChainID();
+        chainIDs = new uint[](poolCnt);
+        for (uint _pid = 0; _pid < poolCnt; _pid ++) {
+            chainIDs[_pid] = chainID;
+        }
+    }
+
+    function getUnbondedAll(address _account) external view returns (
+        uint waitingInUSD, uint unbondedInUSD, uint waitForTs
+    ) {
+        return strategy.getUnbondedAll(_account);
+    }
+
+    function getUnbondedEmergencyWithdrawal() public view returns (
+        uint waitingInUSD, uint unbondedInUSD, uint waitForTs
+    ) {
+        return strategy.getUnbondedEmergencyWithdrawal();
     }
 
     /// @return the price of USDT in USD.
@@ -212,4 +244,5 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     function getAPR() external view returns (uint) {
         return strategy.getAPR();
     }
+
 }

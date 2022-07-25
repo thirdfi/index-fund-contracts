@@ -44,6 +44,13 @@ interface Gateway {
         uint[] memory _chainIDs, address[] memory _tokens, uint[] memory _poolInUSDs,
         bytes memory sig
     );
+    function getPoolsUnbonded1() external view returns (
+        uint[] memory _chainIDs, address[] memory _tokens,
+        uint[] memory _waitings, uint[] memory _waitingInUSDs,
+        uint[] memory _unbondeds, uint[] memory _unbondedInUSDs,
+        uint[] memory _waitForTses,
+        bytes memory sig
+    );
 }
 
 contract STIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
@@ -394,6 +401,41 @@ contract STIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         require(gatewaySigner == recovered, "Signer is incorrect");
 
         return getDepositTokenComposition(_chainIDs, _tokens, _poolInUSDs, _USDTAmt);
+    }
+
+    function getPoolsUnbonded1(address _account) external view returns (
+        uint[] memory _chainIDs,
+        address[] memory _tokens,
+        uint[] memory _waitings,
+        uint[] memory _waitingInUSDs,
+        uint[] memory _unbondeds,
+        uint[] memory _unbondedInUSDs,
+        uint[] memory _waitForTses
+    ) {
+        revert OffchainLookup(address(this), urls,
+            abi.encodeWithSelector(Gateway.getPoolsUnbonded1.selector),
+            STIMinter.getPoolsUnbonded1WithSig.selector,
+            abi.encode(_account)
+        );
+    }
+    function getPoolsUnbonded1WithSig(bytes calldata result, bytes calldata extraData) external view returns(
+        uint[] memory _chainIDs,
+        address[] memory _tokens,
+        uint[] memory _waitings,
+        uint[] memory _waitingInUSDs,
+        uint[] memory _unbondeds,
+        uint[] memory _unbondedInUSDs,
+        uint[] memory _waitForTses
+    ) {
+        bytes memory sig;
+        (_chainIDs, _tokens, _waitings, _waitingInUSDs, _unbondeds, _unbondedInUSDs, _waitForTses, sig)
+            = abi.decode(result, (uint[], address[], uint[], uint[], uint[], uint[], uint[], bytes));
+
+        bytes32 messageHash1 = keccak256(abi.encodePacked(_chainIDs, _tokens, _waitings, _waitingInUSDs, _unbondeds, _unbondedInUSDs));
+        bytes32 messageHash2 = keccak256(abi.encodePacked(_waitForTses));
+        bytes32 messageHash = keccak256(abi.encodePacked(messageHash1, messageHash2));
+        address recovered = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", messageHash)).recover(sig);
+        require(gatewaySigner == recovered, "Signer is incorrect");
     }
 
     /// @dev mint STIs according to the deposited USDT
