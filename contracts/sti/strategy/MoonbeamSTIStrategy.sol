@@ -14,12 +14,12 @@ contract MoonbeamSTIStrategy is BasicSTIStrategy {
     IStVault public DOTVault;
 
     function initialize1(
-        address _treasury, address _admin,
+        address _admin,
         address _priceOracle,
         IStVault _DOTVault
     ) public initializer {
         super.initialize(
-            _treasury, _admin,
+            _admin,
             _priceOracle,
             0x70085a09D30D6f8C4ecF6eE10120d1847383BB57, // StellaSwap
             MoonbeamConstant.WGLMR,

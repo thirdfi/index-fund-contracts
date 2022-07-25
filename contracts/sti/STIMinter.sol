@@ -403,14 +403,21 @@ contract STIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         return getDepositTokenComposition(_chainIDs, _tokens, _poolInUSDs, _USDTAmt);
     }
 
+    ///@return _chainIDs is an array of chain IDs.
+    ///@return _tokens is an array of tokens.
+    ///@return _waitings is an array of token amounts that is not unbonded.
+    ///@return _waitingInUSDs is an array of USD value of token amounts that is not unbonded.
+    ///@return _unbondeds is an array of token amounts that is unbonded.
+    ///@return _unbondedInUSDs is an array USD value of token amounts that is unbonded.
+    ///@return _waitForTses is an array of timestamps to wait to the next claim.
     function getPoolsUnbonded1(address _account) external view returns (
-        uint[] memory _chainIDs,
-        address[] memory _tokens,
-        uint[] memory _waitings,
-        uint[] memory _waitingInUSDs,
-        uint[] memory _unbondeds,
-        uint[] memory _unbondedInUSDs,
-        uint[] memory _waitForTses
+        uint[] memory, // _chainIDs
+        address[] memory, // _tokens
+        uint[] memory, // _waitings
+        uint[] memory, // _waitingInUSDs
+        uint[] memory, // _unbondeds
+        uint[] memory, // _unbondedInUSDs
+        uint[] memory // _waitForTses
     ) {
         revert OffchainLookup(address(this), urls,
             abi.encodeWithSelector(Gateway.getPoolsUnbonded1.selector),
@@ -418,7 +425,7 @@ contract STIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
             abi.encode(_account)
         );
     }
-    function getPoolsUnbonded1WithSig(bytes calldata result, bytes calldata extraData) external view returns(
+    function getPoolsUnbonded1WithSig(bytes calldata result, bytes calldata) external view returns(
         uint[] memory _chainIDs,
         address[] memory _tokens,
         uint[] memory _waitings,

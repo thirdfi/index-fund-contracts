@@ -113,7 +113,10 @@ contract AuroraStNEARVault is BasicStVault {
     }
 
     function getInvestedStTokens() public override view returns (uint _stAmount) {
-        _stAmount = stNEARVault.getAllPool() * stNEARVault.balanceOf(address(this)) / stNEARVault.totalSupply();
+        uint stNEARVaultTotalSupply = stNEARVault.totalSupply();
+        if (stNEARVaultTotalSupply > 0) {
+            _stAmount = stNEARVault.getAllPool() * stNEARVault.balanceOf(address(this)) / stNEARVaultTotalSupply;
+        }
     }
 
     ///@param _amount Amount of tokens

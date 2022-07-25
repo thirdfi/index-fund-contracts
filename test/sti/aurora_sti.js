@@ -63,7 +63,6 @@ describe("STI on Aurora", async () => {
         expect(await vault.USDT()).equal(network_.Swap.USDT);
 
         expect(await strategy.owner()).equal(deployer.address);
-        expect(await strategy.treasuryWallet()).equal(common.treasury);
         expect(await strategy.admin()).equal(common.admin);
         expect(await strategy.vault()).equal(vault.address);
         expect(await strategy.priceOracle()).equal(priceOracle.address);
@@ -94,66 +93,107 @@ describe("STI on Aurora", async () => {
         expect(await l2stNEARVault.yieldFee()).equal(2000);
       });
 
-      // it("Should be set by only owner", async () => {
-      //   await expectRevert(priceOracle.setAssetSources([a2.address],[a1.address]), "Ownable: caller is not the owner");
+      it("Should be set by only owner", async () => {
+        await expectRevert(priceOracle.setAssetSources([a2.address],[a1.address]), "Ownable: caller is not the owner");
 
-      //   await expectRevert(vault.setAdmin(a2.address), "Ownable: caller is not the owner");
-      //   await expectRevert(vault.deposit(a1.address, [a2.address], [getUsdtAmount('100')]), "Only owner or admin");
-      //   await expectRevert(vault.withdrawPerc(a1.address, parseEther('0.1')), "Only owner or admin");
-      //   await expectRevert(vault.rebalance(0, parseEther('0.1'), a2.address), "Only owner or admin");
-      //   await expectRevert(vault.emergencyWithdraw(), "Only owner or admin");
-      //   await expectRevert(vault.reinvest([a2.address], [10000]), "Only owner or admin");
-      //   await expectRevert(vault.setTreasuryWallet(a2.address), "Ownable: caller is not the owner");
+        await expectRevert(vault.setAdmin(a2.address), "Ownable: caller is not the owner");
+        await expectRevert(vault.deposit(a1.address, [a2.address], [getUsdtAmount('100')]), "Only owner or admin");
+        await expectRevert(vault.withdrawPerc(a1.address, parseEther('0.1')), "Only owner or admin");
+        await expectRevert(vault.emergencyWithdraw(), "Only owner or admin");
+        await expectRevert(vault.claimEmergencyWithdrawal(), "Only owner or admin");
+        await expectRevert(vault.reinvest([a2.address], [10000]), "Only owner or admin");
+        await expectRevert(vault.setStrategy(a2.address), "Ownable: caller is not the owner");
 
-      //   await expectRevert(strategy.addToken(a1.address), "Ownable: caller is not the owner");
-      //   await expectRevert(strategy.removeToken(1), "Ownable: caller is not the owner");
-      //   await expectRevert(strategy.setTreasuryWallet(a2.address), "Ownable: caller is not the owner");
-      //   await expectRevert(strategy.setAdmin(a2.address), "Ownable: caller is not the owner");
-      //   await expectRevert(strategy.setVault(a2.address), "Ownable: caller is not the owner");
+        await expectRevert(strategy.addToken(a1.address), "Ownable: caller is not the owner");
+        await expectRevert(strategy.removeToken(1), "Ownable: caller is not the owner");
+        await expectRevert(strategy.setAdmin(a2.address), "Ownable: caller is not the owner");
+        await expectRevert(strategy.setVault(a2.address), "Ownable: caller is not the owner");
+        await expectRevert(strategy.setStVault(a2.address), "Ownable: caller is not the owner");
+        await expectRevert(strategy.invest([a2.address], [getUsdtAmount('100')]), "Only vault");
+        await expectRevert(strategy.withdrawPerc(a2.address, 1), "Only vault");
+        await expectRevert(strategy.withdrawFromPool(a2.address, 1, 1), "Only vault");
+        await expectRevert(strategy.emergencyWithdraw(), "Only vault");
+        await expectRevert(strategy.claimEmergencyWithdrawal(), "Only vault");
+        await expectRevert(strategy.claim(a2.address), "Only vault");
 
-      //   const WNEARVault = new ethers.Contract(await strategy.WNEARVault(), l2VaultArtifact.abi, a1);
+        const stVault = new ethers.Contract(await strategy.WNEARVault(), stVaultArtifact.abi, a1);
 
-      //   await expectRevert(WNEARVault.setAdmin(a2.address), "Ownable: caller is not the owner");
-      //   await WNEARVault.connect(deployer).setAdmin(a2.address);
-      //   expect(await WNEARVault.admin()).equal(a2.address);
-      //   await WNEARVault.connect(deployer).setAdmin(accounts[0].address);
+        await expectRevert(stVault.setAdmin(a2.address), "Ownable: caller is not the owner");
+        await stVault.connect(deployer).setAdmin(a2.address);
+        expect(await stVault.admin()).equal(a2.address);
+        await stVault.connect(deployer).setAdmin(accounts[0].address);
 
-      //   await expectRevert(WNEARVault.setTreasuryWallet(a2.address), "Ownable: caller is not the owner");
-      //   await WNEARVault.connect(deployer).setTreasuryWallet(a2.address);
-      //   expect(await WNEARVault.treasuryWallet()).equal(a2.address);
-      //   await WNEARVault.connect(deployer).setTreasuryWallet(common.treasury);
+        await expectRevert(stVault.setTreasuryWallet(a2.address), "Ownable: caller is not the owner");
+        await stVault.connect(deployer).setTreasuryWallet(a2.address);
+        expect(await stVault.treasuryWallet()).equal(a2.address);
+        await stVault.connect(deployer).setTreasuryWallet(common.treasury);
 
-      //   await expectRevert(WNEARVault.setFee(1000), "Ownable: caller is not the owner");
-      //   await WNEARVault.connect(deployer).setFee(1000);
-      //   expect(await WNEARVault.yieldFee()).equal(1000);
+        await expectRevert(stVault.setFee(1000), "Ownable: caller is not the owner");
+        await stVault.connect(deployer).setFee(1000);
+        expect(await stVault.yieldFee()).equal(1000);
 
-      //   await expectRevert(WNEARVault.yield(), "Only owner or admin");
-      //   await WNEARVault.connect(accounts[0]).yield();
+        await expectRevert(stVault.setNFT(a2.address), "Ownable: caller is not the owner");
+        await expectRevert(stVault.connect(deployer).setNFT(a2.address), "Already set");
 
-      //   await expectRevert(WNEARVault.emergencyWithdraw(), "Only owner or admin");
-      //   await WNEARVault.connect(accounts[0]).emergencyWithdraw();
-      //   await expectRevert(WNEARVault.connect(deployer).emergencyWithdraw(), "Pausable: paused");
+        await expectRevert(stVault.setStakingPeriods(1,2,3,4), "Ownable: caller is not the owner");
+        await stVault.connect(deployer).setStakingPeriods(1,2,3,4);
+        expect(await stVault.unbondingPeriod()).equal(1);
+        expect(await stVault.investInterval()).equal(2);
+        expect(await stVault.redeemInterval()).equal(3);
+        expect(await stVault.oneEpoch()).equal(4);
 
-      //   await expectRevert(WNEARVault.reinvest(), "Only owner or admin");
-      //   await WNEARVault.connect(accounts[0]).reinvest();
-      //   await expectRevert(WNEARVault.connect(deployer).reinvest(), "Pausable: not paused");
+        await expectRevert(stVault.setStakingAmounts(5,6), "Ownable: caller is not the owner");
+        await stVault.connect(deployer).setStakingAmounts(5,6);
+        expect(await stVault.minInvestAmount()).equal(5);
+        expect(await stVault.minRedeemAmount()).equal(6);
+        await stVault.connect(deployer).setStakingAmounts(0,0);
 
-      //   await expectRevert(WNEARVault.updateRewardDistributor(), "Ownable: caller is not the owner");
-      // });
+        await expectRevert(stVault.resetApr(), "Ownable: caller is not the owner");
+        await stVault.connect(deployer).resetApr();
 
-      // it("Should be returned with correct default vaule", async () => {
-      //   expect(await vault.getAPR()).gt(0);
-      //   expect(await vault.getAllPoolInUSD()).equal(0);
+        await expectRevert(stVault.invest(), "Only owner or admin");
+        await stVault.connect(accounts[0]).invest();
 
-      //   var ret = await vault.getEachPoolInUSD();
-      //   chainIDs = ret[0];
-      //   tokens = ret[1];
-      //   pools = ret[2];
-      //   expect(chainIDs.length).equal(1);
-      //   // expect(chainIDs[0]).equal(1313161554);
-      //   expect(tokens[0]).equal(network_.Swap.WNEAR);
-      //   expect(pools[0]).equal(0);
-      // });
+        await expectRevert(stVault.redeem(), "Only owner or admin");
+        await expectRevert(stVault.connect(accounts[0]).redeem(), "too small");
+
+        await expectRevert(stVault.claimUnbonded(), "Only owner or admin");
+        await stVault.connect(accounts[0]).claimUnbonded();
+
+        await expectRevert(stVault.emergencyWithdraw(), "Only owner or admin");
+        await stVault.connect(accounts[0]).emergencyWithdraw();
+        await expectRevert(stVault.connect(deployer).emergencyWithdraw(), "Pausable: paused");
+
+        await expectRevert(stVault.emergencyRedeem(), "Only owner or admin");
+        await stVault.connect(accounts[0]).emergencyRedeem();
+
+        await expectRevert(stVault.reinvest(), "Only owner or admin");
+        await stVault.connect(accounts[0]).reinvest();
+        await expectRevert(stVault.connect(deployer).reinvest(), "Pausable: not paused");
+
+        await expectRevert(stVault.yield(), "Only owner or admin");
+        await stVault.connect(accounts[0]).yield();
+
+        await expectRevert(stVault.collectProfitAndUpdateWatermark(), "Only owner or admin");
+        await stVault.connect(accounts[0]).collectProfitAndUpdateWatermark();
+
+        await expectRevert(stVault.withdrawFees(), "Only owner or admin");
+        await stVault.connect(accounts[0]).withdrawFees();
+      });
+
+      it("Should be returned with correct default vaule", async () => {
+        expect(await vault.getAPR()).gt(0);
+        expect(await vault.getAllPoolInUSD()).equal(0);
+
+        var ret = await vault.getEachPoolInUSD();
+        chainIDs = ret[0];
+        tokens = ret[1];
+        pools = ret[2];
+        expect(chainIDs.length).equal(1);
+        // expect(chainIDs[0]).equal(1313161554);
+        expect(tokens[0]).equal(network_.Swap.WNEAR);
+        expect(pools[0]).equal(0);
+      });
     });
 
     // describe('Basic function', () => {

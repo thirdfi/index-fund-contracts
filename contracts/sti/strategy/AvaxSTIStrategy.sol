@@ -14,12 +14,12 @@ contract AvaxSTIStrategy is BasicSTIStrategy {
     IStVault public AVAXVault;
 
     function initialize1(
-        address _treasury, address _admin,
+        address _admin,
         address _priceOracle,
         IStVault _AVAXVault
     ) public initializer {
         super.initialize(
-            _treasury, _admin,
+            _admin,
             _priceOracle,
             0x60aE616a2155Ee3d9A68541Ba4544862310933d4, // TraderJoe
             AvaxConstant.WAVAX,

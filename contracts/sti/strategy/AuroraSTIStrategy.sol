@@ -14,12 +14,12 @@ contract AuroraSTIStrategy is BasicSTIStrategy {
     IStVault public WNEARVault;
 
     function initialize1(
-        address _treasury, address _admin,
+        address _admin,
         address _priceOracle,
         IStVault _WNEARVault
     ) public initializer {
         super.initialize(
-            _treasury, _admin,
+            _admin,
             _priceOracle,
             0x2CB45Edb4517d5947aFdE3BEAbF95A582506858B, // Trisolaris
             AuroraConstant.WNEAR,

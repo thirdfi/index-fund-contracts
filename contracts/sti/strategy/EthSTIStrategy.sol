@@ -15,12 +15,12 @@ contract EthSTIStrategy is BasicSTIStrategy {
     IStVault public MATICVault;
 
     function initialize1(
-        address _treasury, address _admin,
+        address _admin,
         address _priceOracle,
         IStVault _ETHVault, IStVault _MATICVault
     ) public initializer {
         super.initialize(
-            _treasury, _admin,
+            _admin,
             _priceOracle,
             0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D, // Uniswap2
             EthConstant.WETH,

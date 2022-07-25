@@ -1,18 +1,17 @@
 //SPDX-License-Identifier: MIT
 pragma solidity  0.8.9;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "./PriceOracle.sol";
 import "../constant/AuroraConstant.sol";
+import "../../../interfaces/IUniPair.sol";
+import "../../../interfaces/IERC20UpgradeableExt.sol";
+import "../../../libs/Const.sol";
 
-interface IUniPair is IERC20Upgradeable{
-    function getReserves() external view returns (uint, uint);
-    function token0() external view returns (address);
-    function token1() external view returns (address);
-}
-
-interface IERC20UpgradeableExt is IERC20Upgradeable {
-    function decimals() external view returns (uint8);
+interface IMetaPool {
+    ///@dev price of stNEAR in wNEAR.
+    function stNearPrice() external view returns (uint);
+    function wNearSwapFee() external view returns (uint16);
+    function stNearSwapFee() external view returns (uint16);
 }
 
 contract AuroraPriceOracle is PriceOracle {
@@ -21,6 +20,8 @@ contract AuroraPriceOracle is PriceOracle {
     IUniPair constant METAWNEAR = IUniPair(0xa8CAaf35c0136033294dD286A14051fBf37aed07);
     IUniPair constant USDCWNEAR = IUniPair(0x20F8AeFB5697B77E0BB835A8518BE70775cdA1b0);
     IUniPair constant USDTWNEAR = IUniPair(0x03B666f3488a7992b2385B12dF7f35156d7b29cD);
+
+    IMetaPool constant metaPool = IMetaPool(0x534BACf1126f60EA513F796a3377ff432BE62cf9);
 
     function initialize() public virtual override initializer {
         super.initialize();
@@ -33,9 +34,11 @@ contract AuroraPriceOracle is PriceOracle {
         } else if (asset == AuroraConstant.WNEAR) {
             return getWNEARPrice();
         } else if (asset == AuroraConstant.BSTN) {
-            return getBSTNPrice();
+            return getPriceFromWNEARPair(BSTNWNEAR, AuroraConstant.BSTN);
         } else if (asset == AuroraConstant.META) {
-            return getMETAPrice();
+            return getPriceFromWNEARPair(METAWNEAR, AuroraConstant.META);
+        } else if (asset == AuroraConstant.stNEAR) {
+            return getStNEARPrice();
         }
         return super.getAssetPrice(asset);
     }
@@ -46,17 +49,10 @@ contract AuroraPriceOracle is PriceOracle {
         return ((priceInUSDT + priceInUSDC) / 2, 18);
     }
 
-    function getBSTNPrice() private view returns (uint price, uint8 decimals) {
-        uint priceInWNEAR = getPriceFromPair(BSTNWNEAR, AuroraConstant.BSTN);
+    function getPriceFromWNEARPair(IUniPair pair, address token) private view returns (uint price, uint8 decimals) {
+        uint priceInWNEAR = getPriceFromPair(pair, token);
         (uint WNEARPriceInUSD, uint8 WNEARPriceDecimals) = getWNEARPrice();
-        price = priceInWNEAR * WNEARPriceInUSD / 1e18;
-        decimals = WNEARPriceDecimals;
-    }
-
-    function getMETAPrice() private view returns (uint price, uint8 decimals) {
-        uint priceInWNEAR = getPriceFromPair(METAWNEAR, AuroraConstant.META);
-        (uint WNEARPriceInUSD, uint8 WNEARPriceDecimals) = getWNEARPrice();
-        price = priceInWNEAR * WNEARPriceInUSD / 1e18;
+        price = WNEARPriceInUSD * priceInWNEAR / 1e18;
         decimals = WNEARPriceDecimals;
     }
 
@@ -82,4 +78,12 @@ contract AuroraPriceOracle is PriceOracle {
 
         return (numerator / denominator);
     }
+
+    function getStNEARPrice() private view returns (uint price, uint8 decimals) {
+        uint wNearAmount = metaPool.stNearPrice() * (Const.DENOMINATOR - metaPool.wNearSwapFee()) / Const.DENOMINATOR;
+        (uint WNEARPriceInUSD, uint8 WNEARPriceDecimals) = getWNEARPrice();
+        price = WNEARPriceInUSD * wNearAmount / 1e24; // WNEAR decimals is 24;
+        decimals = WNEARPriceDecimals;
+    }
+
 }

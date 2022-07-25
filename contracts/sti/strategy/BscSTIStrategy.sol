@@ -14,12 +14,12 @@ contract BscSTIStrategy is BasicSTIStrategy {
     IStVault public BNBVault;
 
     function initialize1(
-        address _treasury, address _admin,
+        address _admin,
         address _priceOracle,
         IStVault _BNBVault
     ) public initializer {
         super.initialize(
-            _treasury, _admin,
+            _admin,
             _priceOracle,
             0x10ED43C718714eb63d5aA57B78B54704E256024E, // PancakeSwap
             BscConstant.WBNB,

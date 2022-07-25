@@ -19,7 +19,6 @@ contract BasicSTIStrategy is OwnableUpgradeable {
     IERC20UpgradeableExt public USDT;
     uint8 usdtDecimals;
 
-    address public treasuryWallet;
     address public admin;
     address public vault;
     IPriceOracle public priceOracle;
@@ -47,7 +46,7 @@ contract BasicSTIStrategy is OwnableUpgradeable {
     }
 
     function initialize(
-        address _treasuryWallet, address _admin,
+        address _admin,
         address _priceOracle,
         address _router, address _SWAP_BASE_TOKEN,
         address _USDT, address _token0
@@ -58,7 +57,6 @@ contract BasicSTIStrategy is OwnableUpgradeable {
         require(_token0 != address(0), "Invalid token0");
         __Ownable_init();
 
-        treasuryWallet = _treasuryWallet;
         admin = _admin;
         priceOracle = IPriceOracle(_priceOracle);
         router = IUniRouter(_router);
@@ -284,7 +282,7 @@ contract BasicSTIStrategy is OwnableUpgradeable {
         _claimAllAndTransfer(address(this));
     }
 
-    function getUnbondedEmergencyWithdrawal() external view onlyVault returns (
+    function getUnbondedEmergencyWithdrawal() external view returns (
         uint waitingInUSD, uint unbondedInUSD, uint waitForTs
     ) {
         return _getUnbondedAll(address(this));
@@ -464,12 +462,6 @@ contract BasicSTIStrategy is OwnableUpgradeable {
         _decimals = (_asset == Const.NATIVE_ASSET) ? 18 : IERC20UpgradeableExt(_asset).decimals();
     }
 
-    function setTreasuryWallet(address _treasuryWallet) external onlyOwner {
-        address oldTreasuryWallet = treasuryWallet;
-        treasuryWallet = _treasuryWallet;
-        emit SetTreasuryWallet(oldTreasuryWallet, _treasuryWallet);
-    }
-
     function setAdmin(address _admin) external onlyOwner {
         address oldAdmin = admin;
         admin = _admin;
@@ -567,5 +559,5 @@ contract BasicSTIStrategy is OwnableUpgradeable {
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[38] private __gap;
+    uint256[39] private __gap;
 }
