@@ -104,6 +104,20 @@ npx hardhat deploy --network avaxMainnet --tags avaxMainnet_mwi
 
 ### Products
 
+#### L2 Vaults
+
+| Network     | Mainnet                                                                                                               | Testnet                                                                                                               |
+| ----------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| bniL2WNEAR on Aurora          | [0x463511073EdEeb4842EB6A9776e2D06221C42F88](https://aurorascan.dev/address/0x463511073EdEeb4842EB6A9776e2D06221C42F88) |
+| mwiL2USDT on Avalanche        | [0x4563883E3cE04cd2fE997b726C987422461a5216](https://snowtrace.io/address/0x4563883E3cE04cd2fE997b726C987422461a5216) |
+| mwiL2WAVAX on Avalanche       | [0xF070c998d8a642E306cf76aF2DB319b3bD843aE6](https://snowtrace.io/address/0xF070c998d8a642E306cf76aF2DB319b3bD843aE6) |
+| mwiL2WBTC on Avalanche        | [0x9e23A237b4a55111dD133A38d48784E8f544309a](https://snowtrace.io/address/0x9e23A237b4a55111dD133A38d48784E8f544309a) |
+| mwiL2WETH on Avalanche        | [0xe337e3ba156663592b293480Db22D66761ad45e9](https://snowtrace.io/address/0xe337e3ba156663592b293480Db22D66761ad45e9) |
+| lciL2USDCB on BSC             | [0x8083c6a8369D5F386fE75450AD953C1736a004eD](https://bscscan.com/address/0x8083c6a8369D5F386fE75450AD953C1736a004eD) |
+| lciL2USDTB on BSC             | [0x66D83e0e7baD685Bd94b2F7F41B973B42fB1E2d8](https://bscscan.com/address/0x66D83e0e7baD685Bd94b2F7F41B973B42fB1E2d8) |
+| lciL2USDCB on BSC             | [0x04FEd86Cf6227F315669b9d762b2D75c3A2316d1](https://bscscan.com/address/0x04FEd86Cf6227F315669b9d762b2D75c3A2316d1) |
+| bniL2WMATIC on Polygon        | [0x52235Cf0D2861414EC8363FBbdAe2D8521B23D79](https://polygonscan.com/address/0x52235Cf0D2861414EC8363FBbdAe2D8521B23D79) |
+
 #### Aurora Products
 
 | Products    | Mainnet                                                                                                               | Testnet                                                                                                               |
