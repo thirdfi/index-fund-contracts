@@ -242,6 +242,10 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
 
     function setStrategy(address _strategy) external onlyOwner {
         strategy = IStrategy(_strategy);
+
+        if (USDT.allowance(address(this), address(strategy)) == 0) {
+            USDT.safeApprove(address(strategy), type(uint).max);
+        }
     }
 
     function setProfitFeePerc(uint _profitFeePerc) external onlyOwner {
