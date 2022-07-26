@@ -164,6 +164,10 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
 
     function setStrategy(address _strategy) external onlyOwner {
         strategy = IStrategy(_strategy);
+
+        if (USDT.allowance(address(this), address(strategy)) == 0) {
+            USDT.safeApprove(address(strategy), type(uint).max);
+        }
     }
 
     function setAdmin(address _admin) external onlyOwner {

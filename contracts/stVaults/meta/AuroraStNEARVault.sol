@@ -145,8 +145,11 @@ contract AuroraStNEARVault is BasicStVault {
     }
 
     function withdrawStWNEAR(uint _stAmount) private {
-        uint vaultAmount = stNEARVault.totalSupply() * _stAmount / stNEARVault.getAllPool();
-        stNEARVault.withdraw(vaultAmount);
+        uint shareAmount = stNEARVault.totalSupply() * _stAmount / stNEARVault.getAllPool();
+        uint shareBalance = stNEARVault.balanceOf(address(this));
+        if (shareAmount > shareBalance) shareAmount = shareBalance;
+
+        stNEARVault.withdraw(shareAmount);
     }
 
     function getAPR() public virtual override view returns (uint) {

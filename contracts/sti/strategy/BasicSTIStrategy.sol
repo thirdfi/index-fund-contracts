@@ -266,7 +266,9 @@ contract BasicSTIStrategy is OwnableUpgradeable {
     function withdrawFromPool(address _claimer, uint _pid, uint _sharePerc) external onlyVault returns (uint USDTAmt) {
         require(_sharePerc <= 1e18, "Over 100%");
         USDTAmt = _withdrawFromPool(_claimer, _pid, _sharePerc);
-        USDT.safeTransfer(vault, USDTAmt);
+        if (USDTAmt > 0) {
+            USDT.safeTransfer(vault, USDTAmt);
+        }
     }
 
     function emergencyWithdraw() external onlyVault {

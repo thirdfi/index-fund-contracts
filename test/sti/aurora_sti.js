@@ -23,8 +23,8 @@ function e(decimals) {
 
 describe("STI on Aurora", async () => {
 
-    let vault, strategy, priceOracle, usdt;
-    let vaultArtifact, strategyArtifact, stVaultArtifact, l2VaultArtifact, priceOracleArtifact;
+    let vault, strategy, stVault, priceOracle, usdt, nft;
+    let vaultArtifact, strategyArtifact, stVaultArtifact, l2VaultArtifact, priceOracleArtifact, nftArtifact;
     let admin;
 
     before(async () => {
@@ -33,6 +33,7 @@ describe("STI on Aurora", async () => {
       vaultArtifact = await deployments.getArtifact("STIVault");
       strategyArtifact = await deployments.getArtifact("AuroraSTIStrategy");
       stVaultArtifact = await deployments.getArtifact("AuroraStNEARVault");
+      nftArtifact = await deployments.getArtifact("StVaultNFT");
       l2VaultArtifact = await deployments.getArtifact("AuroraBastionVault");
       priceOracleArtifact = await deployments.getArtifact("AuroraPriceOracle");
     });
@@ -44,6 +45,8 @@ describe("STI on Aurora", async () => {
       vault = new ethers.Contract(vaultProxy.address, vaultArtifact.abi, a1);
       const strategyProxy = await ethers.getContract("AuroraSTIStrategy_Proxy");
       strategy = new ethers.Contract(strategyProxy.address, strategyArtifact.abi, a1);
+      stVault = new ethers.Contract(await strategy.WNEARVault(), stVaultArtifact.abi, a1);
+      nft = new ethers.Contract(await stVault.nft(), nftArtifact.abi, a1);
       const priceOracleProxy = await ethers.getContract("AuroraPriceOracle_Proxy");
       priceOracle = new ethers.Contract(priceOracleProxy.address, priceOracleArtifact.abi, a1);
 
@@ -77,9 +80,7 @@ describe("STI on Aurora", async () => {
         expect(await strategy.USDT()).equal(network_.Swap.USDT);
         expect(await strategy.tokens(0)).equal(network_.Swap.WNEAR);
         expect(await strategy.pid(network_.Swap.WNEAR)).equal(0);
-        const WNEARVaultAddr = await strategy.WNEARVault();
 
-        const stVault = new ethers.Contract(WNEARVaultAddr, stVaultArtifact.abi, a1);
         expect(await stVault.name()).equal('STI Staking WNEAR');
         expect(await stVault.symbol()).equal('stiStNEAR');
         expect(await stVault.treasuryWallet()).equal(common.treasury);
@@ -121,8 +122,6 @@ describe("STI on Aurora", async () => {
         await expectRevert(strategy.emergencyWithdraw(), "Only vault");
         await expectRevert(strategy.claimEmergencyWithdrawal(), "Only vault");
         await expectRevert(strategy.claim(a2.address), "Only vault");
-
-        const stVault = new ethers.Contract(await strategy.WNEARVault(), stVaultArtifact.abi, a1);
 
         await expectRevert(stVault.setAdmin(a2.address), "Ownable: caller is not the owner");
         await stVault.connect(deployer).setAdmin(a2.address);
@@ -205,20 +204,21 @@ describe("STI on Aurora", async () => {
     describe('Basic function', () => {
       beforeEach(async () => {
         vault.connect(deployer).setAdmin(accounts[0].address);
+        stVault.connect(deployer).setAdmin(accounts[0].address);
         admin = accounts[0];
       });
 
-      it("Basic Deposit/withdraw", async () => {
+      it("Basic Deposit/withdraw with small amount", async () => {
         await usdt.transfer(a1.address, getUsdtAmount('50000'));
         await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
 
-        const stVault = new ethers.Contract(await strategy.WNEARVault(), stVaultArtifact.abi, a1);
         const l2stNEARVault = new ethers.Contract(await stVault.stNEARVault(), l2VaultArtifact.abi, a1);
 
         // deposit
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
         await vault.connect(admin).deposit(a1.address, tokens, [getUsdtAmount('50000')]);
+
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(100));
 
         expect(await usdt.balanceOf(a1.address)).equal(0);
@@ -231,27 +231,67 @@ describe("STI on Aurora", async () => {
         const WNEARAmt = getWNearAmount(1).mul(50000).div(WNEARPrice).mul(e(WNEARPriceDecimals));
 
         const WNEAR = new ethers.Contract(network_.Swap.WNEAR, ERC20_ABI, deployer);
+        const WNEARDeposits = await WNEAR.balanceOf(stVault.address);
         expect(await WNEAR.balanceOf(strategy.address)).equal(0);
-        expect(await WNEAR.balanceOf(stVault.address)).closeTo(WNEARAmt, WNEARAmt.div(100));
+        expect(WNEARDeposits).closeTo(WNEARAmt, WNEARAmt.div(100));
 
-        // // invest
-        // const cNEAR = new ethers.Contract(network_.Bastion.cNEAR, ERC20_ABI, deployer);
-        // expect(await cNEAR.balanceOf(WNEARVault.address)).gt(0);
+        const cstNEAR = new ethers.Contract(network_.Bastion.cstNEAR1, ERC20_ABI, deployer);
+        expect(await cstNEAR.balanceOf(l2stNEARVault.address)).equal(0);
 
-        // await increaseTime(DAY);
-        // expect(await WNEARVault.getPendingRewards()).equal(0);
-        // await WNEARVault.connect(deployer).setAdmin(admin.address);
-        // await WNEARVault.connect(admin).yield();
+        expect(await stVault.bufferedDeposits()).equal(WNEARDeposits);
+        expect(await stVault.totalSupply()).equal(WNEARDeposits);
+        expect(await l2stNEARVault.totalSupply()).equal(0);
 
-        // await vault.connect(admin).withdrawPerc(a1.address, parseEther('1'));
-        // expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(10));
+        // invest
+        await stVault.connect(admin).invest();
+
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(50));
+
+        expect(await WNEAR.balanceOf(stVault.address)).equal(0);
+        const stNEAR = new ethers.Contract(network_.Token.stNEAR, ERC20_ABI, deployer);
+        expect(await stNEAR.balanceOf(stVault.address)).equal(0);
+        expect(await stNEAR.balanceOf(l2stNEARVault.address)).equal(0);
+
+        expect(await cstNEAR.balanceOf(l2stNEARVault.address)).gt(0);
+
+        ret = await priceOracle.getAssetPrice(network_.Token.stNEAR);
+        const stNEARPrice = ret[0];
+        const stNEARPriceDecimals = ret[1];
+        const stNEARAmt = getWNearAmount(1).mul(50000).div(stNEARPrice).mul(e(stNEARPriceDecimals));
+        expect(await stVault.getInvestedStTokens()).closeTo(stNEARAmt, stNEARAmt.div(50));
+        expect(await stVault.bufferedDeposits()).equal(0);
+
+        expect(await stVault.totalSupply()).gt(0);
+        const stNEARVaultShare = await l2stNEARVault.totalSupply();
+        expect(stNEARVaultShare).gt(0);
+
+        // withdraw all
+        await vault.connect(admin).withdrawPerc(a1.address, parseEther('1'));
+        let usdtBalance = await usdt.balanceOf(a1.address);
+        expect(usdtBalance).gt(0); // Some stNEARs is not swapped to WNEAR because metaPool buffer is insufficient
+        // expect(await nft.totalSupply()).equal(1);
+        // expect(await nft.exists(1)).equal(true);
+        // expect(await nft.isApprovedOrOwner(strategy.address, 1)).equal(true);
+        // expect(await stVault.pendingRedeems()).gt(0);
         // expect(await vault.getAllPoolInUSD()).equal(0);
+        ret = await vault.getUnbondedAll(a1.address);
+        let waitingInUSD = ret[0];
+        let unbondedInUSD = ret[1];
+        let waitForTs = ret[2];
+        expect(waitingInUSD).equal(0);
+        expect(unbondedInUSD).equal(0);
+        expect(waitForTs).equal(0);
+        expect(usdtBalance.add(waitingInUSD.div(e(12)))).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(25));
 
-        // expect(await usdt.balanceOf(vault.address)).equal(0);
-        // expect(await usdt.balanceOf(strategy.address)).equal(0);
-        // expect(await WNEAR.balanceOf(strategy.address)).equal(0);
-        // expect(await WNEAR.balanceOf(WNEARVault.address)).equal(0);
-        // expect(await cNEAR.balanceOf(WNEARVault.address)).equal(0);
+        expect(await stVault.totalSupply()).equal(0);
+        expect(await l2stNEARVault.totalSupply()).closeTo(stNEARVaultShare.div(50000), stNEARVaultShare.div(50000));
+        expect(await usdt.balanceOf(vault.address)).equal(0);
+        expect(await usdt.balanceOf(strategy.address)).equal(0);
+        expect(await WNEAR.balanceOf(strategy.address)).equal(0);
+        expect(await WNEAR.balanceOf(stVault.address)).equal(0);
+        expect(await stNEAR.balanceOf(stVault.address)).closeTo(stNEARVaultShare.div(50000), stNEARVaultShare.div(50000));
+        expect(await stNEAR.balanceOf(l2stNEARVault.address)).equal(0);
+        expect(await cstNEAR.balanceOf(l2stNEARVault.address)).closeTo(stNEARVaultShare.div(50000), stNEARVaultShare.div(50000));
       });
 
     //   it("emergencyWithdraw", async () => {

@@ -195,7 +195,7 @@ contract BasicStVault is IStVault,
         bufferedDeposits = _bufferedDeposits - _amount;
 
         if (withdrawAmt > 0) {
-            uint stTokenAmt = getStTokenByPooledToken(withdrawAmt);
+            uint stTokenAmt = oneStToken * withdrawAmt / getPooledTokenByStToken(oneStToken);
             (uint withdrawnStAmount, uint withdrawnAmount) = withdrawStToken(stTokenAmt);
             if (withdrawnStAmount > 0) {
                 _amount += withdrawnAmount;
