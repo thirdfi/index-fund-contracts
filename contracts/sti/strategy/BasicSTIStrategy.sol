@@ -506,8 +506,8 @@ contract BasicSTIStrategy is OwnableUpgradeable {
     }
 
     function getStVaultPoolInUSD(IStVault _stVault) internal view returns (uint) {
-        uint amt = _stVault.getAllPoolInUSD();
-        return amt == 0 ? 0 : amt * _stVault.balanceOf(address(this)) / _stVault.totalSupply();
+        uint stVaultTotalSupply = _stVault.totalSupply();
+        return stVaultTotalSupply == 0 ? 0 : _stVault.getAllPoolInUSD() * _stVault.balanceOf(address(this)) / stVaultTotalSupply;
     }
 
     ///@return the value in USD. it's scaled by 1e18;

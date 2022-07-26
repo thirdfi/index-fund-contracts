@@ -2,7 +2,7 @@ const { network } = require("hardhat");
 require("dotenv").config();
 
 const mainnetUrl = 'https://mainnet.aurora.dev';
-const mainnetBlockNumber = 68004900;
+const mainnetBlockNumber = 70702200;
 
 module.exports = async () => {
   await network.provider.request({

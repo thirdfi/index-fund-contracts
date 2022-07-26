@@ -15,7 +15,19 @@ async function increaseTime(seconds) {
     return rpc({ method: 'evm_mine' });
 }
 
+async function sendEth(from, to, ethStr) {
+    const value = ethers.utils.parseUnits(ethStr, 'ether').toHexString();
+  
+    const params = [{
+      from: from,
+      to: to,
+      value: value.replace(/^0x0/, '0x')
+    }];
+    return await rpc({ method: 'eth_sendTransaction', params: params });
+}
+  
 module.exports = {
     mineBlock,
     increaseTime,
+    sendEth,
 }

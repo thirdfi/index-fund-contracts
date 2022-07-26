@@ -273,7 +273,7 @@ describe("STI on Aurora", async () => {
         // expect(await nft.exists(1)).equal(true);
         // expect(await nft.isApprovedOrOwner(strategy.address, 1)).equal(true);
         // expect(await stVault.pendingRedeems()).gt(0);
-        // expect(await vault.getAllPoolInUSD()).equal(0);
+        expect(await vault.getAllPoolInUSD()).equal(0);
         ret = await vault.getUnbondedAll(a1.address);
         let waitingInUSD = ret[0];
         let unbondedInUSD = ret[1];
