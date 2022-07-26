@@ -89,5 +89,16 @@ module.exports = async ({ deployments }) => {
     });
   } catch (e) {
   }
+  try {
+    await run("verify:verify", {
+      address: stVaultNftAddr,
+      constructorArguments: [
+        await nftFactory.getBeacon(),
+        dataStVaultNft
+      ],
+      contract: "@openzeppelin/contracts/proxy/beacon/BeaconProxy.sol:BeaconProxy",
+    });
+  } catch(e) {
+  }
 };
 module.exports.tags = ["auroraMainnet_sti_StNEAR"];

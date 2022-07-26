@@ -160,11 +160,11 @@ contract BasicStVault is IStVault,
         } else {
             // The native asset is already received.
         }
+        bufferedDeposits += _amount;
+
         uint pool = getAllPool() - _amount;
         uint _totalSupply = totalSupply();
         uint _shares = (_totalSupply == 0) ? _amount : _amount * _totalSupply / pool;
-
-        bufferedDeposits += _amount;
 
         _mint(_account, _shares);
         adjustWatermark(_amount, true);

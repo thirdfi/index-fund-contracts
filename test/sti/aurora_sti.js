@@ -14,11 +14,17 @@ const DAY = 24 * 3600;
 function getUsdtAmount(amount) {
   return BigNumber.from(amount).mul(BigNumber.from(10).pow(6))
 }
+function getWNearAmount(amount) {
+  return BigNumber.from(amount).mul(BigNumber.from(10).pow(24))
+}
+function e(decimals) {
+  return BigNumber.from(10).pow(decimals)
+}
 
 describe("STI on Aurora", async () => {
 
-    let vault, strategy, usdt;
-    let vaultArtifact, strategyArtifact, stVaultArtifact, l2VaultArtifact;
+    let vault, strategy, priceOracle, usdt;
+    let vaultArtifact, strategyArtifact, stVaultArtifact, l2VaultArtifact, priceOracleArtifact;
     let admin;
 
     before(async () => {
@@ -28,6 +34,7 @@ describe("STI on Aurora", async () => {
       strategyArtifact = await deployments.getArtifact("AuroraSTIStrategy");
       stVaultArtifact = await deployments.getArtifact("AuroraStNEARVault");
       l2VaultArtifact = await deployments.getArtifact("AuroraBastionVault");
+      priceOracleArtifact = await deployments.getArtifact("AuroraPriceOracle");
     });
   
     beforeEach(async () => {
@@ -37,6 +44,8 @@ describe("STI on Aurora", async () => {
       vault = new ethers.Contract(vaultProxy.address, vaultArtifact.abi, a1);
       const strategyProxy = await ethers.getContract("AuroraSTIStrategy_Proxy");
       strategy = new ethers.Contract(strategyProxy.address, strategyArtifact.abi, a1);
+      const priceOracleProxy = await ethers.getContract("AuroraPriceOracle_Proxy");
+      priceOracle = new ethers.Contract(priceOracleProxy.address, priceOracleArtifact.abi, a1);
 
       admin = await ethers.getSigner(common.admin);
 
@@ -44,12 +53,9 @@ describe("STI on Aurora", async () => {
     });
 
     describe('Basic', () => {
-      let nftFactory, priceOracle;
+      let nftFactory;
 
       beforeEach(async () => {
-        const priceOracleProxy = await ethers.getContract("AuroraPriceOracle_Proxy");
-        const priceOracleArtifact = await deployments.getArtifact("AuroraPriceOracle");
-        priceOracle = new ethers.Contract(priceOracleProxy.address, priceOracleArtifact.abi, a1);
         nftFactory = await ethers.getContract("StVaultNFTFactory");
       });
   
@@ -196,48 +202,57 @@ describe("STI on Aurora", async () => {
       });
     });
 
-    // describe('Basic function', () => {
-    //   beforeEach(async () => {
-    //     vault.connect(deployer).setAdmin(accounts[0].address);
-    //     admin = accounts[0];
-    //   });
+    describe('Basic function', () => {
+      beforeEach(async () => {
+        vault.connect(deployer).setAdmin(accounts[0].address);
+        admin = accounts[0];
+      });
 
-    //   it("Basic Deposit/withdraw", async () => {
-    //     await usdt.transfer(a1.address, getUsdtAmount('50000'));
-    //     await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
+      it("Basic Deposit/withdraw", async () => {
+        await usdt.transfer(a1.address, getUsdtAmount('50000'));
+        await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
 
-    //     const WNEARVault = new ethers.Contract(await strategy.WNEARVault(), l2VaultArtifact.abi, a1);
-    //     expect(await WNEARVault.getAPR()).gt(0);
+        const stVault = new ethers.Contract(await strategy.WNEARVault(), stVaultArtifact.abi, a1);
+        const l2stNEARVault = new ethers.Contract(await stVault.stNEARVault(), l2VaultArtifact.abi, a1);
 
-    //     var ret = await vault.getEachPoolInUSD();
-    //     var tokens = ret[1];
-    //     await vault.connect(admin).deposit(a1.address, tokens, [getUsdtAmount('50000')]);
-    //     expect(await usdt.balanceOf(a1.address)).equal(0);
-    //     expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(10));
+        // deposit
+        var ret = await vault.getEachPoolInUSD();
+        var tokens = ret[1];
+        await vault.connect(admin).deposit(a1.address, tokens, [getUsdtAmount('50000')]);
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(100));
 
-    //     expect(await usdt.balanceOf(vault.address)).equal(0);
-    //     expect(await usdt.balanceOf(strategy.address)).equal(0);
-    //     const WNEAR = new ethers.Contract(network_.Swap.WNEAR, ERC20_ABI, deployer);
-    //     expect(await WNEAR.balanceOf(strategy.address)).equal(0);
-    //     expect(await WNEAR.balanceOf(WNEARVault.address)).equal(0);
-    //     const cNEAR = new ethers.Contract(network_.Bastion.cNEAR, ERC20_ABI, deployer);
-    //     expect(await cNEAR.balanceOf(WNEARVault.address)).gt(0);
+        expect(await usdt.balanceOf(a1.address)).equal(0);
+        expect(await usdt.balanceOf(vault.address)).equal(0);
+        expect(await usdt.balanceOf(strategy.address)).equal(0);
 
-    //     await increaseTime(DAY);
-    //     expect(await WNEARVault.getPendingRewards()).equal(0);
-    //     await WNEARVault.connect(deployer).setAdmin(admin.address);
-    //     await WNEARVault.connect(admin).yield();
+        ret = await priceOracle.getAssetPrice(network_.Swap.WNEAR);
+        const WNEARPrice = ret[0];
+        const WNEARPriceDecimals = ret[1];
+        const WNEARAmt = getWNearAmount(1).mul(50000).div(WNEARPrice).mul(e(WNEARPriceDecimals));
 
-    //     await vault.connect(admin).withdrawPerc(a1.address, parseEther('1'));
-    //     expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(10));
-    //     expect(await vault.getAllPoolInUSD()).equal(0);
+        const WNEAR = new ethers.Contract(network_.Swap.WNEAR, ERC20_ABI, deployer);
+        expect(await WNEAR.balanceOf(strategy.address)).equal(0);
+        expect(await WNEAR.balanceOf(stVault.address)).closeTo(WNEARAmt, WNEARAmt.div(100));
 
-    //     expect(await usdt.balanceOf(vault.address)).equal(0);
-    //     expect(await usdt.balanceOf(strategy.address)).equal(0);
-    //     expect(await WNEAR.balanceOf(strategy.address)).equal(0);
-    //     expect(await WNEAR.balanceOf(WNEARVault.address)).equal(0);
-    //     expect(await cNEAR.balanceOf(WNEARVault.address)).equal(0);
-    //   });
+        // // invest
+        // const cNEAR = new ethers.Contract(network_.Bastion.cNEAR, ERC20_ABI, deployer);
+        // expect(await cNEAR.balanceOf(WNEARVault.address)).gt(0);
+
+        // await increaseTime(DAY);
+        // expect(await WNEARVault.getPendingRewards()).equal(0);
+        // await WNEARVault.connect(deployer).setAdmin(admin.address);
+        // await WNEARVault.connect(admin).yield();
+
+        // await vault.connect(admin).withdrawPerc(a1.address, parseEther('1'));
+        // expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(10));
+        // expect(await vault.getAllPoolInUSD()).equal(0);
+
+        // expect(await usdt.balanceOf(vault.address)).equal(0);
+        // expect(await usdt.balanceOf(strategy.address)).equal(0);
+        // expect(await WNEAR.balanceOf(strategy.address)).equal(0);
+        // expect(await WNEAR.balanceOf(WNEARVault.address)).equal(0);
+        // expect(await cNEAR.balanceOf(WNEARVault.address)).equal(0);
+      });
 
     //   it("emergencyWithdraw", async () => {
     //     await usdt.transfer(a1.address, getUsdtAmount('5000'));
@@ -294,7 +309,7 @@ describe("STI on Aurora", async () => {
     //     expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('5000'), getUsdtAmount('5000').div(10));
     //     expect(await vault.getAllPoolInUSD()).equal(0);
     //   });
-    // });
+    });
 
     // describe('Enable the Bastion supply reward for cNEAR', () => {
     //   let rewardDistributor;
