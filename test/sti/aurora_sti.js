@@ -37,7 +37,7 @@ describe("STI on Aurora", async () => {
       l2VaultArtifact = await deployments.getArtifact("AuroraBastionVault");
       priceOracleArtifact = await deployments.getArtifact("AuroraPriceOracle");
     });
-  
+
     beforeEach(async () => {
       await deployments.fixture(["hardhat_aurora_sti"])
 
@@ -588,53 +588,45 @@ describe("STI on Aurora", async () => {
       });
     });
 
-    // describe('Enable the Bastion supply reward for cNEAR', () => {
-    //   let rewardDistributor;
-    //   let cNEAR, BSTN;
+    describe('Enable the Bastion supply reward for cstNEAR', () => {
+      let cstNEAR, BSTN, META;
 
-    //   beforeEach(async () => {
-    //     vault.connect(deployer).setAdmin(accounts[0].address);
-    //     admin = accounts[0];
+      beforeEach(async () => {
+        vault.connect(deployer).setAdmin(accounts[0].address);
+        stVault.connect(deployer).setAdmin(accounts[0].address);
+        admin = accounts[0];
 
-    //     await network.provider.request({method: "hardhat_impersonateAccount", params: ['0x4f44d184908AE367CAD0cb1b332A11545d76Bc87']});
-    //     const rewardAdmin = await ethers.getSigner('0x4f44d184908AE367CAD0cb1b332A11545d76Bc87');
-    //     rewardDistributor = new ethers.Contract('0x98E8d4b4F53FA2a2d1b9C651AF919Fc839eE4c1a', [
-    //       'function _setRewardSpeed(uint8 rewardType, address cToken, uint256 rewardSupplySpeed, uint256 rewardBorrowSpeed)',
-    //       'function rewardSupplySpeeds(uint8 rewardType, address cToken) external view returns (uint)',
-    //     ], rewardAdmin);
+        cstNEAR = new ethers.Contract(network_.Bastion.cstNEAR1, ERC20_ABI, deployer);
+        BSTN = new ethers.Contract('0x9f1F933C660a1DC856F0E0Fe058435879c5CCEf0', ERC20_ABI, deployer);
+        META = new ethers.Contract('0xc21Ff01229e982d7c8b8691163B0A3Cb8F357453', ERC20_ABI, deployer);
+      });
 
-    //     cNEAR = new ethers.Contract(network_.Bastion.cNEAR, ERC20_ABI, deployer);
-    //     BSTN = new ethers.Contract('0x9f1F933C660a1DC856F0E0Fe058435879c5CCEf0', ERC20_ABI, deployer);
-    //   });
+      it("Yield on L2 vault", async () => {
+        await usdt.transfer(a1.address, getUsdtAmount('5000'));
+        await usdt.connect(a1).approve(vault.address, getUsdtAmount('5000'));
 
-    //   it("Yield on L2 vault", async () => {
-    //     await usdt.transfer(a1.address, getUsdtAmount('5000'));
-    //     await usdt.connect(a1).approve(vault.address, getUsdtAmount('5000'));
+        const l2stNEARVault = new ethers.Contract(await stVault.stNEARVault(), l2VaultArtifact.abi, a1);
+        await l2stNEARVault.connect(deployer).setAdmin(admin.address);
 
-    //     const WNEARVault = new ethers.Contract(await strategy.WNEARVault(), l2VaultArtifact.abi, a1);
-    //     await WNEARVault.connect(deployer).setAdmin(admin.address);
+        var ret = await vault.getEachPoolInUSD();
+        var tokens = ret[1];
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('5000')]);
+        await stVault.connect(admin).invest();
 
-    //     await rewardDistributor._setRewardSpeed(0, network_.Bastion.cNEAR, 0, 0);
-    //     var ret = await vault.getEachPoolInUSD();
-    //     var tokens = ret[1];
-    //     await vault.connect(admin).deposit(a1.address, tokens, [getUsdtAmount('5000')]);
+        expect(await l2stNEARVault.getPendingRewards()).equal(0);
+        const balanceBefore = await cstNEAR.balanceOf(l2stNEARVault.address);
+        expect(await BSTN.balanceOf(common.treasury)).equal(0);
+        expect(await META.balanceOf(common.treasury)).equal(0);
 
-    //     await increaseTime(DAY);
-    //     expect(await WNEARVault.getPendingRewards()).equal(0);
-
-    //     const balanceBefore = await cNEAR.balanceOf(WNEARVault.address);
-    //     const aprBefore = await WNEARVault.getAPR();
-    //     expect(await BSTN.balanceOf(common.treasury)).equal(0);
-    //     await rewardDistributor._setRewardSpeed(0, network_.Bastion.cNEAR, parseEther('0.1'), 0);
-    //     expect(await WNEARVault.getAPR()).gt(aprBefore);
-
-    //     await increaseTime(DAY);
-    //     expect(await WNEARVault.getPendingRewards()).gt(0);
-    //     await WNEARVault.connect(admin).yield();
-    //     expect(await WNEARVault.getPendingRewards()).equal(0);
-    //     expect(await cNEAR.balanceOf(WNEARVault.address)).gt(balanceBefore);
-    //     expect(await BSTN.balanceOf(WNEARVault.address)).equal(0);
-    //     expect(await BSTN.balanceOf(common.treasury)).gt(0);
-    //   });
-    // });
+        await increaseTime(DAY);
+        expect(await l2stNEARVault.getPendingRewards()).gt(0);
+        await l2stNEARVault.connect(admin).yield();
+        expect(await l2stNEARVault.getPendingRewards()).equal(0);
+        expect(await cstNEAR.balanceOf(l2stNEARVault.address)).gt(balanceBefore);
+        expect(await BSTN.balanceOf(l2stNEARVault.address)).equal(0);
+        expect(await BSTN.balanceOf(common.treasury)).gt(0);
+        expect(await META.balanceOf(l2stNEARVault.address)).equal(0);
+        expect(await META.balanceOf(common.treasury)).gt(0);
+      });
+    });
 });
