@@ -503,6 +503,91 @@ describe("STI on Aurora", async () => {
       });
     });
 
+    describe('StVault', () => {
+      beforeEach(async () => {
+        vault.connect(deployer).setAdmin(accounts[0].address);
+        stVault.connect(deployer).setAdmin(accounts[0].address);
+        admin = accounts[0];
+      });
+
+      it("emergencyWithdraw", async () => {
+        await usdt.transfer(a1.address, getUsdtAmount('50000'));
+        await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
+
+        const l2stNEARVault = new ethers.Contract(await stVault.stNEARVault(), l2VaultArtifact.abi, a1);
+        const WNEAR = new ethers.Contract(network_.Swap.WNEAR, ERC20_ABI, deployer);
+        const stNEAR = new ethers.Contract(network_.Token.stNEAR, ERC20_ABI, deployer);
+        const cstNEAR = new ethers.Contract(network_.Bastion.cstNEAR1, ERC20_ABI, deployer);
+
+        // deposit & invest
+        var ret = await vault.getEachPoolInUSD();
+        var tokens = ret[1];
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('50000')]);
+        await stVault.connect(admin).invest();
+
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(50));
+        expect(await WNEAR.balanceOf(stVault.address)).equal(0);
+        expect(await cstNEAR.balanceOf(l2stNEARVault.address)).gt(0);
+        const stNEARVaultShare = await l2stNEARVault.totalSupply();
+
+        // emergency on stVault
+        await stVault.connect(admin).emergencyWithdraw();
+
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(50));
+        expect(await WNEAR.balanceOf(stVault.address)).gt(0);
+        expect(await cstNEAR.balanceOf(l2stNEARVault.address)).equal(0);
+
+        // withdraw 40%
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(2).div(5));
+        let usdtBalance = await usdt.balanceOf(a1.address);
+        expect(usdtBalance).gt(0); // Some stNEARs is not swapped to WNEAR because metaPool buffer is insufficient
+        // expect(await nft.totalSupply()).equal(1);
+        // expect(await nft.exists(1)).equal(true);
+        // expect(await nft.isApprovedOrOwner(strategy.address, 1)).equal(true);
+        // expect(await stVault.pendingRedeems()).gt(0);
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('30000'), parseEther('30000').div(50));
+        ret = await vault.getUnbondedAll(a1.address);
+        let waitingInUSD = ret[0];
+        let unbondedInUSD = ret[1];
+        let waitForTs = ret[2];
+        expect(waitingInUSD).equal(0);
+        expect(unbondedInUSD).equal(0);
+        expect(waitForTs).equal(0);
+        expect(usdtBalance.add(waitingInUSD.div(e(12)))).closeTo(getUsdtAmount('20000'), getUsdtAmount('20000').div(50));
+
+        // reinvest on stVault
+        await stVault.connect(admin).reinvest();
+
+        // withdraw all
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'));
+        usdtBalance = await usdt.balanceOf(a1.address);
+        expect(usdtBalance).gt(0); // Some stNEARs is not swapped to WNEAR because metaPool buffer is insufficient
+        // expect(await nft.totalSupply()).equal(1);
+        // expect(await nft.exists(1)).equal(true);
+        // expect(await nft.isApprovedOrOwner(strategy.address, 1)).equal(true);
+        // expect(await stVault.pendingRedeems()).gt(0);
+        expect(await vault.getAllPoolInUSD()).equal(0);
+        ret = await vault.getUnbondedAll(a1.address);
+        waitingInUSD = ret[0];
+        unbondedInUSD = ret[1];
+        waitForTs = ret[2];
+        expect(waitingInUSD).equal(0);
+        expect(unbondedInUSD).equal(0);
+        expect(waitForTs).equal(0);
+        expect(usdtBalance.add(waitingInUSD.div(e(12)))).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(50));
+
+        expect(await stVault.totalSupply()).equal(0);
+        expect(await l2stNEARVault.totalSupply()).closeTo(stNEARVaultShare.div(50000), stNEARVaultShare.div(50000));
+        expect(await usdt.balanceOf(vault.address)).equal(0);
+        expect(await usdt.balanceOf(strategy.address)).equal(0);
+        expect(await WNEAR.balanceOf(strategy.address)).equal(0);
+        expect(await WNEAR.balanceOf(stVault.address)).equal(0);
+        expect(await stNEAR.balanceOf(stVault.address)).closeTo(stNEARVaultShare.div(50000), stNEARVaultShare.div(50000));
+        expect(await stNEAR.balanceOf(l2stNEARVault.address)).equal(0);
+        expect(await cstNEAR.balanceOf(l2stNEARVault.address)).closeTo(stNEARVaultShare.div(50000), stNEARVaultShare.div(50000));
+      });
+    });
+
     // describe('Enable the Bastion supply reward for cNEAR', () => {
     //   let rewardDistributor;
     //   let cNEAR, BSTN;

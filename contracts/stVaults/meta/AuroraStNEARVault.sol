@@ -106,6 +106,7 @@ contract AuroraStNEARVault is BasicStVault {
 
     function _emergencyWithdraw(uint _pendingRedeems) internal override returns (uint _redeemed) {
         _pendingRedeems;
+        withdrawStWNEAR(type(uint).max);
         uint stBalance = stToken.balanceOf(address(this));
         if (stBalance >= minRedeemAmount) {
             _redeemed = _redeem(stBalance);
@@ -145,11 +146,18 @@ contract AuroraStNEARVault is BasicStVault {
     }
 
     function withdrawStWNEAR(uint _stAmount) private {
-        uint shareAmount = stNEARVault.totalSupply() * _stAmount / stNEARVault.getAllPool();
         uint shareBalance = stNEARVault.balanceOf(address(this));
-        if (shareAmount > shareBalance) shareAmount = shareBalance;
+        if (shareBalance > 0) {
+            uint shareAmount;
+            if (_stAmount != type(uint).max) {
+                shareAmount = stNEARVault.totalSupply() * _stAmount / stNEARVault.getAllPool();
+                if (shareAmount > shareBalance) shareAmount = shareBalance;
+            } else {
+                shareAmount = shareBalance;
+            }
 
-        stNEARVault.withdraw(shareAmount);
+            stNEARVault.withdraw(shareAmount);
+        }
     }
 
     function getAPR() public virtual override view returns (uint) {

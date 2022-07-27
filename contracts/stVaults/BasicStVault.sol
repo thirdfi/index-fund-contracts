@@ -180,7 +180,7 @@ contract BasicStVault is IStVault,
         _burn(msg.sender, _shares);
         adjustWatermark(withdrawAmt, false);
 
-        uint _bufferedDeposits = bufferedDeposits;
+        uint _bufferedDeposits = getBufferedDeposits();
         uint _fees = fees;
         uint _buffered = (_bufferedDeposits <= _fees) ? 0 : _bufferedDeposits - fees;
 
@@ -324,7 +324,6 @@ contract BasicStVault is IStVault,
         _pause();
         _yield();
 
-        bufferedDeposits = 0;
         _emergencyWithdrawInternal();
     }
     function _emergencyWithdrawInternal() internal {
@@ -346,7 +345,6 @@ contract BasicStVault is IStVault,
         _unpause();
 
         emergencyUnbondings = 0;
-        bufferedDeposits = getBufferedDeposits();
         _investInternal();
     }
 
