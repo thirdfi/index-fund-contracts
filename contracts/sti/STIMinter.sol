@@ -449,7 +449,7 @@ contract STIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     /// @param _pool total USD worth in all pools of STI after deposited
     /// @param _account account to which STIs will be minted
     /// @param _USDTAmt the deposited amount of USDT with 6 decimals
-    function mint(uint _pool, address _account, uint _USDTAmt) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
+    function mintByAdmin(uint _pool, address _account, uint _USDTAmt) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
         (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
         uint amtDeposit = _USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
         _pool = (amtDeposit < _pool) ? _pool - amtDeposit : 0;
@@ -474,7 +474,7 @@ contract STIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     /// @dev mint STIs according to the deposited USDT
     /// @param _account account to which STIs will be minted
     /// @param _share amount of STI to be burnt
-    function burn(address _account, uint _share) external onlyOwnerOrAdmin nonReentrant {
+    function burnByAdmin(address _account, uint _share) external onlyOwnerOrAdmin nonReentrant {
         require(0 < _share && _share <= STI.balanceOf(_account), "Invalid share amount");
         STI.burnFrom(_account, _share);
         emit Burn(_account, _share);

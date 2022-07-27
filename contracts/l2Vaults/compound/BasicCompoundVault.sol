@@ -1,14 +1,15 @@
 //SPDX-License-Identifier: MIT
 pragma solidity  0.8.9;
 
-import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "../../bni/priceOracle/IPriceOracle.sol";
 import "../../../interfaces/IERC20UpgradeableExt.sol";
+import "../../../libs/Math.sol";
 import "../../../libs/Token.sol";
 
 interface ICToken is IERC20Upgradeable {
@@ -100,8 +101,7 @@ contract BasicCompoundVault is Initializable, ERC20Upgradeable, OwnableUpgradeab
 
         cToken.mint(token.balanceOf(address(this)));
 
-        uint _totalSupply = totalSupply();
-        uint _shares = _totalSupply == 0 ? _amount : _amount * _totalSupply / _pool;
+        uint _shares = _pool == 0 ? _amount : _amount * totalSupply() / _pool;
         _mint(msg.sender, _shares);
 
         emit Deposit(msg.sender, _amount, _shares);
@@ -116,11 +116,12 @@ contract BasicCompoundVault is Initializable, ERC20Upgradeable, OwnableUpgradeab
         require(depositedBlock[msg.sender] != block.number, "Withdraw within same block");
 
         uint _pool = getAllPool();
-        uint _amountToWithdraw = _pool * _shares / totalSupply(); 
+        uint _amountToWithdraw = _pool * _shares / totalSupply();
 
         uint available = token.balanceOf(address(this));
         if(available < _amountToWithdraw) {
-            cToken.redeem(cToken.balanceOf(address(this)) * (_amountToWithdraw - available) / (_pool - available));
+            uint cTokenAmount = Math.roundedDiv(cToken.balanceOf(address(this)) * (_amountToWithdraw - available), (_pool - available));
+            cToken.redeem(cTokenAmount);
             _amountToWithdraw = token.balanceOf(address(this));
         }
         _burn(msg.sender, _shares);

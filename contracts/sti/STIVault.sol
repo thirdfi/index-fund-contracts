@@ -80,7 +80,7 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
 
     /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
     /// @param _USDTAmts amounts of USDT should be deposited to each pools. It's 6 decimals
-    function deposit(
+    function depositByAdmin(
         address _account, address[] memory _tokens, uint[] memory _USDTAmts
     ) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
         require(_account != address(0), "Invalid account");
@@ -101,7 +101,7 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     }
 
     /// @param _sharePerc percentage of assets which should be withdrawn. It's 18 decimals
-    function withdrawPerc(address _account, uint _sharePerc) external onlyOwnerOrAdmin nonReentrant {
+    function withdrawPercByAdmin(address _account, uint _sharePerc) external onlyOwnerOrAdmin nonReentrant {
         require(_sharePerc > 0, "SharePerc must > 0");
         require(_sharePerc <= 1e18, "Over 100%");
         

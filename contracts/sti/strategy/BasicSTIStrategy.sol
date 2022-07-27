@@ -208,10 +208,9 @@ contract BasicSTIStrategy is OwnableUpgradeable {
     function _withdrawStVault(IStVault _stVault, uint _sharePerc) private returns (uint USDTAmt, uint reqId) {
         uint amount = _stVault.balanceOf(address(this)) * _sharePerc / 1e18;
         if (0 < amount) {
-            address token = address(_stVault.token());
             (uint tokenAmt, uint _reqId) = _stVault.withdraw(amount);
             if (tokenAmt > 0) {
-                USDTAmt = _swapForUSDT(token, tokenAmt);
+                USDTAmt = _swapForUSDT(address(_stVault.token()), tokenAmt);
             }
             reqId = _reqId;
         }
