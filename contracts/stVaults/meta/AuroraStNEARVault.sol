@@ -89,9 +89,14 @@ contract AuroraStNEARVault is BasicStVault {
                 withdrawStWNEAR(_redeemed - stBalance);
                 stBalance = stToken.balanceOf(address(this));
             }
-            _redeemed = MathUpgradeable.min(_redeemed, stBalance);
 
-            metaPool.swapstNEARForwNEAR(_redeemed);
+            if (stBalance > 0) {
+                _redeemed = MathUpgradeable.min(_redeemed, stBalance);
+                metaPool.swapstNEARForwNEAR(_redeemed);
+            } else {
+                // Because _stAmount may be a calculation delta in withdraw function,
+                // it will reduce the pendingRedeems even though no redeeming on the staking pool.
+            }
         }
     }
 

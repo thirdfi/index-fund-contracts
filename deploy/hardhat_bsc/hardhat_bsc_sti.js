@@ -8,8 +8,8 @@ module.exports = async () => {
 
   await network.provider.request({method: "hardhat_impersonateAccount", params: [common.admin]});
 
-  await network.provider.request({method: "hardhat_impersonateAccount", params: ['0xF977814e90dA44bFA03b6295A0616a897441aceC']});
   const usdtHolder = await ethers.getSigner('0xF977814e90dA44bFA03b6295A0616a897441aceC');
+  await network.provider.request({method: "hardhat_impersonateAccount", params: [usdtHolder.address]});
   const usdt = new ethers.Contract('0x55d398326f99059fF775485246999027B3197955', ERC20_ABI, usdtHolder);
   await usdt.transfer(deployer.address, await usdt.balanceOf(usdtHolder.address));
 };

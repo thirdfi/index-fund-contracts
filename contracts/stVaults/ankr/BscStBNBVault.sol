@@ -30,6 +30,7 @@ contract BscStBNBVault is BasicStVault {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     IBinancePool public constant binancePool = IBinancePool(0x66BEA595AEFD5a65799a920974b377Ed20071118);
+    uint256 constant TEN_DECIMALS = 1e10;
 
     function initialize1(
         address _treasury, address _admin,
@@ -52,13 +53,20 @@ contract BscStBNBVault is BasicStVault {
     }
 
     function _invest(uint _amount) internal override returns (uint _invested) {
+        _amount -= (_amount % TEN_DECIMALS); // To avoid the error of "invalid received BNB amount: precision loss in amount conversion" in TokenHub.transferOut()
         binancePool.stakeAndClaimBonds{value: _amount}();
         return _amount;
     }
 
     function _redeem(uint _stAmount) internal override returns (uint _redeemed) {
-        binancePool.unstakeBonds(_stAmount);
-        return _stAmount;
+        // Because _stAmount-stBalance may be a calculation delta in withdraw function,
+        // it will reduce the pendingRedeems even though no redeeming on the staking pool.
+        _redeemed = _stAmount;
+
+        uint stBalance = stToken.balanceOf(address(this));
+        if (stBalance > 0) {
+            binancePool.unstakeBonds(_stAmount > stBalance ? stBalance : _stAmount);
+        }
     }
 
     function getEmergencyUnbondings() public override view returns (uint) {
@@ -71,7 +79,7 @@ contract BscStBNBVault is BasicStVault {
         uint stBalance = stToken.balanceOf(address(this));
         if (stBalance >= minRedeemAmount) {
             binancePool.unstakeBonds(stBalance);
-            emergencyUnbondings = (stBalance - _pendingRedeems);
+            emergencyUnbondings = (stBalance > _pendingRedeems) ? stBalance - _pendingRedeems : 0;
             _redeemed = stBalance;
         }
     }

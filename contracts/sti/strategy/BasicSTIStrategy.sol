@@ -152,7 +152,7 @@ contract BasicSTIStrategy is OwnableUpgradeable {
                 uint denominator = TOKENPriceInUSD * (10 ** (USDTPriceDecimals + usdtDecimals));
                 uint amountOutMin = USDTAmt * numerator * 95 / (denominator * 100);
 
-                if (address(token) == address(Const.NATIVE_ASSET)) {
+                if (token == Const.NATIVE_ASSET) {
                     tokenAmt = _swapForETH(address(USDT), USDTAmt, amountOutMin);
                 } else if (token == address(SWAP_BASE_TOKEN)) {
                     tokenAmt = _swap(address(USDT), token, USDTAmt, amountOutMin);
@@ -165,7 +165,11 @@ contract BasicSTIStrategy is OwnableUpgradeable {
 
             IStVault stVault = getStVault(_pid);
             if (address(stVault) != address(0)) {
-                stVault.deposit(tokenAmt);
+                if (token == Const.NATIVE_ASSET) {
+                    stVault.depositETH{value: tokenAmt}();
+                } else {
+                    stVault.deposit(tokenAmt);
+                }
             }
         }
     }
@@ -556,6 +560,8 @@ contract BasicSTIStrategy is OwnableUpgradeable {
         }
         return (allApr / Const.DENOMINATOR);
     }
+
+    receive() external payable {}
 
     /**
      * @dev This empty reserved space is put in place to allow future versions to add new

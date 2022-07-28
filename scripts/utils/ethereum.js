@@ -25,9 +25,14 @@ async function sendEth(from, to, ethStr) {
     }];
     return await rpc({ method: 'eth_sendTransaction', params: params });
 }
-  
+ 
+async function etherBalance(addr) {
+  return (await ethers.provider.getBalance(addr));
+}
+
 module.exports = {
     mineBlock,
     increaseTime,
     sendEth,
+    etherBalance,
 }

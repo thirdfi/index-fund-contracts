@@ -46,8 +46,12 @@ contract MoonbeamStDOTVault is BasicStVault {
     }
 
     function _redeem(uint _stAmount) internal override returns (uint _redeemed) {
-        IStDOT(address(stToken)).redeem(_stAmount);
-        return _stAmount;
+        // Because _stAmount-stBalance may be a calculation delta in withdraw function,
+        // it will reduce the pendingRedeems even though no redeeming on the staking pool.
+        _redeemed = _stAmount;
+
+        uint stBalance = stToken.balanceOf(address(this));
+        IStDOT(address(stToken)).redeem(_stAmount > stBalance ? stBalance : _stAmount);
     }
 
     function _claimUnbonded() internal override {
@@ -66,7 +70,7 @@ contract MoonbeamStDOTVault is BasicStVault {
         uint stBalance = stToken.balanceOf(address(this));
         if (stBalance >= minRedeemAmount) {
             IStDOT(address(stToken)).redeem(stBalance);
-            emergencyUnbondings = (stBalance - _pendingRedeems);
+            emergencyUnbondings = (stBalance > _pendingRedeems) ? stBalance - _pendingRedeems : 0;
             _redeemed = stBalance;
         }
     }
