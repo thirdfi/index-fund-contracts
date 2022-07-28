@@ -151,7 +151,7 @@ describe("STI on Aurora", async () => {
         await stVault.connect(deployer).setStakingAmounts(5,6);
         expect(await stVault.minInvestAmount()).equal(5);
         expect(await stVault.minRedeemAmount()).equal(6);
-        await stVault.connect(deployer).setStakingAmounts(0,0);
+        await stVault.connect(deployer).setStakingAmounts(1,1);
 
         await expectRevert(stVault.resetApr(), "Ownable: caller is not the owner");
         await stVault.connect(deployer).resetApr();

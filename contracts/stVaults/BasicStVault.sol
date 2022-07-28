@@ -102,6 +102,9 @@ contract BasicStVault is IStVault,
         oneToken = 10**tokenDecimals;
         oneStToken = 10**stTokenDecimals;
 
+        minInvestAmount = 1;
+        minRedeemAmount = 1;
+
         _updateApr();
     }
 
@@ -139,6 +142,8 @@ contract BasicStVault is IStVault,
     }
 
     function setStakingAmounts(uint _minInvestAmount, uint _minRedeemAmount) external onlyOwner {
+        require(_minInvestAmount > 0, "minInvestAmount must be > 0");
+        require(_minRedeemAmount > 0, "minRedeemAmount must be > 0");
         minInvestAmount = _minInvestAmount;
         minRedeemAmount = _minRedeemAmount;
     }
@@ -292,7 +297,7 @@ contract BasicStVault is IStVault,
     function _investInternal() internal {
         _collectProfitAndUpdateWatermark();
         uint _buffered = _transferOutFees();
-        if (_buffered > minInvestAmount && block.timestamp >= (lastInvestTs + investInterval)) {
+        if (_buffered >= minInvestAmount && block.timestamp >= (lastInvestTs + investInterval)) {
             uint _invested = _invest(_buffered);
             bufferedDeposits = _buffered - _invested;
             lastInvestTs = block.timestamp;
@@ -306,7 +311,7 @@ contract BasicStVault is IStVault,
         pendingRedeems -= redeemed;
     }
     function _redeemInternal(uint _stAmount) internal returns (uint _redeemed) {
-        require(_stAmount > minRedeemAmount, "too small");
+        require(_stAmount >= minRedeemAmount, "too small");
         require(block.timestamp >= (lastRedeemTs + redeemInterval), "Not able to redeem yet");
 
         _redeemed = _redeem(_stAmount);

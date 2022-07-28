@@ -28,7 +28,7 @@ interface IAAVAXb {
 contract AvaxStAVAXVault is BasicStVault {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    IAvalanchePool public avalanchePool = IAvalanchePool(0x7BAa1E3bFe49db8361680785182B80BB420A836D);
+    IAvalanchePool public constant avalanchePool = IAvalanchePool(0x7BAa1E3bFe49db8361680785182B80BB420A836D);
 
     function initialize1(
         address _treasury, address _admin,
@@ -45,6 +45,8 @@ contract AvaxStAVAXVault is BasicStVault {
         unbondingPeriod = 28 days;
         minInvestAmount = oneToken;
         oneEpoch = 24 hours;
+
+        stToken.safeApprove(address(avalanchePool), type(uint).max);
     }
 
     function _invest(uint _amount) internal override returns (uint _invested) {

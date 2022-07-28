@@ -64,13 +64,15 @@ contract BasicSTIStrategy is OwnableUpgradeable {
 
         USDT = IERC20UpgradeableExt(_USDT);
         usdtDecimals = USDT.decimals();
-        require(6 <= usdtDecimals, "USDT decimals must >= 6");
+        require(usdtDecimals >= 6, "USDT decimals must >= 6");
 
         tokens.push(_token0);
         updatePid();
 
         USDT.safeApprove(address(router), type(uint).max);
-        IERC20UpgradeableExt(_token0).safeApprove(address(router), type(uint).max);
+        if (_token0 != Const.NATIVE_ASSET) {
+            IERC20UpgradeableExt(_token0).safeApprove(address(router), type(uint).max);
+        }
     }
 
     function updatePid() internal {
@@ -98,7 +100,7 @@ contract BasicSTIStrategy is OwnableUpgradeable {
         _pid = tokens.length-1;
         pid[_token] = _pid;
 
-        if (IERC20UpgradeableExt(_token).allowance(address(this), address(router)) == 0) {
+        if (_token != Const.NATIVE_ASSET && IERC20UpgradeableExt(_token).allowance(address(this), address(router)) == 0) {
             IERC20UpgradeableExt(_token).safeApprove(address(router), type(uint).max);
         }
         emit AddToken(_token, _pid);

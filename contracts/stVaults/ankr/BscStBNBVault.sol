@@ -29,7 +29,7 @@ interface IABNBb {
 contract BscStBNBVault is BasicStVault {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    IBinancePool public binancePool = IBinancePool(0x66BEA595AEFD5a65799a920974b377Ed20071118);
+    IBinancePool public constant binancePool = IBinancePool(0x66BEA595AEFD5a65799a920974b377Ed20071118);
 
     function initialize1(
         address _treasury, address _admin,
@@ -47,6 +47,8 @@ contract BscStBNBVault is BasicStVault {
         minInvestAmount = oneToken * 1002 / 1000;
         minRedeemAmount = oneStToken;
         oneEpoch = 24 hours;
+
+        stToken.safeApprove(address(binancePool), type(uint).max);
     }
 
     function _invest(uint _amount) internal override returns (uint _invested) {

@@ -2,6 +2,7 @@ module.exports = {
   common: {
     admin: "0x3f68A3c1023d736D8Be867CA49Cb18c543373B99",
     treasury: "0x3f68A3c1023d736D8Be867CA49Cb18c543373B99",
+    nativeAsset: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
   },
 
   auroraMainnet: {
@@ -48,6 +49,11 @@ module.exports = {
       Farm_USDT_USDC_pid: 48,
       Farm_USDT_BUSD_pid: 7,
       Farm_USDC_BUSD_pid: 20,
+    },
+    Token: {
+      USDT: "0x55d398326f99059fF775485246999027B3197955",
+      WBNB: "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c",
+      aBNBb: "0xBb1Aa6e59E5163D8722a122cd66EBA614b59df0d",
     }
   },
 
