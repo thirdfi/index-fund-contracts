@@ -3,6 +3,7 @@ pragma solidity 0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../../bni/priceOracle/IPriceOracle.sol";
 import "../../../interfaces/IERC20UpgradeableExt.sol";
@@ -11,7 +12,7 @@ import "../../../interfaces/IStVault.sol";
 import "../../../libs/Const.sol";
 import "../../../libs/Token.sol";
 
-contract BasicSTIStrategy is OwnableUpgradeable {
+contract BasicSTIStrategy is PausableUpgradeable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20UpgradeableExt;
 
     IUniRouter public router;
@@ -124,6 +125,10 @@ contract BasicSTIStrategy is OwnableUpgradeable {
 
     /// @param _USDTAmts amounts of USDT should be deposited to each pools. They have been denominated in USDT decimals
     function invest(address[] memory _tokens, uint[] memory _USDTAmts) external onlyVault {
+        _investInternal(_tokens, _USDTAmts);
+    }
+
+    function _investInternal(address[] memory _tokens, uint[] memory _USDTAmts) internal {
         uint poolCnt = _tokens.length;
         uint USDTAmt;
         uint[] memory USDTAmts = new uint[](tokens.length);
@@ -277,6 +282,7 @@ contract BasicSTIStrategy is OwnableUpgradeable {
     }
 
     function emergencyWithdraw() external onlyVault {
+        _pause();
         // 1e18 == 100% of share
         uint USDTAmt = _withdraw(address(this), 1e18);
         if (USDTAmt > 0) {
@@ -289,10 +295,16 @@ contract BasicSTIStrategy is OwnableUpgradeable {
         _claimAllAndTransfer(address(this));
     }
 
-    function getUnbondedEmergencyWithdrawal() external view returns (
+    function getUnbondedEmergencyWithdrawal() public view returns (
         uint waitingInUSD, uint unbondedInUSD, uint waitForTs
     ) {
         return _getUnbondedAll(address(this));
+    }
+
+    /// @param _USDTAmts amounts of USDT should be deposited to each pools. They have been denominated in USDT decimals
+    function reinvest(address[] memory _tokens, uint[] memory _USDTAmts) external onlyVault {
+        _unpause();
+        _investInternal(_tokens, _USDTAmts);
     }
 
     function addReqId(address _token, address _claimer, uint _reqId) internal {
@@ -528,6 +540,11 @@ contract BasicSTIStrategy is OwnableUpgradeable {
         uint allPool;
         for (uint i = 0; i < poolCnt; i ++) {
             allPool += pools[i];
+        }
+
+        if (paused()) {
+            (uint waitingInUSD, uint unbondedInUSD,) = getUnbondedEmergencyWithdrawal();
+            allPool += (waitingInUSD + unbondedInUSD);
         }
         return allPool;
     }

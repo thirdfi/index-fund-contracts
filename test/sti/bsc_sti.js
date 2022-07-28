@@ -334,87 +334,88 @@ describe("STI on BSC", async () => {
         // expect(await aBNBb.balanceOf(stVault.address)).equal(0);
       });
 
-    //   it("emergencyWithdraw", async () => {
-    //     await usdt.transfer(a1.address, getUsdtAmount('50000'));
-    //     await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
-    //     await usdt.transfer(a2.address, getUsdtAmount('50000'));
-    //     await usdt.connect(a2).approve(vault.address, getUsdtAmount('50000'));
+      it("emergencyWithdraw", async () => {
+        await usdt.transfer(a1.address, getUsdtAmount('50000'));
+        await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
+        await usdt.transfer(a2.address, getUsdtAmount('50000'));
+        await usdt.connect(a2).approve(vault.address, getUsdtAmount('50000'));
 
-    //     // deposit
-    //     var ret = await vault.getEachPoolInUSD();
-    //     var tokens = ret[1];
-    //     await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdVaule('50000')]);
-    //     await stVault.connect(admin).invest();
-    //     await vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdVaule('50000')]);
+        const aBNBb = new ethers.Contract(network_.Token.aBNBb, ERC20_ABI, deployer);
 
-    //     expect(await vault.getAllPoolInUSD()).closeTo(parseEther('100000'), parseEther('100000').div(100));
+        // deposit
+        var ret = await vault.getEachPoolInUSD();
+        var tokens = ret[1];
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdVaule('50000')]);
+        await stVault.connect(admin).invest();
+        await vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdVaule('50000')]);
 
-    //     ret = await priceOracle.getAssetPrice(common.nativeAsset);
-    //     const BNBPrice = ret[0];
-    //     const BNBPriceDecimals = ret[1];
-    //     const BNBAmt = getBnbAmount(1).mul(50000).div(BNBPrice).mul(e(BNBPriceDecimals));
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('100000'), parseEther('100000').div(100));
 
-    //     const WNEAR = new ethers.Contract(network_.Swap.WNEAR, ERC20_ABI, deployer);
-    //     const BNBDeposits = await etherBalance(stVault.address);
-    //     expect(await etherBalance(strategy.address)).equal(0);
-    //     expect(BNBDeposits).closeTo(BNBAmt, BNBAmt.div(20));
+        ret = await priceOracle.getAssetPrice(common.nativeAsset);
+        const BNBPrice = ret[0];
+        const BNBPriceDecimals = ret[1];
+        const BNBAmt = getBnbAmount(1).mul(50000).div(BNBPrice).mul(e(BNBPriceDecimals));
 
-    //     const aBNBb = new ethers.Contract(network_.Token.aBNBb, ERC20_ABI, deployer);
+        const BNBDeposits = await etherBalance(stVault.address);
+        expect(await etherBalance(strategy.address)).equal(0);
+        expect(BNBDeposits).closeTo(BNBAmt, BNBAmt.div(100));
 
-    //     expect(await stVault.bufferedDeposits()).equal(BNBDeposits);
-    //     expect(await stVault.totalSupply()).closeTo(BNBDeposits.mul(2), BNBDeposits.mul(2).div(20));
+        expect(await stVault.bufferedDeposits()).equal(BNBDeposits);
+        expect(await stVault.totalSupply()).closeTo(BNBDeposits.mul(2), BNBDeposits.mul(2).div(50));
 
-    //     // emergencyWithdraw before investment
-    //     await vault.connect(admin).emergencyWithdraw();
+        const aBNBbAmt = await stVault.getStTokenByPooledToken(BNBDeposits);
+        const aBNBbBalance = await aBNBb.balanceOf(stVault.address);
+        expect(aBNBbBalance).closeTo(aBNBbAmt, aBNBbAmt.div(50));
 
-    //     expect(await vault.getAllPoolInUSD()).closeTo(parseEther('100000'), parseEther('100000').div(50));
+        // emergencyWithdraw before investment
+        await vault.connect(admin).emergencyWithdraw();
 
-    //     expect(await stVault.totalSupply()).equal(0);
-    //     expect(await usdt.balanceOf(vault.address)).closeTo(getUsdtAmount('100000'), getUsdtAmount('100000').div(50));
-    //     expect(await usdt.balanceOf(strategy.address)).equal(0);
-    //     expect(await etherBalance(strategy.address)).equal(0);
-    //     expect(await etherBalance(stVault.address)).equal(0);
-    //     expect(await aBNBb.balanceOf(stVault.address)).closeTo(l2TotalSupply.div(50000), l2TotalSupply.div(50000));
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('100000'), parseEther('100000').div(50));
+        expect(await stVault.totalSupply()).equal(0);
 
-    //     // check if deposit is disabled
-    //     await usdt.transfer(a2.address, getUsdtAmount('10000'));
-    //     await usdt.connect(a2).approve(vault.address, getUsdtAmount('10000'));
-    //     await expectRevert(vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdVaule('10000')]), "Pausable: paused");
+        // check if deposit is disabled
+        await usdt.transfer(a2.address, getUsdtAmount('10000'));
+        await usdt.connect(a2).approve(vault.address, getUsdtAmount('10000'));
+        await expectRevert(vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdVaule('10000')]), "Pausable: paused");
 
-    //     // withdraw all of a1's deposit
-    //     await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').div(2));
-    //     let usdtBalance = await usdt.balanceOf(a1.address);
-    //     expect(usdtBalance).gt(0); // Some aBNBbs is not swapped to WNEAR because metaPool buffer is insufficient
-    //     // expect(await nft.totalSupply()).equal(1);
-    //     // expect(await nft.exists(1)).equal(true);
-    //     // expect(await nft.isApprovedOrOwner(strategy.address, 1)).equal(true);
-    //     // expect(await stVault.pendingRedeems()).gt(0);
-    //     expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(20));
-    //     ret = await vault.getUnbondedAll(a1.address);
-    //     let waitingInUSD = ret[0];
-    //     let unbondedInUSD = ret[1];
-    //     let waitForTs = ret[2];
-    //     expect(waitingInUSD).equal(0);
-    //     expect(unbondedInUSD).equal(0);
-    //     expect(waitForTs).equal(0);
-    //     expect(usdtBalance.add(waitingInUSD.div(e(12)))).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(20));
+        await expectRevert(vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').div(2)), "Retry after all claimed");
 
-    //     // reinvest
-    //     ret = await vault.getCurrentCompositionPerc();
-    //     await vault.connect(admin).reinvest(ret[0], ret[1]);
+        // // withdraw all of a1's deposit
+        // await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').div(2));
+        // let usdtBalance = await usdt.balanceOf(a1.address);
+        // expect(usdtBalance).gte(0);
+        // expect(await stVault.bufferedDeposits()).equal(0);
+        // expect(await nft.totalSupply()).equal(1);
+        // expect(await nft.exists(1)).equal(true);
+        // expect(await nft.isApprovedOrOwner(strategy.address, 1)).equal(true);
+        // expect(await stVault.pendingRedeems()).closeTo(aBNBbBalance, aBNBbBalance.div(100));
+        // expect(await stVault.pendingWithdrawals()).closeTo(BNBDeposits, BNBDeposits.div(50));
+        // expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(50));
+        // ret = await vault.getUnbondedAll(a1.address);
+        // let waitingInUSD = ret[0];
+        // let unbondedInUSD = ret[1];
+        // let waitForTs = ret[2];
+        // expect(waitingInUSD).equal(0);
+        // expect(unbondedInUSD).equal(0);
+        // expect(waitForTs).equal(0);
+        // expect(usdtBalance.add(waitingInUSD.div(e(12)))).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(20));
 
-    //     expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(20));
-    //     expect(await usdt.balanceOf(vault.address)).equal(0);
-    //     expect(await etherBalance(stVault.address)).closeTo(BNBDeposits, BNBDeposits.div(20));
-    //     expect(await stVault.bufferedDeposits()).equal(await etherBalance(stVault.address));
-    //     expect(await stVault.totalSupply()).closeTo(BNBDeposits, BNBDeposits.div(20));
+        // // reinvest
+        // ret = await vault.getCurrentCompositionPerc();
+        // await vault.connect(admin).reinvest(ret[0], ret[1]);
 
-    //     await increaseTime(5*60);
-    //     await stVault.connect(admin).invest();
-    //     expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(20));
-    //     expect(await etherBalance(stVault.address)).equal(0);
-    //     expect(await aBNBb.balanceOf(stVault.address)).equal(0);
-    //   });
+        // expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(20));
+        // expect(await usdt.balanceOf(vault.address)).equal(0);
+        // expect(await etherBalance(stVault.address)).closeTo(BNBDeposits, BNBDeposits.div(20));
+        // expect(await stVault.bufferedDeposits()).equal(await etherBalance(stVault.address));
+        // expect(await stVault.totalSupply()).closeTo(BNBDeposits, BNBDeposits.div(20));
+
+        // await increaseTime(5*60);
+        // await stVault.connect(admin).invest();
+        // expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(20));
+        // expect(await etherBalance(stVault.address)).equal(0);
+        // expect(await aBNBb.balanceOf(stVault.address)).closeTo(aBNBbBalance, aBNBbBalance.div(100));
+      });
     });
 
     // describe('StVault', () => {

@@ -10,6 +10,7 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../bni/priceOracle/IPriceOracle.sol";
 import "../../interfaces/IERC20UpgradeableExt.sol";
 import "../../libs/Const.sol";
+import "../../libs/Token.sol";
 
 interface IStrategy {
     function invest(address[] memory tokens, uint[] memory USDTAmts) external;
@@ -17,6 +18,7 @@ interface IStrategy {
     function claim(address _claimer) external returns (uint USDTAmt);
     function emergencyWithdraw() external;
     function claimEmergencyWithdrawal() external;
+    function reinvest(address[] memory tokens, uint[] memory USDTAmts) external;
     function getUnbondedEmergencyWithdrawal() external view returns (uint waitingInUSD, uint unbondedInUSD, uint waitForTs);
     function getPoolsUnbonded(address _claimer) external view returns (
         address[] memory tokens,
@@ -104,16 +106,23 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     function withdrawPercByAdmin(address _account, uint _sharePerc) external onlyOwnerOrAdmin nonReentrant {
         require(_sharePerc > 0, "SharePerc must > 0");
         require(_sharePerc <= 1e18, "Over 100%");
-        
-        uint pool = getAllPoolInUSD();
+
+        (uint vaultPool, uint strategyPool) = _getAllPoolInUSD();
+        uint pool = vaultPool + strategyPool;
         uint withdrawAmt = pool * _sharePerc / 1e18;
+
         uint USDTAmt;
-        if (!paused()) {
-            strategy.withdrawPerc(_account, _sharePerc);
-            USDTAmt = USDT.balanceOf(address(this));
+        if (withdrawAmt <= vaultPool) {
+            USDTAmt = USDT.balanceOf(address(this)) * withdrawAmt / vaultPool;
         } else {
-            USDTAmt = USDT.balanceOf(address(this)) * _sharePerc / 1e18;
+            if (paused() == false) {
+                strategy.withdrawPerc(_account, 1e18 * (withdrawAmt - vaultPool) / strategyPool);
+                USDTAmt = USDT.balanceOf(address(this));
+            } else {
+                require(false, "Retry after all claimed");
+            }
         }
+
         if (USDTAmt > 0) {
             USDT.safeTransfer(_account, USDTAmt);
         }
@@ -157,7 +166,7 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
                 USMTAmts[i] = _perc[i] * USDTAmt / totalPerc;
             }
 
-            strategy.invest(_tokens, USMTAmts);
+            strategy.reinvest(_tokens, USMTAmts);
             emit Reinvest(USDTAmt);
         }
     }
@@ -212,6 +221,13 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         return priceOracle.getAssetPrice(address(USDT));
     }
 
+    ///@return the value in USD. it's scaled by 1e18;
+    function getValueInUSD(address _asset, uint _amount) internal view returns (uint) {
+        (uint priceInUSD, uint8 priceDecimals) = priceOracle.getAssetPrice(_asset);
+        uint8 _decimals = IERC20UpgradeableExt(_asset).decimals();
+        return Token.changeDecimals(_amount, _decimals, 18) * priceInUSD / (10 ** (priceDecimals));
+    }
+
     function getEachPoolInUSD() public view returns (uint[] memory chainIDs, address[] memory tokens, uint[] memory pools) {
         (tokens, pools) = strategy.getEachPoolInUSD();
         uint poolCnt = pools.length;
@@ -223,22 +239,22 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
 
         uint USDTAmt = USDT.balanceOf(address(this));
         if(USDTAmt > 0 && poolCnt > 0) {
-            (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
-            uint _pool = USDT.balanceOf(address(this)) * (10 ** (18-usdtDecimals)) * USDTPriceInUSD / (10 ** USDTPriceDecimals);
-            pools[0] += _pool;
+            pools[0] += getValueInUSD(address(USDT), USDTAmt);
         }
         return (chainIDs, tokens, pools);
     }
 
-    function getAllPoolInUSD() public view returns (uint) {
-        uint pool;
-        if (paused()) {
-            (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
-            pool = USDT.balanceOf(address(this)) * (10 ** (18-usdtDecimals)) * USDTPriceInUSD / (10 ** USDTPriceDecimals);
-        } else {
-            pool = strategy.getAllPoolInUSD();
+    function getAllPoolInUSD() public view returns (uint allPool) {
+        (uint vaultPool, uint strategyPool) = _getAllPoolInUSD();
+        allPool = vaultPool + strategyPool;
+    }
+
+    function _getAllPoolInUSD() internal view returns (uint vaultPool, uint strategyPool) {
+        uint USDTAmt = USDT.balanceOf(address(this));
+        if (USDTAmt > 0) {
+            vaultPool = getValueInUSD(address(USDT), USDTAmt);
         }
-        return pool;
+        strategyPool = strategy.getAllPoolInUSD();
     }
 
     function getCurrentCompositionPerc() external view returns (address[] memory tokens, uint[] memory percentages) {
