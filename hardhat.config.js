@@ -21,23 +21,6 @@ task("accounts", "Prints the list of accounts", async () => {
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
-const isBinance = (process.env.BLOCKCHAIN === 'binance') ? true : false;
-const isPolygon = (process.env.BLOCKCHAIN === 'polygon') ? true : false;
-const isAvalanche = (process.env.BLOCKCHAIN === 'avalanche') ? true : false;
-const isAurora = (process.env.BLOCKCHAIN === 'aurora') ? true : false;
-
-const apiKey = isBinance ? process.env.BSCSCAN_API_KEY
-              : isPolygon ? process.env.POLYGONSCAN_API_KEY
-              : isAvalanche ? process.env.AVAXSCAN_API_KEY
-              : isAurora ? process.env.AURORASCAN_API_KEY
-              : process.env.ETHERSCAN_API_KEY;
-
-const chainId = isBinance ? 56
-              : isPolygon ? 137
-              : isAvalanche ? 43114
-              : isAurora ? 1313161554
-              : 1;
-
 module.exports = {
   solidity: {
     compilers: [{
@@ -97,7 +80,18 @@ module.exports = {
     },
   },
   etherscan: {
-    apiKey: apiKey
+    apiKey: {
+      auroraMainnet: process.env.AURORASCAN_API_KEY,
+      auroraTestnet: process.env.AURORASCAN_API_KEY,
+      avaxMainnet: process.env.AVAXSCAN_API_KEY,
+      avaxTestnet: process.env.AVAXSCAN_API_KEY,
+      bscMainnet: process.env.BSCSCAN_API_KEY,
+      bscTestnet: process.env.BSCSCAN_API_KEY,
+      ethMainnet: process.env.ETHERSCAN_API_KEY,
+      ethRinkeby: process.env.ETHERSCAN_API_KEY,
+      maticMainnet: process.env.POLYGONSCAN_API_KEY,
+      maticMumbai: process.env.POLYGONSCAN_API_KEY,
+    }
   },
   gasReporter: {
     enabled: true

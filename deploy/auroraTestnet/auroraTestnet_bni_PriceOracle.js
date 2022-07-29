@@ -4,8 +4,8 @@ module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
   const [deployer] = await ethers.getSigners();
 
-  console.log("Now deploying AuroraPriceOracle...");
-  const proxy = await deploy("AuroraPriceOracle", {
+  console.log("Now deploying AuroraPriceOracleTest...");
+  const proxy = await deploy("AuroraPriceOracleTest", {
     from: deployer.address,
     proxy: {
       proxyContract: "OpenZeppelinTransparentProxy",
@@ -17,7 +17,7 @@ module.exports = async ({ deployments }) => {
       },
     },
   });
-  console.log("  AuroraPriceOracle_Proxy contract address: ", proxy.address);
+  console.log("  AuroraPriceOracleTest_Proxy contract address: ", proxy.address);
 
   // Verify the implementation contract
   try {
@@ -28,7 +28,7 @@ module.exports = async ({ deployments }) => {
 
     await run("verify:verify", {
       address: implAddress,
-      contract: "contracts/bni/priceOracle/AuroraPriceOracle.sol:AuroraPriceOracle",
+      contract: "contracts/bni/priceOracle/AuroraPriceOracleTest.sol:AuroraPriceOracleTest",
     });
   } catch (e) {
   }

@@ -43,13 +43,13 @@ contract AuroraPriceOracle is PriceOracle {
         return super.getAssetPrice(asset);
     }
 
-    function getWNEARPrice() public view returns (uint price, uint8 decimals) {
+    function getWNEARPrice() public view virtual returns (uint price, uint8 decimals) {
         uint priceInUSDT = getPriceFromPair(USDTWNEAR, AuroraConstant.WNEAR);
         uint priceInUSDC = getPriceFromPair(USDCWNEAR, AuroraConstant.WNEAR);
         return ((priceInUSDT + priceInUSDC) / 2, 18);
     }
 
-    function getPriceFromWNEARPair(IUniPair pair, address token) private view returns (uint price, uint8 decimals) {
+    function getPriceFromWNEARPair(IUniPair pair, address token) internal view returns (uint price, uint8 decimals) {
         uint priceInWNEAR = getPriceFromPair(pair, token);
         (uint WNEARPriceInUSD, uint8 WNEARPriceDecimals) = getWNEARPrice();
         price = WNEARPriceInUSD * priceInWNEAR / 1e18;
@@ -57,7 +57,7 @@ contract AuroraPriceOracle is PriceOracle {
     }
 
     ///@return the value denominated with other token. It's 18 decimals.
-    function getPriceFromPair(IUniPair pair, address token) private view returns (uint) {
+    function getPriceFromPair(IUniPair pair, address token) internal view returns (uint) {
         (uint _reserve0, uint _reserve1) = pair.getReserves();
         address token0 = pair.token0();
         address token1 = pair.token1();
@@ -79,7 +79,7 @@ contract AuroraPriceOracle is PriceOracle {
         return (numerator / denominator);
     }
 
-    function getStNEARPrice() private view returns (uint price, uint8 decimals) {
+    function getStNEARPrice() internal view returns (uint price, uint8 decimals) {
         uint wNearAmount = metaPool.stNearPrice() * (Const.DENOMINATOR - metaPool.wNearSwapFee()) / Const.DENOMINATOR;
         (uint WNEARPriceInUSD, uint8 WNEARPriceDecimals) = getWNEARPrice();
         price = WNEARPriceInUSD * wNearAmount / 1e24; // WNEAR decimals is 24;
