@@ -130,11 +130,18 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     }
 
     function claim() external nonReentrant {
-        strategy.claim(msg.sender);
+        _claimAllAndTransfer(msg.sender);
     }
 
     function claimByAdmin(address _account) external onlyOwnerOrAdmin nonReentrant {
-        strategy.claim(_account);
+        _claimAllAndTransfer(_account);
+    }
+
+    function _claimAllAndTransfer(address _account) internal {
+        uint USDTAmt = strategy.claim(_account);
+        if (USDTAmt > 0) {
+            USDT.safeTransfer(_account, USDTAmt);
+        }
     }
 
     function emergencyWithdraw() external onlyOwnerOrAdmin whenNotPaused {
