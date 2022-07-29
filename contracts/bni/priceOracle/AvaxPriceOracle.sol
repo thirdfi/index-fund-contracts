@@ -10,12 +10,14 @@ contract AvaxPriceOracle is PriceOracle {
     function initialize() public virtual override initializer {
         super.initialize();
 
-        address[] memory assets = new address[](2);
+        address[] memory assets = new address[](3);
         assets[0] = AvaxConstant.USDT;
         assets[1] = AvaxConstant.WAVAX;
-        address[] memory sources = new address[](2);
+        assets[2] = AvaxConstant.USDC;
+        address[] memory sources = new address[](3);
         sources[0] = 0xEBE676ee90Fe1112671f19b6B7459bC678B67e8a;
         sources[1] = 0x0A77230d17318075983913bC2145DB16C7366156;
+        sources[2] = 0xF096872672F44d6EBA71458D74fe67F9a77a23B9;
 
         setAssetSources(assets, sources);
     }

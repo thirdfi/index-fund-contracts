@@ -43,8 +43,8 @@ contract EthStMATICVault is BasicStVault {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     mapping(uint => uint) public tokenIds;
-    uint public first = 1;
-    uint public last = 0;
+    uint public first;
+    uint public last;
 
     function initialize1(
         address _treasury, address _admin,
@@ -60,6 +60,9 @@ contract EthStMATICVault is BasicStVault {
 
         unbondingPeriod = 4 days;
         oneEpoch = 24 hours;
+
+        first = 1;
+        last = 0;
 
         token.safeApprove(address(stToken), type(uint).max);
     }

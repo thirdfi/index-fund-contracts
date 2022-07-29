@@ -57,6 +57,16 @@ module.exports = {
     }
   },
 
+  ethMainnet: {
+    Token: {
+      MATIC: "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0",
+      stETH: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
+      stMATIC: "0x9ee91F9f426fA633d227f7a9b000E28b9dfd8599",
+      USDT: "0xdAC17F958D2ee523a2206206994597C13D831ec7",
+      WETH: "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2",
+    }
+  },
+
   maticMainnet: {
     Aave3: {
       aPolWMATIC: "0x6d80113e533a2C0fe82EaBD35f1875DcEA89Ea97",

@@ -68,7 +68,7 @@ contract EthStETHVault is BasicStVault {
     }
 
     function swapStEthForEth(uint _stAmount) private returns (uint _ethAmount) {
-        uint amountOutMin = getPooledTokenByStToken(_stAmount) * 97 / 100;
+        uint amountOutMin = getPooledTokenByStToken(_stAmount) * 90 / 100;
         uint balanceBefore = _tokenBalanceOf(address(this));
         curveStEth.exchange(1, 0, _stAmount, amountOutMin);
         _ethAmount = _tokenBalanceOf(address(this)) - balanceBefore;

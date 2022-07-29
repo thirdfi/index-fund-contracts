@@ -78,6 +78,14 @@ module.exports = {
       url: `https://data-seed-prebsc-2-s1.binance.org:8545`,
       accounts: [process.env.PRIVATE_KEY]
     },
+    ethMainnet: {
+      url: `https://mainnet.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts: [process.env.PRIVATE_KEY]
+    },
+    ethRinkeby: {
+      url: `https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`,
+      accounts: [process.env.PRIVATE_KEY]
+    },
     maticMainnet: {
       url: `https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_POLYGON_MAINNET_API_KEY}`,
       // url: `https://rpc-mainnet.maticvigil.com`, // ethers.provider.getStorageAt is failed with this url
