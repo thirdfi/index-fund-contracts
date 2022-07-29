@@ -425,8 +425,19 @@ contract BasicStVault is IStVault,
         _decimals = (_asset == Const.NATIVE_ASSET) ? 18 : IERC20UpgradeableExt(_asset).decimals();
     }
 
+    function _getFreeBufferedDeposits() internal view returns (uint _buffered) {
+        uint balance = _tokenBalanceOf(address(this));
+        uint _pendingWithdrawals = pendingWithdrawals;
+        // While unbonding, the balance could be less than pendingWithdrawals.
+        // After unbonded, the balance could be greater than pendingWithdrawals
+        //  because the rewards are accumulated in unbonding period on some staking pools.
+        //  In this case, the _buffered can be greater than bufferedDeposits.
+        // And also if the emergency withdrawal is unbonded, the _buffered will be greater than bufferedDeposits.
+        _buffered = (balance > _pendingWithdrawals) ? balance - _pendingWithdrawals : 0;
+    }
+
     function getBufferedDeposits() public virtual view returns (uint) {
-        return MathUpgradeable.max(bufferedDeposits, _tokenBalanceOf(address(this)) - pendingWithdrawals);
+        return MathUpgradeable.max(bufferedDeposits, _getFreeBufferedDeposits());
     }
 
     function bufferedWithdrawals() public view returns (uint) {
@@ -451,6 +462,7 @@ contract BasicStVault is IStVault,
         return _stAmount * oneToken / getStTokenByPooledToken(oneToken);
     }
 
+    ///@dev it doesn't include the unbonding stTokens according to the burnt shares.
     function getAllPool() public virtual view returns (uint _pool) {
         if (paused() == false) {
             uint stBalance = stToken.balanceOf(address(this))
@@ -469,11 +481,10 @@ contract BasicStVault is IStVault,
             if (stBalance > 0) {
                 _pool = getPooledTokenByStToken(stBalance);
             }
-            uint balance = _tokenBalanceOf(address(this));
-            uint _pendingWithdrawals = pendingWithdrawals;
-            if (balance > _pendingWithdrawals) {
-                _pool += (balance - _pendingWithdrawals);
-            }
+            // If the emergency withdrawal is unbonded,
+            //  then getEmergencyUnbondings() is less than emergencyUnbondings,
+            //  and _getFreeBufferedDeposits will be greater than bufferedDeposits.
+            _pool += _getFreeBufferedDeposits();
             _pool -= fees;
         }
     }

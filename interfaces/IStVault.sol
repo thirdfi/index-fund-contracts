@@ -25,7 +25,7 @@ interface IStVault is IERC20Upgradeable {
 
     // the buffered deposit token amount that is not yet staked into the staking pool.
     function bufferedDeposits() external view returns(uint);
-    // On some stake pools, the rewards is accumulated until unbonded even though redeem is requested. This function considers it.
+    // On some staking pools, the rewards are accumulated until unbonded even though redeem is requested. This function considers it.
     function getBufferedDeposits() external view returns(uint);
     // the buffered withdrawal token amount that is unstaked from the staking pool but not yet withdrawn from the user.
     function bufferedWithdrawals() external view returns(uint);
