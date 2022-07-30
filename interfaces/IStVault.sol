@@ -81,7 +81,7 @@ interface IStVault is IERC20Upgradeable {
         uint _requestTs, uint _waitForTs
     );
     ///@return the unbonded token amount that is claimable from the staking pool.
-    function getUnbondedToken() external view returns (uint);
+    function getTokenUnbonded() external view returns (uint);
 
     ///@dev deposit `_amount` of token.
     function deposit(uint _amount) external;

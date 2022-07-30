@@ -136,7 +136,7 @@ contract EthStMATICVault is BasicStVault {
         return balanceInMatic;
     }
 
-    function getUnbondedToken() public override view returns (uint _amount) {
+    function getTokenUnbonded() public override view returns (uint _amount) {
         IStakeManager stakeManager = IStMATIC(address(stToken)).stakeManager();
         uint epoch = stakeManager.epoch();
 

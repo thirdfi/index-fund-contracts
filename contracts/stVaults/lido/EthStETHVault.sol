@@ -76,11 +76,13 @@ contract EthStETHVault is BasicStVault {
 
     ///@param _amount Amount of tokens
     function getStTokenByPooledToken(uint _amount) public override view returns(uint) {
-        return IStETH(address(stToken)).getSharesByPooledEth(_amount);
+        return _amount;
+        // return IStETH(address(stToken)).getSharesByPooledEth(_amount);
     }
 
     ///@param _stAmount Amount of stTokens
     function getPooledTokenByStToken(uint _stAmount) public override view returns(uint) {
-        return IStETH(address(stToken)).getPooledEthByShares(_stAmount);
+        return _stAmount;
+        // return IStETH(address(stToken)).getPooledEthByShares(_stAmount);
     }
 }

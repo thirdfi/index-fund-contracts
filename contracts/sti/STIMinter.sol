@@ -51,6 +51,10 @@ interface Gateway {
         uint[] memory _waitForTses,
         bytes memory sig
     );
+    function getWithdrawableSharePerc1() external view returns(
+        uint _sharePerc,
+        bytes memory sig
+    );
 }
 
 contract STIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
@@ -463,12 +467,42 @@ contract STIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         emit Mint(_account, amtDeposit, share);
     }
 
-    /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
     /// @param _share amount of STI to be withdrawn
     /// @return _sharePerc percentage of assets which should be withdrawn. It's 18 decimals
     function getWithdrawPerc(address _account, uint _share) public view returns (uint _sharePerc) {
         require(0 < _share && _share <= STI.balanceOf(_account), "Invalid share amount");
         return (_share * 1e18) / STI.totalSupply();
+    }
+
+    function getWithdrawableSharePerc1() external view returns (
+        uint // _sharePerc
+    ) {
+        revert OffchainLookup(address(this), urls,
+            abi.encodeWithSelector(Gateway.getWithdrawableSharePerc1.selector),
+            STIMinter.getWithdrawableSharePerc1WithSig.selector,
+            abi.encode(0)
+        );
+    }
+    function getWithdrawableSharePerc1WithSig(bytes calldata result, bytes calldata extraData) external view returns(
+        uint _sharePerc
+    ) {
+        (uint[] memory _chainIDs, uint[] memory _sharePercs, bytes memory sig)
+            = abi.decode(result, (uint[], uint[], bytes));
+
+        address recovered = keccak256(
+            abi.encodePacked("\x19Ethereum Signed Message:\n32",
+            keccak256(abi.encodePacked(_chainIDs, _sharePercs))
+        )).recover(sig);
+        require(gatewaySigner == recovered, "Signer is incorrect");
+
+        uint length = _sharePercs.length;
+        if (length > 0) {
+            _sharePerc = _sharePercs[0];
+        }
+        for (uint i = 1; i < length; i++) {
+            uint perc = _sharePercs[i];
+            if (_sharePerc > perc) _sharePerc = perc;
+        }
     }
 
     /// @dev mint STIs according to the deposited USDT

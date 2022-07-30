@@ -77,15 +77,17 @@ contract MoonbeamStDOTVault is BasicStVault {
 
     ///@param _amount Amount of tokens
     function getStTokenByPooledToken(uint _amount) public override view returns(uint) {
-        return IStDOT(address(stToken)).getSharesByPooledKSM(_amount);
+        return _amount;
+        // return IStDOT(address(stToken)).getSharesByPooledKSM(_amount);
     }
 
     ///@param _stAmount Amount of stTokens
     function getPooledTokenByStToken(uint _stAmount) public override view returns(uint) {
-        return IStDOT(address(stToken)).getPooledKSMByShares(_stAmount);
+        return _stAmount;
+        // return IStDOT(address(stToken)).getPooledKSMByShares(_stAmount);
     }
 
-    function getUnbondedToken() public override view returns (uint _amount) {
+    function getTokenUnbonded() public override view returns (uint _amount) {
         (, _amount) = IStDOT(address(stToken)).getUnbonded(address(this));
     }
 }

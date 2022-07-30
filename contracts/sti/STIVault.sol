@@ -19,7 +19,7 @@ interface IStrategy {
     function emergencyWithdraw() external;
     function claimEmergencyWithdrawal() external;
     function reinvest(address[] memory tokens, uint[] memory USDTAmts) external;
-    function getUnbondedEmergencyWithdrawal() external view returns (uint waitingInUSD, uint unbondedInUSD, uint waitForTs);
+    function getEmergencyWithdrawalUnbonded() external view returns (uint waitingInUSD, uint unbondedInUSD, uint waitForTs);
     function getPoolsUnbonded(address _claimer) external view returns (
         address[] memory tokens,
         uint[] memory waitings,
@@ -28,7 +28,7 @@ interface IStrategy {
         uint[] memory unbondedInUSDs,
         uint[] memory waitForTses
     );
-    function getUnbondedAll(address _claimer) external view returns (uint waitingInUSD, uint unbondedInUSD, uint waitForTs);
+    function getAllUnbonded(address _claimer) external view returns (uint waitingInUSD, uint unbondedInUSD, uint waitForTs);
     function getPoolCount() external view returns (uint);
     function getEachPoolInUSD() external view returns (address[] memory tokens, uint[] memory pools);
     function getAllPoolInUSD() external view returns (uint);
@@ -157,7 +157,7 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         uint poolCnt = _tokens.length;
         require(poolCnt == _perc.length, "Not match array length");
 
-        (uint waitingInUSD, uint unbondedInUSD,) = getUnbondedEmergencyWithdrawal();
+        (uint waitingInUSD, uint unbondedInUSD,) = getEmergencyWithdrawalUnbonded();
         require(waitingInUSD + unbondedInUSD == 0, "Need to claim emergency withdrawal first");
 
         _unpause();
@@ -211,16 +211,22 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         }
     }
 
-    function getUnbondedAll(address _account) external view returns (
+    function getAllUnbonded(address _account) external view returns (
         uint waitingInUSD, uint unbondedInUSD, uint waitForTs
     ) {
-        return strategy.getUnbondedAll(_account);
+        return strategy.getAllUnbonded(_account);
     }
 
-    function getUnbondedEmergencyWithdrawal() public view returns (
+    function getEmergencyWithdrawalUnbonded() public view returns (
         uint waitingInUSD, uint unbondedInUSD, uint waitForTs
     ) {
-        return strategy.getUnbondedEmergencyWithdrawal();
+        return strategy.getEmergencyWithdrawalUnbonded();
+    }
+
+    function getWithdrawableSharePerc() public view returns (uint chainID, uint sharePerc) {
+        chainID = getChainID();
+        (uint vaultPool, uint strategyPool) = _getAllPoolInUSD();
+        sharePerc = 1e18 * vaultPool / (vaultPool + strategyPool);
     }
 
     /// @return the price of USDT in USD.

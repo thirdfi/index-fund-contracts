@@ -346,7 +346,7 @@ contract BasicStVault is IStVault,
     ///@notice Unpauses deposit, yield, invest functions, and invests funds.
     function reinvest() external onlyOwnerOrAdmin whenPaused {
         require(getEmergencyUnbondings() == 0, "Emergency unbonding is not finished");
-        require(getUnbondedToken() == 0, "claimUnbonded should be called");
+        require(getTokenUnbonded() == 0, "claimUnbonded should be called");
         _unpause();
 
         emergencyUnbondings = 0;
@@ -582,7 +582,7 @@ contract BasicStVault is IStVault,
         }
     }
 
-    function getUnbondedToken() public virtual view returns (uint) {
+    function getTokenUnbonded() public virtual view returns (uint) {
         return 0;
     }
 

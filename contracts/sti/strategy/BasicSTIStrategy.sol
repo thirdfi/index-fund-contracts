@@ -155,7 +155,7 @@ contract BasicSTIStrategy is PausableUpgradeable, OwnableUpgradeable {
                 uint8 tokenDecimals = _assetDecimals(token);
                 uint numerator = USDTPriceInUSD * (10 ** (TOKENPriceDecimals + tokenDecimals));
                 uint denominator = TOKENPriceInUSD * (10 ** (USDTPriceDecimals + usdtDecimals));
-                uint amountOutMin = USDTAmt * numerator * 95 / (denominator * 100);
+                uint amountOutMin = USDTAmt * numerator * 90 / (denominator * 100);
 
                 if (token == Const.NATIVE_ASSET) {
                     tokenAmt = _swapForETH(address(USDT), USDTAmt, amountOutMin);
@@ -295,10 +295,10 @@ contract BasicSTIStrategy is PausableUpgradeable, OwnableUpgradeable {
         _claimAllAndTransfer(address(this));
     }
 
-    function getUnbondedEmergencyWithdrawal() public view returns (
+    function getEmergencyWithdrawalUnbonded() public view returns (
         uint waitingInUSD, uint unbondedInUSD, uint waitForTs
     ) {
-        return _getUnbondedAll(address(this));
+        return _getAllUnbonded(address(this));
     }
 
     /// @param _USDTAmts amounts of USDT should be deposited to each pools. They have been denominated in USDT decimals
@@ -412,7 +412,7 @@ contract BasicSTIStrategy is PausableUpgradeable, OwnableUpgradeable {
         return (tokens, waitings, waitingInUSDs, unbondeds, unbondedInUSDs, waitForTses);
     }
 
-    function _getUnbondedAll(address _claimer) internal view returns (
+    function _getAllUnbonded(address _claimer) internal view returns (
         uint waitingInUSD, uint unbondedInUSD, uint waitForTs
     ) {
         uint poolCnt = tokens.length;
@@ -428,10 +428,10 @@ contract BasicSTIStrategy is PausableUpgradeable, OwnableUpgradeable {
         }
     }
 
-    function getUnbondedAll(address _claimer) external view returns (
+    function getAllUnbonded(address _claimer) external view returns (
         uint waitingInUSD, uint unbondedInUSD, uint waitForTs
     ) {
-        return _getUnbondedAll(_claimer);
+        return _getAllUnbonded(_claimer);
     }
 
     function claim(address _claimer) external onlyVault returns (uint USDTAmt) {
@@ -543,7 +543,7 @@ contract BasicSTIStrategy is PausableUpgradeable, OwnableUpgradeable {
         }
 
         if (paused()) {
-            (uint waitingInUSD, uint unbondedInUSD,) = getUnbondedEmergencyWithdrawal();
+            (uint waitingInUSD, uint unbondedInUSD,) = getEmergencyWithdrawalUnbonded();
             allPool += (waitingInUSD + unbondedInUSD);
         }
         return allPool;

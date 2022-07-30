@@ -274,7 +274,7 @@ describe("STI on Aurora", async () => {
         // expect(await nft.isApprovedOrOwner(strategy.address, 1)).equal(true);
         // expect(await stVault.pendingRedeems()).gt(0);
         expect(await vault.getAllPoolInUSD()).equal(0);
-        ret = await vault.getUnbondedAll(a1.address);
+        ret = await vault.getAllUnbonded(a1.address);
         let waitingInUSD = ret[0];
         let unbondedInUSD = ret[1];
         let waitForTs = ret[2];
@@ -367,7 +367,7 @@ describe("STI on Aurora", async () => {
         // expect(await nft.isApprovedOrOwner(strategy.address, 1)).equal(true);
         // expect(await stVault.pendingRedeems()).gt(0);
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('60000'), parseEther('60000').div(20));
-        ret = await vault.getUnbondedAll(a1.address);
+        ret = await vault.getAllUnbonded(a1.address);
         let waitingInUSD = ret[0];
         let unbondedInUSD = ret[1];
         let waitForTs = ret[2];
@@ -387,7 +387,7 @@ describe("STI on Aurora", async () => {
         // expect(await nft.isApprovedOrOwner(strategy.address, 1)).equal(true);
         // expect(await stVault.pendingRedeems()).gt(0);
         expect(await vault.getAllPoolInUSD()).equal(0);
-        ret = await vault.getUnbondedAll(a2.address);
+        ret = await vault.getAllUnbonded(a2.address);
         waitingInUSD = ret[0];
         unbondedInUSD = ret[1];
         waitForTs = ret[2];
@@ -473,7 +473,7 @@ describe("STI on Aurora", async () => {
         // expect(await nft.isApprovedOrOwner(strategy.address, 1)).equal(true);
         // expect(await stVault.pendingRedeems()).gt(0);
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(20));
-        ret = await vault.getUnbondedAll(a1.address);
+        ret = await vault.getAllUnbonded(a1.address);
         let waitingInUSD = ret[0];
         let unbondedInUSD = ret[1];
         let waitForTs = ret[2];
@@ -546,7 +546,7 @@ describe("STI on Aurora", async () => {
         // expect(await nft.isApprovedOrOwner(strategy.address, 1)).equal(true);
         // expect(await stVault.pendingRedeems()).gt(0);
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('30000'), parseEther('30000').div(50));
-        ret = await vault.getUnbondedAll(a1.address);
+        ret = await vault.getAllUnbonded(a1.address);
         let waitingInUSD = ret[0];
         let unbondedInUSD = ret[1];
         let waitForTs = ret[2];
@@ -567,7 +567,7 @@ describe("STI on Aurora", async () => {
         // expect(await nft.isApprovedOrOwner(strategy.address, 1)).equal(true);
         // expect(await stVault.pendingRedeems()).gt(0);
         expect(await vault.getAllPoolInUSD()).equal(0);
-        ret = await vault.getUnbondedAll(a1.address);
+        ret = await vault.getAllUnbonded(a1.address);
         waitingInUSD = ret[0];
         unbondedInUSD = ret[1];
         waitForTs = ret[2];
