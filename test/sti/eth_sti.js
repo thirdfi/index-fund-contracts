@@ -14,8 +14,9 @@ const StakeManager_ABI = [
 ];
 const Timelock_ABI = [
   "function grantRole(bytes32 role, address account)",
-  "function schedule(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt, uint256 delay)",
-  "function execute(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt) public payable",
+  "function schedule(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt, uint256 delay) external",
+  "function execute(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt) external payable",
+  "function getMinDelay() external view returns (uint256 duration)",
 ];
 
 const { common, ethMainnet: network_ } = require("../../parameters");
@@ -42,12 +43,42 @@ async function grantTimelockRole() {
 
   const timelockAdmin = await ethers.getSigner('0x427cEB53c3532835CcfdBbE4c533286e15d3576E');
   await network.provider.request({method: "hardhat_impersonateAccount", params: [timelockAdmin.address]});
+  const timelock = new ethers.Contract("0xCaf0aa768A3AE1297DF20072419Db8Bb8b5C8cEf", Timelock_ABI, timelockAdmin);
+  const delay = await timelock.getMinDelay();
 
-  let data = timelockIface.encodeFunctionData("grantRole", ["0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1", timelockAdmin.address]); // PROPOSER_ROLE
-  await executeMultisigTransaction(multiSigWalletAddr, timelockAddr, 0, data);
+  let proposerRoleData = timelockIface.encodeFunctionData("grantRole", ["0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1", timelockAdmin.address]); // PROPOSER_ROLE
+  let proposerRoleData1 = timelockIface.encodeFunctionData("schedule", [
+    timelockAddr, 0, proposerRoleData,
+    "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "0x0000000000000000000000000000000000000000000000000000000000000000",
+    delay
+  ]);
+  await executeMultisigTransaction(multiSigWalletAddr, timelockAddr, 0, proposerRoleData1);
 
-  data = timelockIface.encodeFunctionData("grantRole", ["0xd8aa0f3194971a2a116679f7c2090f6939c8d4e01a2a8d7e41d55e5351469e63", timelockAdmin.address]); // EXECUTOR_ROLE
-  await executeMultisigTransaction(multiSigWalletAddr, timelockAddr, 0, data);
+  let executorRoleData = timelockIface.encodeFunctionData("grantRole", ["0xd8aa0f3194971a2a116679f7c2090f6939c8d4e01a2a8d7e41d55e5351469e63", timelockAdmin.address]); // EXECUTOR_ROLE
+  let executorRoleData1 = timelockIface.encodeFunctionData("schedule", [
+    timelockAddr, 0, executorRoleData,
+    "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "0x0000000000000000000000000000000000000000000000000000000000000000",
+    delay
+  ]);
+  await executeMultisigTransaction(multiSigWalletAddr, timelockAddr, 0, executorRoleData1);
+
+  await increaseTime(delay.toNumber());
+
+  proposerRoleData1 = timelockIface.encodeFunctionData("execute", [
+    timelockAddr, 0, proposerRoleData,
+    "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "0x0000000000000000000000000000000000000000000000000000000000000000",
+  ]);
+  await executeMultisigTransaction(multiSigWalletAddr, timelockAddr, 0, proposerRoleData1);
+
+  executorRoleData1 = timelockIface.encodeFunctionData("execute", [
+    timelockAddr, 0, executorRoleData,
+    "0x0000000000000000000000000000000000000000000000000000000000000000",
+    "0x0000000000000000000000000000000000000000000000000000000000000000",
+  ]);
+  await executeMultisigTransaction(multiSigWalletAddr, timelockAddr, 0, executorRoleData1);
 }
 
 async function moveEpochToWithdraw(requestedEpoch) {
@@ -66,11 +97,15 @@ async function moveEpochToWithdraw(requestedEpoch) {
 
   const timelockAdmin = await ethers.getSigner('0x427cEB53c3532835CcfdBbE4c533286e15d3576E');
   const timelock = new ethers.Contract("0xCaf0aa768A3AE1297DF20072419Db8Bb8b5C8cEf", Timelock_ABI, timelockAdmin);
+  const delay = await timelock.getMinDelay();
 
   await timelock.schedule(stMaticGovernanceAddr, 0, governanceData,
                   "0x0000000000000000000000000000000000000000000000000000000000000000",
                   "0x0000000000000000000000000000000000000000000000000000000000000000",
-                  0);
+                  delay);
+
+  await increaseTime(delay.toNumber());
+
   await timelock.execute(stMaticGovernanceAddr, 0, governanceData,
                   "0x0000000000000000000000000000000000000000000000000000000000000000",
                   "0x0000000000000000000000000000000000000000000000000000000000000000");
