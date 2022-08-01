@@ -1,11 +1,22 @@
 const { expect } = require("chai");
-const { assert, ethers, deployments } = require("hardhat");
+const { assert, ethers, deployments, network } = require("hardhat");
 const { expectRevert } = require('@openzeppelin/test-helpers');
 const { BigNumber } = ethers;
 const parseEther = ethers.utils.parseEther;
-const { increaseTime, etherBalance } = require("../../scripts/utils/ethereum");
+const { increaseTime, etherBalance, sendEth } = require("../../scripts/utils/ethereum");
+const { executeMultisigTransaction } = require("../../scripts/utils/gnosis");
 
 const ERC20_ABI = require("@openzeppelin/contracts-upgradeable/build/contracts/ERC20Upgradeable.json").abi;
+const StakeManager_ABI = [
+  "function setCurrentEpoch(uint256 _currentEpoch) external",
+  "function epoch() external view returns (uint256)",
+  "function withdrawalDelay() external view returns (uint256)",
+];
+const Timelock_ABI = [
+  "function grantRole(bytes32 role, address account)",
+  "function schedule(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt, uint256 delay)",
+  "function execute(address target, uint256 value, bytes calldata data, bytes32 predecessor, bytes32 salt) public payable",
+];
 
 const { common, ethMainnet: network_ } = require("../../parameters");
 
@@ -24,11 +35,57 @@ function e(decimals) {
   return BigNumber.from(10).pow(decimals)
 }
 
+async function grantTimelockRole() {
+  const timelockIface = new ethers.utils.Interface(JSON.stringify(Timelock_ABI));
+  const timelockAddr = "0xCaf0aa768A3AE1297DF20072419Db8Bb8b5C8cEf";
+  const multiSigWalletAddr = "0xFa7D2a996aC6350f4b56C043112Da0366a59b74c";
+
+  const timelockAdmin = await ethers.getSigner('0x427cEB53c3532835CcfdBbE4c533286e15d3576E');
+  await network.provider.request({method: "hardhat_impersonateAccount", params: [timelockAdmin.address]});
+
+  let data = timelockIface.encodeFunctionData("grantRole", ["0xb09aa5aeb3702cfd50b6b62bc4532604938f21248a27a1d5ca736082b6819cc1", timelockAdmin.address]); // PROPOSER_ROLE
+  await executeMultisigTransaction(multiSigWalletAddr, timelockAddr, 0, data);
+
+  data = timelockIface.encodeFunctionData("grantRole", ["0xd8aa0f3194971a2a116679f7c2090f6939c8d4e01a2a8d7e41d55e5351469e63", timelockAdmin.address]); // EXECUTOR_ROLE
+  await executeMultisigTransaction(multiSigWalletAddr, timelockAddr, 0, data);
+}
+
+async function moveEpochToWithdraw(requestedEpoch) {
+  const stakeManagerIface = new ethers.utils.Interface(JSON.stringify(StakeManager_ABI));
+  const stakeManager = new ethers.Contract("0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908", StakeManager_ABI, deployer);
+  const withdrawalDelay = await stakeManager.withdrawalDelay();
+  const data = stakeManagerIface.encodeFunctionData("setCurrentEpoch", [withdrawalDelay.add(requestedEpoch)]);
+
+  const Governance_ABI = [
+    "function update(address target, bytes calldata data) external",
+  ];
+  const governanceIface = new ethers.utils.Interface(JSON.stringify(Governance_ABI));
+  const governanceData = governanceIface.encodeFunctionData("update", [stakeManager.address, data]);
+
+  const stMaticGovernanceAddr = "0x6e7a5820baD6cebA8Ef5ea69c0C92EbbDAc9CE48";
+
+  const timelockAdmin = await ethers.getSigner('0x427cEB53c3532835CcfdBbE4c533286e15d3576E');
+  const timelock = new ethers.Contract("0xCaf0aa768A3AE1297DF20072419Db8Bb8b5C8cEf", Timelock_ABI, timelockAdmin);
+
+  await timelock.schedule(stMaticGovernanceAddr, 0, governanceData,
+                  "0x0000000000000000000000000000000000000000000000000000000000000000",
+                  "0x0000000000000000000000000000000000000000000000000000000000000000",
+                  0);
+  await timelock.execute(stMaticGovernanceAddr, 0, governanceData,
+                  "0x0000000000000000000000000000000000000000000000000000000000000000",
+                  "0x0000000000000000000000000000000000000000000000000000000000000000");
+}
+
+async function getCurrentEpoch() {
+  const stakeManager = new ethers.Contract("0x5e3Ef299fDDf15eAa0432E6e66473ace8c13D908", StakeManager_ABI, deployer);
+  return await stakeManager.epoch();
+}
+
 describe("STI on ETH", async () => {
 
     let vault, strategy, stVault, priceOracle, usdt, nft;
     let stMaticVault, stMaticNft;
-    let vaultArtifact, strategyArtifact, stVaultArtifact, priceOracleArtifact, nftArtifact;
+    let vaultArtifact, strategyArtifact, stVaultArtifact, stMaticVaultArtifact, priceOracleArtifact, nftArtifact;
     let admin;
 
     before(async () => {
@@ -37,6 +94,7 @@ describe("STI on ETH", async () => {
       vaultArtifact = await deployments.getArtifact("STIVault");
       strategyArtifact = await deployments.getArtifact("EthSTIStrategy");
       stVaultArtifact = await deployments.getArtifact("EthStETHVault");
+      stMaticVaultArtifact = await deployments.getArtifact("EthStMATICVault");
       nftArtifact = await deployments.getArtifact("StVaultNFT");
       priceOracleArtifact = await deployments.getArtifact("EthPriceOracle");
     });
@@ -50,7 +108,7 @@ describe("STI on ETH", async () => {
       strategy = new ethers.Contract(strategyProxy.address, strategyArtifact.abi, a1);
       stVault = new ethers.Contract(await strategy.ETHVault(), stVaultArtifact.abi, a1);
       nft = new ethers.Contract(await stVault.nft(), nftArtifact.abi, a1);
-      stMaticVault = new ethers.Contract(await strategy.MATICVault(), stVaultArtifact.abi, a1);
+      stMaticVault = new ethers.Contract(await strategy.MATICVault(), stMaticVaultArtifact.abi, a1);
       stMaticNft = new ethers.Contract(await stMaticVault.nft(), nftArtifact.abi, a1);
       const priceOracleProxy = await ethers.getContract("EthPriceOracle_Proxy");
       priceOracle = new ethers.Contract(priceOracleProxy.address, priceOracleArtifact.abi, a1);
@@ -276,10 +334,12 @@ describe("STI on ETH", async () => {
 
     describe('Basic function', () => {
       beforeEach(async () => {
-        vault.connect(deployer).setAdmin(accounts[0].address);
-        stVault.connect(deployer).setAdmin(accounts[0].address);
-        stMaticVault.connect(deployer).setAdmin(accounts[0].address);
+        await vault.connect(deployer).setAdmin(accounts[0].address);
+        await stVault.connect(deployer).setAdmin(accounts[0].address);
+        await stMaticVault.connect(deployer).setAdmin(accounts[0].address);
         admin = accounts[0];
+
+        await grantTimelockRole();
       });
 
       it("Basic Deposit/withdraw with small amount", async () => {
@@ -406,6 +466,7 @@ describe("STI on ETH", async () => {
         expect(await stMaticVault.pendingRedeems()).equal(0);
         expect(await stMaticVault.pendingWithdrawals()).closeTo(MATICDeposits, MATICDeposits.div(50));
         expect(await stMATIC.balanceOf(stMaticVault.address)).closeTo(BigNumber.from(10), 10);
+        expect(await stMaticVault.first()).equal(await stMaticVault.last());
 
         // try before the end of unbonding. it should be failed.
         await increaseTime(waitForTs-10);
@@ -425,15 +486,22 @@ describe("STI on ETH", async () => {
         expect(ret[2]).equal(0);
 
         expect(await stVault.getTokenUnbonded()).equal(0);
+        expect(await stMaticVault.getTokenUnbonded()).equal(0);
 
+        // update the epoch on the stakeManager instead Lido
+        const epoch = await getCurrentEpoch();
+        await moveEpochToWithdraw(epoch);
 
-        // // transfer BNB to the stVault instead binancePool.
-        // const UnstakedAmt = await stVault.getPooledTokenByStToken(stETHBalance);
-        // await sendValue(deployer.address, stVault.address, UnstakedAmt);
-        // ret = await vault.getAllUnbonded(a1.address);
-        // expect(ret[0]).equal(0);
-        // expect(ret[1]).gt(0);
-        // expect(ret[2]).equal(0);
+        // transfer MATIC to the stMATIC contract instead Lido.
+        const UnstakedAmt = await stMaticVault.getPooledTokenByStToken(stMATICBalance);
+        const matic = new ethers.Contract('0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0', ERC20_ABI, deployer);
+        await matic.transfer(network_.Token.stMATIC, UnstakedAmt);
+        expect(await stMaticVault.getTokenUnbonded()).equal(UnstakedAmt);
+
+        ret = await vault.getAllUnbonded(a1.address);
+        expect(ret[0]).equal(0);
+        expect(ret[1]).gt(0);
+        expect(ret[2]).equal(0);
 
         // // claim the unbonded on stVault;
         // await vault.connect(a1).claim();
@@ -569,8 +637,8 @@ describe("STI on ETH", async () => {
 
     // describe('StVault', () => {
     //   beforeEach(async () => {
-    //     vault.connect(deployer).setAdmin(accounts[0].address);
-    //     stVault.connect(deployer).setAdmin(accounts[0].address);
+    //     await vault.connect(deployer).setAdmin(accounts[0].address);
+    //     await stVault.connect(deployer).setAdmin(accounts[0].address);
     //     admin = accounts[0];
     //   });
 

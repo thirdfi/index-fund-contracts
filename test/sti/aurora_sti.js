@@ -203,8 +203,8 @@ describe("STI on Aurora", async () => {
 
     describe('Basic function', () => {
       beforeEach(async () => {
-        vault.connect(deployer).setAdmin(accounts[0].address);
-        stVault.connect(deployer).setAdmin(accounts[0].address);
+        await vault.connect(deployer).setAdmin(accounts[0].address);
+        await stVault.connect(deployer).setAdmin(accounts[0].address);
         admin = accounts[0];
       });
 
@@ -505,8 +505,8 @@ describe("STI on Aurora", async () => {
 
     describe('StVault', () => {
       beforeEach(async () => {
-        vault.connect(deployer).setAdmin(accounts[0].address);
-        stVault.connect(deployer).setAdmin(accounts[0].address);
+        await vault.connect(deployer).setAdmin(accounts[0].address);
+        await stVault.connect(deployer).setAdmin(accounts[0].address);
         admin = accounts[0];
       });
 
@@ -592,8 +592,8 @@ describe("STI on Aurora", async () => {
       let cstNEAR, BSTN, META;
 
       beforeEach(async () => {
-        vault.connect(deployer).setAdmin(accounts[0].address);
-        stVault.connect(deployer).setAdmin(accounts[0].address);
+        await vault.connect(deployer).setAdmin(accounts[0].address);
+        await stVault.connect(deployer).setAdmin(accounts[0].address);
         admin = accounts[0];
 
         cstNEAR = new ethers.Contract(network_.Bastion.cstNEAR1, ERC20_ABI, deployer);

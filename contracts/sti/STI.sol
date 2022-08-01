@@ -10,7 +10,7 @@ contract STI is ERC20Upgradeable, OwnableUpgradeable {
 
   function initialize() external initializer {
     __Ownable_init();
-    __ERC20_init("Staking Index", "STI");
+    __ERC20_init("Staking Index Fund", "STI");
   }
 
   modifier onlyMinter() {

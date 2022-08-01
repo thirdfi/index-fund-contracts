@@ -1,5 +1,4 @@
 "use strict";
-
 const { ethers } = require("hardhat")
 
 async function rpc(request) {
