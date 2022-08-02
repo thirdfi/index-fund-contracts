@@ -169,7 +169,7 @@ contract BasicStVault is IStVault,
 
         uint pool = getAllPool() - _amount;
         uint _totalSupply = totalSupply();
-        uint _shares = (_totalSupply == 0) ? _amount : _amount * _totalSupply / pool;
+        uint _shares = (pool == 0 || _totalSupply == 0) ? _amount : _amount * _totalSupply / pool;
 
         _mint(_account, _shares);
         adjustWatermark(_amount, true);

@@ -35,6 +35,7 @@ contract EthSTIStrategy is BasicSTIStrategy {
         MATICVault = _MATICVault;
 
         IERC20Upgradeable(EthConstant.MATIC).safeApprove(address(MATICVault), type(uint).max);
+        IERC20Upgradeable(EthConstant.MATIC).safeApprove(address(router), type(uint).max);
     }
 
     function setStVault(IStVault _ETHVault, IStVault _MATICVault) external onlyOwner {
@@ -46,11 +47,10 @@ contract EthSTIStrategy is BasicSTIStrategy {
         }
     }
 
-    function getStVault(uint _pid) internal view override returns (IStVault stVault) {
-        address token = tokens[_pid];
-        if (token == Const.NATIVE_ASSET) {
+    function getStVault(address _token) internal view override returns (IStVault stVault) {
+        if (_token == Const.NATIVE_ASSET) {
             stVault = ETHVault;
-        } else if (token == EthConstant.MATIC) {
+        } else if (_token == EthConstant.MATIC) {
             stVault = MATICVault;
         }
     }

@@ -34,9 +34,8 @@ contract AvaxSTIStrategy is BasicSTIStrategy {
         AVAXVault = _AVAXVault;
     }
 
-    function getStVault(uint _pid) internal view override returns (IStVault stVault) {
-        address token = tokens[_pid];
-        if (token == Const.NATIVE_ASSET) {
+    function getStVault(address _token) internal view override returns (IStVault stVault) {
+        if (_token == Const.NATIVE_ASSET) {
             stVault = AVAXVault;
         }
     }

@@ -40,9 +40,8 @@ contract AuroraSTIStrategy is BasicSTIStrategy {
         }
     }
 
-    function getStVault(uint _pid) internal view override returns (IStVault stVault) {
-        address token = tokens[_pid];
-        if (token == AuroraConstant.WNEAR) {
+    function getStVault(address _token) internal view override returns (IStVault stVault) {
+        if (_token == AuroraConstant.WNEAR) {
             stVault = WNEARVault;
         }
     }

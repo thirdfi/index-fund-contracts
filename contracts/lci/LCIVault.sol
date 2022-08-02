@@ -95,7 +95,7 @@ contract LCIVault is ERC20Upgradeable, OwnableUpgradeable,
         adjustWatermark(amtDeposit, true);
 
         uint _totalSupply = totalSupply();
-        uint share = _totalSupply == 0 ? amtDeposit : _totalSupply * amtDeposit / pool;
+        uint share = (pool == 0 || _totalSupply == 0) ? amtDeposit : _totalSupply * amtDeposit / pool;
         // When assets invested in strategy, around 0.3% lost for swapping fee. We will consider it in share amount calculation to avoid pricePerFullShare fall down under 1.
         share = share * 997 / 1000;
         _mint(account, share);

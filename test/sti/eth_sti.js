@@ -534,140 +534,187 @@ describe("STI on ETH", async () => {
         expect(await stMaticVault.getTokenUnbonded()).equal(UnstakedAmt);
 
         ret = await vault.getAllUnbonded(a1.address);
+        expect(ret[0]).gt(0);
+        expect(ret[1]).equal(0);
+        expect(ret[2]).equal(0);
+
+        // claim the unbonded tokens on stVault
+        await stMaticVault.connect(admin).claimUnbonded();
+        expect(await stMaticVault.getTokenUnbonded()).equal(0);
+        expect(await stMaticVault.first()).gt(await stMaticVault.last());
+
+        ret = await vault.getAllUnbonded(a1.address);
         expect(ret[0]).equal(0);
         expect(ret[1]).gt(0);
         expect(ret[2]).equal(0);
 
-        // // claim the unbonded on stVault;
-        // await vault.connect(a1).claim();
-        // expect(await stVault.pendingWithdrawals()).equal(0);
-        // expect(await etherBalance(stVault.address)).equal(0);
-        // expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(25));
+        // claim the unbonded on vault;
+        await vault.connect(a1).claim();
+        expect(await stVault.pendingWithdrawals()).equal(0);
+        expect(await stMaticVault.pendingWithdrawals()).equal(0);
+        expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('100000'), getUsdtAmount('100000').div(25));
 
-        // ret = await vault.getAllUnbonded(a1.address);
-        // expect(ret[0]).equal(0);
-        // expect(ret[1]).equal(0);
-        // expect(ret[2]).equal(0);
-        // expect(await nft.totalSupply()).equal(0);
+        ret = await vault.getAllUnbonded(a1.address);
+        expect(ret[0]).equal(0);
+        expect(ret[1]).equal(0);
+        expect(ret[2]).equal(0);
+        expect(await nft.totalSupply()).equal(0);
 
-        // expect(await stVault.totalSupply()).equal(0);
-        // expect(await usdt.balanceOf(vault.address)).equal(0);
-        // expect(await usdt.balanceOf(strategy.address)).equal(0);
-        // expect(await etherBalance(strategy.address)).equal(0);
-        // expect(await etherBalance(stVault.address)).equal(0);
-        // expect(await stETH.balanceOf(stVault.address)).closeTo(BigNumber.from(10), 10);
+        expect(await stVault.totalSupply()).equal(0);
+        expect(await stMaticVault.totalSupply()).equal(0);
+        expect(await usdt.balanceOf(vault.address)).equal(0);
+        expect(await usdt.balanceOf(strategy.address)).equal(0);
+        expect(await etherBalance(stVault.address)).equal(0);
+        expect(await MATIC.balanceOf(stMaticVault.address)).equal(0);
+        expect(await stETH.balanceOf(stVault.address)).closeTo(BigNumber.from(1),BigNumber.from(1));
+        expect(await stMATIC.balanceOf(stMaticVault.address)).equal(0);
       });
 
-      // it("emergencyWithdraw", async () => {
-      //   await usdt.transfer(a1.address, getUsdtAmount('50000'));
-      //   await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
-      //   await usdt.transfer(a2.address, getUsdtAmount('50000'));
-      //   await usdt.connect(a2).approve(vault.address, getUsdtAmount('50000'));
+      it("emergencyWithdraw", async () => {
+        await usdt.transfer(a1.address, getUsdtAmount('50000'));
+        await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
+        await usdt.transfer(a2.address, getUsdtAmount('50000'));
+        await usdt.connect(a2).approve(vault.address, getUsdtAmount('50000'));
 
-      //   const stETH = new ethers.Contract(network_.Token.stETH, ERC20_ABI, deployer);
+        const stETH = new ethers.Contract(network_.Token.stETH, ERC20_ABI, deployer);
+        const MATIC = new ethers.Contract(network_.Token.MATIC, ERC20_ABI, deployer);
+        const stMATIC = new ethers.Contract(network_.Token.stMATIC, ERC20_ABI, deployer);
 
-      //   // deposit
-      //   var ret = await vault.getEachPoolInUSD();
-      //   var tokens = ret[1];
-      //   await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdVaule('50000')]);
-      //   await stVault.connect(admin).invest();
-      //   await vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdVaule('50000')]);
+        // deposit
+        var ret = await vault.getEachPoolInUSD();
+        var tokens = ret[1];
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdVaule('25000'),getUsdVaule('25000')]);
+        await stVault.connect(admin).invest();
+        await stMaticVault.connect(admin).invest();
+        await vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdVaule('25000'),getUsdVaule('25000')]);
 
-      //   expect(await vault.getAllPoolInUSD()).closeTo(parseEther('100000'), parseEther('100000').div(100));
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('100000'), parseEther('100000').div(20));
 
-      //   ret = await priceOracle.getAssetPrice(common.nativeAsset);
-      //   const ETHPrice = ret[0];
-      //   const ETHPriceDecimals = ret[1];
-      //   const ETHAmt = getMaticAmount(1).mul(50000).div(ETHPrice).mul(e(ETHPriceDecimals));
+        ret = await priceOracle.getAssetPrice(common.nativeAsset);
+        const ETHPrice = ret[0];
+        const ETHPriceDecimals = ret[1];
+        const ETHAmt = getMaticAmount(1).mul(25000).div(ETHPrice).mul(e(ETHPriceDecimals));
+        ret = await priceOracle.getAssetPrice(network_.Token.MATIC);
+        const MATICPrice = ret[0];
+        const MATICPriceDecimals = ret[1];
+        const MATICAmt = getMaticAmount(1).mul(25000).div(MATICPrice).mul(e(MATICPriceDecimals));
 
-      //   const ETHDeposits = await etherBalance(stVault.address);
-      //   expect(await etherBalance(strategy.address)).equal(0);
-      //   expect(ETHDeposits).closeTo(ETHAmt, ETHAmt.div(100));
+        const ETHDeposits = await etherBalance(stVault.address);
+        expect(await etherBalance(strategy.address)).equal(0);
+        expect(ETHDeposits).closeTo(ETHAmt, ETHAmt.div(100));
+        const MATICDeposits = await MATIC.balanceOf(stMaticVault.address);
+        expect(await MATIC.balanceOf(strategy.address)).equal(0);
+        expect(MATICDeposits).closeTo(MATICAmt, MATICAmt.div(5));
 
-      //   expect(await stVault.bufferedDeposits()).equal(ETHDeposits);
-      //   expect(await stVault.totalSupply()).closeTo(ETHDeposits.mul(2), ETHDeposits.mul(2).div(50));
+        expect(await stVault.bufferedDeposits()).equal(ETHDeposits);
+        expect(await stVault.totalSupply()).closeTo(ETHDeposits.mul(2), ETHDeposits.mul(2).div(50));
+        expect(await stMaticVault.bufferedDeposits()).equal(MATICDeposits);
+        expect(await stMaticVault.totalSupply()).closeTo(MATICDeposits.mul(2), MATICDeposits.mul(2).div(20));
 
-      //   const stETHAmt = await stVault.getStTokenByPooledToken(ETHDeposits);
-      //   const stETHBalance = await stETH.balanceOf(stVault.address);
-      //   expect(stETHBalance).closeTo(stETHAmt, stETHAmt.div(50));
+        const stETHAmt = await stVault.getStTokenByPooledToken(ETHDeposits);
+        const stETHBalance = await stETH.balanceOf(stVault.address);
+        expect(stETHBalance).closeTo(stETHAmt, stETHAmt.div(50));
+        const stMATICAmt = await stMaticVault.getStTokenByPooledToken(MATICDeposits);
+        const stMATICBalance = await stMATIC.balanceOf(stMaticVault.address);
+        expect(stMATICBalance).closeTo(stMATICAmt, stMATICAmt.div(10));
 
-      //   // emergencyWithdraw before investment
-      //   await vault.connect(admin).emergencyWithdraw();
+        // emergencyWithdraw before investment
+        await vault.connect(admin).emergencyWithdraw();
 
-      //   expect(await vault.getAllPoolInUSD()).closeTo(parseEther('100000'), parseEther('100000').div(50));
-      //   expect(await stVault.totalSupply()).equal(0);
-      //   expect(await stVault.pendingRedeems()).closeTo(stETHBalance, stETHBalance.div(100));
-      //   expect(await stVault.pendingWithdrawals()).closeTo(ETHDeposits, ETHDeposits.div(50));
-      //   expect(await usdt.balanceOf(vault.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(50));
-      //   expect(await nft.totalSupply()).equal(1);
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('100000'), parseEther('100000').div(20));
+        expect(await stVault.totalSupply()).equal(0);
+        expect(await stVault.pendingRedeems()).equal(0);
+        expect(await stVault.pendingWithdrawals()).equal(0);
+        expect(await nft.totalSupply()).equal(0);
+        expect(await stMaticVault.totalSupply()).equal(0);
+        expect(await stMaticVault.pendingRedeems()).closeTo(stMATICBalance, stMATICBalance.div(100));
+        expect(await stMaticVault.pendingWithdrawals()).closeTo(stMATICAmt, stMATICAmt.div(5));
+        expect(await stMaticNft.totalSupply()).equal(1);
+        expect(await usdt.balanceOf(vault.address)).closeTo(getUsdtAmount('75000'), getUsdtAmount('75000').div(20));
 
-      //   ret = await vault.getEmergencyWithdrawalUnbonded();
-      //   let waitingInUSD = ret[0];
-      //   let unbondedInUSD = ret[1];
-      //   let waitForTs = ret[2];
-      //   expect(waitingInUSD).closeTo(parseEther('50000'), parseEther('50000').div(50));
-      //   expect(unbondedInUSD).equal(0);
-      //   const unbondingPeriod = await stVault.unbondingPeriod();
-      //   expect(waitForTs).closeTo(unbondingPeriod, unbondingPeriod.div(100));
+        ret = await vault.getEmergencyWithdrawalUnbonded();
+        let waitingInUSD = ret[0];
+        let unbondedInUSD = ret[1];
+        let waitForTs = ret[2];
+        expect(waitingInUSD).closeTo(parseEther('25000'), parseEther('25000').div(10));
+        expect(unbondedInUSD).equal(0);
+        const unbondingPeriod = await stMaticVault.unbondingPeriod();
+        expect(waitForTs).closeTo(unbondingPeriod, unbondingPeriod.div(100));
 
-      //   await expectRevert(vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdVaule('10000')]), "Pausable: paused");
-      //   await expectRevert(vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(2).div(3)), "Retry after all claimed");
+        await expectRevert(vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdVaule('10000')]), "Pausable: paused");
+        await expectRevert(vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(4).div(5)), "Retry after all claimed");
 
-      //   // withdraw a little of amount
-      //   await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').div(10));
-      //   expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('10000'), getUsdtAmount('10000').div(50));
-      //   expect(await vault.getAllPoolInUSD()).closeTo(parseEther('90000'), parseEther('90000').div(50));
+        // withdraw a little of amount
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').div(10));
+        expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('10000'), getUsdtAmount('10000').div(20));
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('90000'), parseEther('90000').div(20));
 
-      //   // redeem on stVault
-      //   await stVault.connect(admin).redeem();
+        // redeem on stVault
+        await stMaticVault.connect(admin).redeem();
 
-      //   await increaseTime(unbondingPeriod.toNumber());
-      //   // transfer BNB to the stVault instead binancePool.
-      //   const UnstakedAmt = await stVault.getPooledTokenByStToken(stETHBalance);
-      //   await sendValue(deployer.address, stVault.address, UnstakedAmt);
+        await increaseTime(unbondingPeriod.toNumber());
+        // update the epoch on the stakeManager instead Lido
+        const epoch = await getCurrentEpoch();
+        await moveEpochToWithdraw(epoch);
 
-      //   ret = await vault.getEmergencyWithdrawalUnbonded();
-      //   waitingInUSD = ret[0];
-      //   unbondedInUSD = ret[1];
-      //   waitForTs = ret[2];
-      //   expect(waitingInUSD).equal(0);
-      //   expect(unbondedInUSD).closeTo(parseEther('50000'), parseEther('50000').div(50));
-      //   expect(waitForTs).equal(0);
+        // transfer MATIC to the stMATIC contract instead Lido.
+        const UnstakedAmt = await stMaticVault.getPooledTokenByStToken(stMATICBalance);
+        const matic = new ethers.Contract('0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0', ERC20_ABI, deployer);
+        await matic.transfer(network_.Token.stMATIC, UnstakedAmt);
+        expect(await stMaticVault.getTokenUnbonded()).equal(UnstakedAmt);
 
-      //   // claim the emergency withdrawal
-      //   await vault.connect(admin).claimEmergencyWithdrawal();
+        // claim the unbonded tokens on stVault
+        await stMaticVault.connect(admin).claimUnbonded();
+        expect(await stMaticVault.getTokenUnbonded()).equal(0);
+        expect(await stMaticVault.first()).gt(await stMaticVault.last());
 
-      //   ret = await vault.getEmergencyWithdrawalUnbonded();
-      //   expect(ret[1]).equal(0);
-      //   expect(await stVault.pendingRedeems()).equal(0);
-      //   expect(await stVault.pendingWithdrawals()).equal(0);
-      //   expect(await vault.getAllPoolInUSD()).closeTo(parseEther('90000'), parseEther('90000').div(50));
-      //   expect(await usdt.balanceOf(vault.address)).closeTo(getUsdtAmount('90000'), getUsdtAmount('90000').div(50));
-      //   expect(await nft.totalSupply()).equal(0);
+        ret = await vault.getEmergencyWithdrawalUnbonded();
+        waitingInUSD = ret[0];
+        unbondedInUSD = ret[1];
+        waitForTs = ret[2];
+        expect(waitingInUSD).equal(0);
+        expect(unbondedInUSD).closeTo(parseEther('25000'), parseEther('25000').div(20));
+        expect(waitForTs).equal(0);
 
-      //   // withdraw rest of a1's deposit
-      //   await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(4).div(9));
-      //   expect(await nft.totalSupply()).equal(0);
-      //   expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(25));
-      //   expect(await usdt.balanceOf(vault.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(50));
-      //   expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(50));
+        // claim the emergency withdrawal
+        await vault.connect(admin).claimEmergencyWithdrawal();
 
-      //   // reinvest
-      //   ret = await vault.getCurrentCompositionPerc();
-      //   await vault.connect(admin).reinvest(ret[0], ret[1]);
+        ret = await vault.getEmergencyWithdrawalUnbonded();
+        expect(ret[1]).equal(0);
+        expect(await stMaticVault.pendingRedeems()).equal(0);
+        expect(await stMaticVault.pendingWithdrawals()).equal(0);
+        expect(await stMaticNft.totalSupply()).equal(0);
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('90000'), parseEther('90000').div(20));
+        expect(await usdt.balanceOf(vault.address)).closeTo(getUsdtAmount('90000'), getUsdtAmount('90000').div(20));
 
-      //   expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(20));
-      //   expect(await usdt.balanceOf(vault.address)).equal(0);
-      //   expect(await etherBalance(stVault.address)).closeTo(ETHDeposits, ETHDeposits.div(20));
-      //   expect(await stVault.bufferedDeposits()).equal(await etherBalance(stVault.address));
-      //   expect(await stVault.totalSupply()).closeTo(ETHDeposits, ETHDeposits.div(20));
+        // withdraw rest of a1's deposit
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(4).div(9));
+        expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(25));
+        expect(await usdt.balanceOf(vault.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(20));
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(20));
 
-      //   await increaseTime(5*60);
-      //   await stVault.connect(admin).invest();
-      //   expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(20));
-      //   expect(await etherBalance(stVault.address)).lt(e(10));
-      //   expect(await stETH.balanceOf(stVault.address)).closeTo(stETHBalance, stETHBalance.div(100));
-      // });
+        // reinvest
+        ret = await vault.getCurrentCompositionPerc();
+        await vault.connect(admin).reinvest(ret[0], ret[1]);
+
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(20));
+        expect(await usdt.balanceOf(vault.address)).closeTo(BigNumber.from(1),BigNumber.from(1));
+        expect(await etherBalance(stVault.address)).closeTo(ETHDeposits, ETHDeposits.div(20));
+        expect(await stVault.bufferedDeposits()).equal(await etherBalance(stVault.address));
+        expect(await stVault.totalSupply()).closeTo(ETHDeposits, ETHDeposits.div(20));
+        expect(await MATIC.balanceOf(stMaticVault.address)).closeTo(MATICDeposits, MATICDeposits.div(10));
+        expect(await stMaticVault.bufferedDeposits()).closeTo(MATICDeposits, MATICDeposits.div(10));
+        expect(await stMaticVault.totalSupply()).closeTo(MATICDeposits, MATICDeposits.div(10));
+
+        await increaseTime(5*60);
+        await stVault.connect(admin).invest();
+        await stMaticVault.connect(admin).invest();
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(20));
+        expect(await etherBalance(stVault.address)).lt(e(10));
+        expect(await stETH.balanceOf(stVault.address)).closeTo(stETHBalance, stETHBalance.div(50));
+        expect(await MATIC.balanceOf(stMaticVault.address)).equal(0);
+        expect(await stMATIC.balanceOf(stMaticVault.address)).closeTo(stMATICBalance, stMATICBalance.div(20));
+      });
     });
 
     // describe('StVault', () => {

@@ -165,7 +165,7 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         if (USDTAmt > 0) {
             uint totalPerc;
             for (uint i = 0; i < poolCnt; i ++) {
-                totalPerc = _perc[i];
+                totalPerc += _perc[i];
             }
 
             uint[] memory USMTAmts = new uint[](poolCnt);

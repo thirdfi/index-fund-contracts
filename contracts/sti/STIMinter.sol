@@ -459,7 +459,7 @@ contract STIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         _pool = (amtDeposit < _pool) ? _pool - amtDeposit : 0;
 
         uint _totalSupply = STI.totalSupply();
-        uint share = (_totalSupply == 0 || _pool == 0)  ? amtDeposit : _totalSupply * amtDeposit / _pool;
+        uint share = (_pool == 0 ||_totalSupply == 0)  ? amtDeposit : _totalSupply * amtDeposit / _pool;
         // When assets invested in strategy, around 0.3% lost for swapping fee. We will consider it in share amount calculation to avoid pricePerFullShare fall down under 1.
         share = share * 997 / 1000;
 

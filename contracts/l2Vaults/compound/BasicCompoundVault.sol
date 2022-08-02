@@ -101,7 +101,8 @@ contract BasicCompoundVault is Initializable, ERC20Upgradeable, OwnableUpgradeab
 
         cToken.mint(token.balanceOf(address(this)));
 
-        uint _shares = _pool == 0 ? _amount : _amount * totalSupply() / _pool;
+        uint _totalSupply = totalSupply();
+        uint _shares = (_pool == 0 || _totalSupply == 0) ? _amount : _amount * _totalSupply / _pool;
         _mint(msg.sender, _shares);
 
         emit Deposit(msg.sender, _amount, _shares);

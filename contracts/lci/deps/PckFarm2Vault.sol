@@ -148,7 +148,7 @@ contract PckFarm2Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable, P
         MasterChefV2.deposit(pid, _amount);
 
         uint _totalSupply = totalSupply();
-        uint _shares = _totalSupply == 0 ? _amount : _amount * _totalSupply / _pool;
+        uint _shares = (_pool == 0 || _totalSupply == 0) ? _amount : _amount * _totalSupply / _pool;
         _mint(msg.sender, _shares);
 
         emit Deposit(msg.sender, _amount, _shares);

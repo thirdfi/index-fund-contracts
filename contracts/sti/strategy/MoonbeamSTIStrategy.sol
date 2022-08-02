@@ -40,9 +40,8 @@ contract MoonbeamSTIStrategy is BasicSTIStrategy {
         }
     }
 
-    function getStVault(uint _pid) internal view override returns (IStVault stVault) {
-        address token = tokens[_pid];
-        if (token == MoonbeamConstant.xcDOT) {
+    function getStVault(address _token) internal view override returns (IStVault stVault) {
+        if (_token == MoonbeamConstant.xcDOT) {
             stVault = DOTVault;
         }
     }
