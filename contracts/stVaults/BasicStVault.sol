@@ -294,6 +294,7 @@ contract BasicStVault is IStVault,
     function invest() external onlyOwnerOrAdmin whenNotPaused {
         _investInternal();
     }
+
     function _investInternal() internal {
         _collectProfitAndUpdateWatermark();
         uint _buffered = _transferOutFees();
@@ -304,12 +305,14 @@ contract BasicStVault is IStVault,
             emit Invest(_invested);
         }
     }
+
     function _invest(uint _amount) internal virtual returns (uint _invested) {}
 
     function redeem() external onlyOwnerOrAdmin whenNotPaused {
         uint redeemed = _redeemInternal(pendingRedeems);
         pendingRedeems -= redeemed;
     }
+
     function _redeemInternal(uint _stAmount) internal returns (uint _redeemed) {
         require(_stAmount >= minRedeemAmount, "too small");
         require(block.timestamp >= (lastRedeemTs + redeemInterval), "Not able to redeem yet");
@@ -317,11 +320,13 @@ contract BasicStVault is IStVault,
         _redeemed = _redeem(_stAmount);
         emit Redeem(_redeemed);
     }
+
     function _redeem(uint _stAmount) internal virtual returns (uint _redeemed) {}
 
     function claimUnbonded() external onlyOwnerOrAdmin {
         _claimUnbonded();
     }
+
     function _claimUnbonded() internal virtual {}
 
     ///@notice Withdraws funds staked in mirror to this vault and pauses deposit, yield, invest functions
@@ -331,13 +336,21 @@ contract BasicStVault is IStVault,
 
         _emergencyWithdrawInternal();
     }
+
     function _emergencyWithdrawInternal() internal {
         uint _pendingRedeems = pendingRedeems;
         uint redeemed = _emergencyWithdraw(_pendingRedeems);
         pendingRedeems = (_pendingRedeems <= redeemed) ? 0 : _pendingRedeems - redeemed;
         emit EmergencyWithdraw(redeemed);
     }
+
     function _emergencyWithdraw(uint _pendingRedeems) internal virtual returns (uint _redeemed) {}
+
+    function emergencyPendingRedeems() external view returns (uint _redeems) {
+        if (paused()) {
+            _redeems = stToken.balanceOf(address(this));
+        }
+    }
 
     function emergencyRedeem() external onlyOwnerOrAdmin whenPaused {
         _emergencyWithdrawInternal();
@@ -356,11 +369,13 @@ contract BasicStVault is IStVault,
     function yield() external onlyOwnerOrAdmin whenNotPaused {
         _yield();
     }
+
     function _yield() internal virtual {}
 
     function collectProfitAndUpdateWatermark() external onlyOwnerOrAdmin whenNotPaused {
         _collectProfitAndUpdateWatermark();
     }
+
     function _collectProfitAndUpdateWatermark() private {
         uint currentWatermark = getAllPool();
         uint lastWatermark = watermark;

@@ -107,6 +107,8 @@ interface IStVault is IERC20Upgradeable {
     function claimUnbonded() external;
     ///@dev request a withdrawal for all staked tokens. It's called by admin.
     function emergencyWithdraw() external;
+    ///@dev the total amount of emergency withdrawal stToken that is not yet requested to the staking pool.
+    function emergencyPendingRedeems() external view returns (uint _redeems);
     ///@dev In emergency mode, redeem the rest of stTokens. Especially it's needed for stNEAR because the MetaPool has a buffer limit.
     function emergencyRedeem() external;
     ///@dev reinvest the tokens, and set the vault status as normal. It's called by admin.

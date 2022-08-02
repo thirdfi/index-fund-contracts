@@ -90,7 +90,11 @@ contract EthStMATICVault is BasicStVault {
         _redeemed = _stAmount;
 
         uint stBalance = stToken.balanceOf(address(this));
-        IStMATIC(address(stToken)).requestWithdraw(_stAmount > stBalance ? stBalance : _stAmount);
+        _requestRedeem(_stAmount > stBalance ? stBalance : _stAmount);
+    }
+
+    function _requestRedeem(uint _stAmount) internal {
+        IStMATIC(address(stToken)).requestWithdraw(_stAmount);
 
         IPoLidoNFT poLidoNFT = IStMATIC(address(stToken)).poLidoNFT();
         _enqueue(poLidoNFT.tokenIdIndex());
@@ -118,7 +122,7 @@ contract EthStMATICVault is BasicStVault {
     function _emergencyWithdraw(uint _pendingRedeems) internal override returns (uint _redeemed) {
         uint stBalance = stToken.balanceOf(address(this));
         if (stBalance >= minRedeemAmount) {
-            IStMATIC(address(stToken)).requestWithdraw(stBalance);
+            _requestRedeem(stBalance);
             emergencyUnbondings = (stBalance > _pendingRedeems) ? stBalance - _pendingRedeems : 0;
             _redeemed = stBalance;
         }
