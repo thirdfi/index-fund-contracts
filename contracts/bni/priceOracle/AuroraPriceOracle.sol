@@ -23,10 +23,6 @@ contract AuroraPriceOracle is PriceOracle {
 
     IMetaPool constant metaPool = IMetaPool(0x534BACf1126f60EA513F796a3377ff432BE62cf9);
 
-    function initialize() public virtual override initializer {
-        super.initialize();
-    }
-
     ///@notice Chainlink is not yet supported on Aurora.
     function getAssetPrice(address asset) public virtual override view returns (uint price, uint8 decimals) {
         if (asset == AuroraConstant.USDT || asset == AuroraConstant.USDC) {

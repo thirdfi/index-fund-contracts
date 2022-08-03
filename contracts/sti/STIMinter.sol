@@ -482,6 +482,7 @@ contract STIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     function getWithdrawableSharePerc1WithSig(bytes calldata result, bytes calldata extraData) external view returns(
         uint _sharePerc
     ) {
+        extraData;
         (uint[] memory _chainIDs, uint[] memory _sharePercs, bytes memory sig)
             = abi.decode(result, (uint[], uint[], bytes));
 

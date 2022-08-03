@@ -2,22 +2,22 @@
 pragma solidity  0.8.9;
 
 import "./AuroraPriceOracle.sol";
-import "../constant/AuroraConstant.sol";
+import "../constant/AuroraConstantTest.sol";
 import "../../../libs/Const.sol";
 
 contract AuroraPriceOracleTest is AuroraPriceOracle {
 
     ///@notice Chainlink is not yet supported on Aurora.
-    function getAssetPrice(address asset) public virtual override view returns (uint price, uint8 decimals) {
-        if (asset == AuroraConstant.USDT || asset == AuroraConstant.USDC) {
+    function getAssetPrice(address asset) public override view returns (uint price, uint8 decimals) {
+        if (asset == AuroraConstantTest.USDT || asset == AuroraConstantTest.USDC) {
             return (1e8, 8);
-        } else if (asset == AuroraConstant.WNEAR) {
+        } else if (asset == AuroraConstantTest.WNEAR) {
             return getWNEARPrice();
-        } else if (asset == AuroraConstant.BSTN) {
+        } else if (asset == AuroraConstantTest.BSTN) {
             return (34e14, 18);
-        } else if (asset == AuroraConstant.META) {
+        } else if (asset == AuroraConstantTest.META) {
             return (1e16, 18);
-        } else if (asset == AuroraConstant.stNEAR) {
+        } else if (asset == AuroraConstantTest.stNEAR) {
             return getStNEARPrice();
         }
         return super.getAssetPrice(asset);
