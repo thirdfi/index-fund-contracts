@@ -1,9 +1,10 @@
 const { network } = require("hardhat");
+const { parseEther } = require("ethers/lib/utils");
 
 const ERC20_ABI = require("@openzeppelin/contracts-upgradeable/build/contracts/ERC20Upgradeable").abi;
 
 const { common } = require("../../parameters");
-const { sendEth } = require("../../scripts/utils/ethereum");
+const { sendEth, sendValue, etherBalance } = require("../../scripts/utils/ethereum");
 
 module.exports = async () => {
 
@@ -14,8 +15,9 @@ module.exports = async () => {
   const usdt = new ethers.Contract('0x55d398326f99059fF775485246999027B3197955', ERC20_ABI, usdtHolder);
   await usdt.transfer(deployer.address, await usdt.balanceOf(usdtHolder.address));
 
-  await network.provider.request({method: "hardhat_impersonateAccount", params: ['0x0000000000000000000000000000000000001004']});
-  await sendEth('0x0000000000000000000000000000000000001004', deployer.address, '100000000');
+  const tokenHub = '0x0000000000000000000000000000000000001004';
+  await network.provider.request({method: "hardhat_impersonateAccount", params: [tokenHub]});
+  await sendValue(tokenHub, deployer.address, (await etherBalance(tokenHub)).sub(parseEther('1')));
 };
 
 module.exports.tags = ["hardhat_bsc_sti"];

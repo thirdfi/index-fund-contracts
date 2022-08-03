@@ -261,14 +261,14 @@ contract BasicSTIStrategy is PausableUpgradeable, OwnableUpgradeable {
         return (router.swapExactTokensForTokens(_amt, _minAmount, path, address(this), block.timestamp))[2];
     }
 
-    function _swapETH(address _tokenB, uint _amt, uint _minAmount) private returns (uint) {
+    function _swapETH(address _tokenB, uint _amt, uint _minAmount) internal virtual returns (uint) {
         address[] memory path = new address[](2);
         path[0] = address(SWAP_BASE_TOKEN);
         path[1] = _tokenB;
         return (router.swapExactETHForTokens{value: _amt}(_minAmount, path, address(this), block.timestamp))[1];
     }
 
-    function _swapForETH(address _tokenA, uint _amt, uint _minAmount) private returns (uint) {
+    function _swapForETH(address _tokenA, uint _amt, uint _minAmount) internal virtual returns (uint) {
         address[] memory path = new address[](2);
         path[0] = _tokenA;
         path[1] = address(SWAP_BASE_TOKEN);

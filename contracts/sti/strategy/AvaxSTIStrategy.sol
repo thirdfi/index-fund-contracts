@@ -8,6 +8,23 @@ import "../../bni/constant/AvaxConstant.sol";
 import "../../../interfaces/IStVault.sol";
 import "../../../libs/Const.sol";
 
+interface IJoeRouter {
+    function swapExactAVAXForTokens(
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external payable returns (uint[] memory amounts);
+
+    function swapExactTokensForAVAX(
+        uint amountIn,
+        uint amountOutMin,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts);
+}
+
 contract AvaxSTIStrategy is BasicSTIStrategy {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -40,4 +57,17 @@ contract AvaxSTIStrategy is BasicSTIStrategy {
         }
     }
 
+    function _swapETH(address _tokenB, uint _amt, uint _minAmount) internal override returns (uint) {
+        address[] memory path = new address[](2);
+        path[0] = address(SWAP_BASE_TOKEN);
+        path[1] = _tokenB;
+        return (IJoeRouter(address(router)).swapExactAVAXForTokens{value: _amt}(_minAmount, path, address(this), block.timestamp))[1];
+    }
+
+    function _swapForETH(address _tokenA, uint _amt, uint _minAmount) internal override returns (uint) {
+        address[] memory path = new address[](2);
+        path[0] = _tokenA;
+        path[1] = address(SWAP_BASE_TOKEN);
+        return (IJoeRouter(address(router)).swapExactTokensForAVAX(_amt, _minAmount, path, address(this), block.timestamp))[1];
+    }
 }

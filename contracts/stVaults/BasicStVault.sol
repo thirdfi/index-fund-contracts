@@ -141,7 +141,7 @@ contract BasicStVault is IStVault,
         oneEpoch = _oneEpoch;
     }
 
-    function setStakingAmounts(uint _minInvestAmount, uint _minRedeemAmount) external onlyOwner {
+    function setStakingAmounts(uint _minInvestAmount, uint _minRedeemAmount) external virtual onlyOwner {
         require(_minInvestAmount > 0, "minInvestAmount must be > 0");
         require(_minRedeemAmount > 0, "minRedeemAmount must be > 0");
         minInvestAmount = _minInvestAmount;

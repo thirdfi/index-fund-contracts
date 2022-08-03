@@ -18,6 +18,7 @@ interface IAvalanchePool {
     function pendingAvaxClaimsOf(address claimer) external view returns (uint);
     function claimBonds(uint amount) external;
     function claimCerts(uint amount) external;
+    function getMinimumStake() external view returns (uint);
 }
 
 interface IAAVAXb {
@@ -43,15 +44,24 @@ contract AvaxStAVAXVault is BasicStVault {
         );
 
         unbondingPeriod = 28 days;
-        minInvestAmount = oneToken;
+        minInvestAmount = avalanchePool.getMinimumStake();
         oneEpoch = 24 hours;
 
         stToken.safeApprove(address(avalanchePool), type(uint).max);
     }
 
+    function setStakingAmounts(uint _minInvestAmount, uint _minRedeemAmount) external override onlyOwner {
+        _minInvestAmount;
+        require(_minRedeemAmount > 0, "minRedeemAmount must be > 0");
+        minInvestAmount = avalanchePool.getMinimumStake();
+        minRedeemAmount = _minRedeemAmount;
+    }
+
     function _invest(uint _amount) internal override returns (uint _invested) {
-        avalanchePool.stakeAndClaimBonds{value: _amount}();
-        return _amount;
+        _invested = _amount - (_amount % minInvestAmount); // Value must be multiple of minimum staking amount
+        if (_invested > 0) {
+            avalanchePool.stakeAndClaimBonds{value: _invested}();
+        }
     }
 
     function _redeem(uint _stAmount) internal override returns (uint _redeemed) {
@@ -82,11 +92,13 @@ contract AvaxStAVAXVault is BasicStVault {
 
     ///@param _amount Amount of tokens
     function getStTokenByPooledToken(uint _amount) public override view returns(uint) {
-        return _amount * IAAVAXb(address(stToken)).ratio() / 1e18;
+        return _amount;
+        // return _amount * IAAVAXb(address(stToken)).ratio() / 1e18;
     }
 
     ///@param _stAmount Amount of stTokens
     function getPooledTokenByStToken(uint _stAmount) public override view returns(uint) {
-        return _stAmount * 1e18 / IAAVAXb(address(stToken)).ratio();
+        return _stAmount;
+        // return _stAmount * 1e18 / IAAVAXb(address(stToken)).ratio();
     }
 }

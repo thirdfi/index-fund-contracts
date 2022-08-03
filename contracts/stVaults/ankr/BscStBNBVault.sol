@@ -86,11 +86,13 @@ contract BscStBNBVault is BasicStVault {
 
     ///@param _amount Amount of tokens
     function getStTokenByPooledToken(uint _amount) public override view returns(uint) {
-        return _amount * IABNBb(address(stToken)).ratio() / 1e18;
+        return _amount;
+        // return _amount * IABNBb(address(stToken)).ratio() / 1e18;
     }
 
     ///@param _stAmount Amount of stTokens
     function getPooledTokenByStToken(uint _stAmount) public override view returns(uint) {
-        return _stAmount * 1e18 / IABNBb(address(stToken)).ratio();
+        return _stAmount;
+        // return _stAmount * 1e18 / IABNBb(address(stToken)).ratio();
     }
 }

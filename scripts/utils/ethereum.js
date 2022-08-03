@@ -29,8 +29,8 @@ async function sendEth(from, to, ethStr) {
     return await rpc({ method: 'eth_sendTransaction', params: params });
 }
 
-async function sendValue(from, to, ethAmount) {
-  const value = ethAmount.toHexString();
+async function sendValue(from, to, amount) {
+  const value = amount.toHexString()
 
   const params = [{
     from: from,

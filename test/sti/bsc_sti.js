@@ -234,7 +234,7 @@ describe("STI on BSC", async () => {
         // invest
         await stVault.connect(admin).invest();
 
-        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(50));
+        expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(100));
         expect(await etherBalance(stVault.address)).lt(e(10));
 
         const aBNBbAmt = await stVault.getStTokenByPooledToken(BNBDeposits);
@@ -253,7 +253,7 @@ describe("STI on BSC", async () => {
         expect(await nft.exists(1)).equal(true);
         expect(await nft.isApprovedOrOwner(strategy.address, 1)).equal(true);
         expect(await stVault.pendingRedeems()).closeTo(aBNBbBalance, aBNBbBalance.div(100));
-        expect(await stVault.pendingWithdrawals()).closeTo(BNBDeposits, BNBDeposits.div(50));
+        expect(await stVault.pendingWithdrawals()).closeTo(BNBDeposits, BNBDeposits.div(100));
         expect(await vault.getAllPoolInUSD()).equal(0);
         ret = await vault.getAllUnbonded(a1.address);
         let waitingInUSD = ret[0];
@@ -263,7 +263,7 @@ describe("STI on BSC", async () => {
         expect(unbondedInUSD).equal(0);
         const unbondingPeriod = await stVault.unbondingPeriod();
         expect(waitForTs).closeTo(unbondingPeriod, unbondingPeriod.div(100));
-        expect(usdtBalance.add(waitingInUSD)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(25));
+        expect(usdtBalance.add(waitingInUSD)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(100));
 
         ret = await vault.getAllUnbonded(a2.address);
         expect(ret[0]).equal(0);
@@ -294,7 +294,7 @@ describe("STI on BSC", async () => {
         // redeem on stVault
         await stVault.connect(admin).redeem();
         expect(await stVault.pendingRedeems()).equal(0);
-        expect(await stVault.pendingWithdrawals()).closeTo(BNBDeposits, BNBDeposits.div(50));
+        expect(await stVault.pendingWithdrawals()).closeTo(BNBDeposits, BNBDeposits.div(100));
         expect(await aBNBb.balanceOf(stVault.address)).closeTo(BigNumber.from(10), 10);
 
         // try before the end of unbonding. it should be failed.
@@ -328,7 +328,7 @@ describe("STI on BSC", async () => {
         await vault.connect(a1).claim();
         expect(await stVault.pendingWithdrawals()).equal(0);
         expect(await etherBalance(stVault.address)).equal(0);
-        expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(25));
+        expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(100));
 
         ret = await vault.getAllUnbonded(a1.address);
         expect(ret[0]).equal(0);

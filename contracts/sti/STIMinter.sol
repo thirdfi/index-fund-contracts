@@ -11,7 +11,6 @@ import "../bni/constant/AuroraConstant.sol";
 import "../bni/constant/AvaxConstant.sol";
 import "../bni/constant/BscConstant.sol";
 import "../bni/constant/EthConstant.sol";
-import "../bni/constant/MoonbeamConstant.sol";
 import "../../libs/Const.sol";
 
 interface ISTI is IERC20Upgradeable {
@@ -102,15 +101,12 @@ contract STIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         tokens.push(Const.NATIVE_ASSET); // AVAX
         chainIDs.push(AuroraConstant.CHAINID);
         tokens.push(AuroraConstant.WNEAR);
-        chainIDs.push(MoonbeamConstant.CHAINID);
-        tokens.push(MoonbeamConstant.xcDOT);
 
         targetPercentages.push(2000); // 20%
         targetPercentages.push(2000); // 20%
         targetPercentages.push(2000); // 20%
         targetPercentages.push(2000); // 20%
-        targetPercentages.push(1000); // 10%
-        targetPercentages.push(1000); // 10%
+        targetPercentages.push(2000); // 20%
 
         updateTid();
 
