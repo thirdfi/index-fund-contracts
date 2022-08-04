@@ -5,13 +5,13 @@ module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
   const [deployer] = await ethers.getSigners();
 
-  console.log("Now deploying AuroraBastionVault ...");
-  const vault = await deploy("AuroraBastionVault", {
+  console.log("Now deploying MaticAave3Vault ...");
+  const vault = await deploy("MaticAave3Vault", {
     from: deployer.address,
   });
-  console.log("  AuroraBastionVault contract address: ", vault.address);
+  console.log("  MaticAave3Vault contract address: ", vault.address);
 
-  const vaultFactory = await ethers.getContract("CompoundVaultFactory");
+  const vaultFactory = await ethers.getContract("Aave3VaultFactory");
   const beacon = new ethers.Contract(await vaultFactory.getBeacon(), UpgradeableBeacon_ABI, deployer);
   if (await beacon.implementation() !== vault.address) {
     let tx = await vaultFactory.updateLogic(vault.address);
@@ -22,10 +22,10 @@ module.exports = async ({ deployments }) => {
   try {
     await run("verify:verify", {
       address: vault.address,
-      contract: "contracts/l2Vaults/compound/AuroraBastionVault.sol:AuroraBastionVault",
+      contract: "contracts/l2Vaults/aave3/MaticAave3Vault.sol:MaticAave3Vault",
     });
   } catch(e) {
   }
 
 };
-module.exports.tags = ["auroraMainnet_l2_upgrade_BastionVaults"];
+module.exports.tags = ["maticMainnet_l2_upgrade_Aave3Vaults"];

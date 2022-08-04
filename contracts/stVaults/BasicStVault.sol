@@ -204,10 +204,9 @@ contract BasicStVault is IStVault,
             (uint withdrawnStAmount, uint withdrawnAmount) = withdrawStToken(stTokenAmt);
             if (withdrawnStAmount > 0) {
                 _amount += withdrawnAmount;
-                uint prevStTokenAmt = stTokenAmt;
                 stTokenAmt -= withdrawnStAmount;
-                withdrawAmt = withdrawAmt * stTokenAmt / prevStTokenAmt;
             }
+            withdrawAmt = getPooledTokenByStToken(stTokenAmt);
 
             if (stTokenAmt > 0) {
                 pendingWithdrawals += withdrawAmt;
@@ -246,13 +245,15 @@ contract BasicStVault is IStVault,
 
         require(block.timestamp >= (usersRequest.requestTs + unbondingPeriod), "Not able to claim yet");
 
-        _amount = usersRequest.tokenAmt;
+        uint tokenAmt = usersRequest.tokenAmt;
+        uint withdrawAmt = getPooledTokenByStToken(usersRequest.stTokenAmt);
+        _amount = MathUpgradeable.min(tokenAmt, withdrawAmt);
         require(bufferedWithdrawals() >= _amount, "No enough token");
 
         nft.burn(_reqId);
         _transferOutToken(msg.sender, _amount);
 
-        pendingWithdrawals -= _amount;
+        pendingWithdrawals -= tokenAmt;
         emit Claim(msg.sender, _reqId, _amount);
     }
 
@@ -264,6 +265,7 @@ contract BasicStVault is IStVault,
         uint buffered = bufferedWithdrawals();
         uint amount;
         uint length = _reqIds.length;
+        uint tokenPerStToken = getPooledTokenByStToken(oneStToken);
         _claimed = new bool[](length);
 
         for (uint i = 0; i < length; i++) {
@@ -273,11 +275,14 @@ contract BasicStVault is IStVault,
             WithdrawRequest memory usersRequest = nft2WithdrawRequest[_reqId];
             if (block.timestamp < (usersRequest.requestTs + unbondingPeriod)) continue;
 
-            amount = usersRequest.tokenAmt;
+            uint tokenAmt = usersRequest.tokenAmt;
+            uint withdrawAmt = tokenPerStToken * usersRequest.stTokenAmt / oneStToken;
+            amount = MathUpgradeable.min(tokenAmt, withdrawAmt);
             if (buffered < amount) continue;
 
             _amount += amount;
             buffered -= amount;
+            pendingWithdrawals -= tokenAmt;
 
             nft.burn(_reqId);
             _claimedCount ++;
@@ -286,7 +291,6 @@ contract BasicStVault is IStVault,
 
         if (_amount > 0) {
             _transferOutToken(msg.sender, _amount);
-            pendingWithdrawals -= _amount;
             emit ClaimMulti(msg.sender, _amount, _claimedCount);
         }
     }
@@ -589,10 +593,11 @@ contract BasicStVault is IStVault,
         _stTokenAmt = usersRequest.stTokenAmt;
         _requestTs = usersRequest.requestTs;
 
+        uint withdrawAmt = getPooledTokenByStToken(_stTokenAmt);
         uint endTs = _requestTs + unbondingPeriod;
         if (endTs > block.timestamp) {
             _waitForTs = endTs - block.timestamp;
-        } else if (bufferedWithdrawals() >= _tokenAmt) {
+        } else if (bufferedWithdrawals() >= MathUpgradeable.min(_tokenAmt,withdrawAmt)) {
             _claimable = true;
         }
     }

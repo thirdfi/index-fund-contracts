@@ -12,11 +12,15 @@ module.exports = async () => {
   await network.provider.request({method: "hardhat_impersonateAccount", params: [usdtHolder.address]});
   const usdt = new ethers.Contract('0x4988a896b1227218e4A686fdE5EabdcAbd91571f', ERC20_ABI, usdtHolder);
   await usdt.transfer(deployer.address, await usdt.balanceOf(usdtHolder.address));
+
+  const metaPoolAdmin = await ethers.getSigner('0x37a86c3Ec281A70Da4d438e2D744137850Ff8E7b');
+  await network.provider.request({method: "hardhat_impersonateAccount", params: [metaPoolAdmin.address]});
 };
 
 module.exports.tags = ["hardhat_aurora_sti"];
 module.exports.dependencies = [
   "hardhat_aurora_reset",
   "auroraMainnet_l2_BastionFactory",
+  "auroraMainnet_bni_PriceOracle",
   "auroraMainnet_sti",
 ];

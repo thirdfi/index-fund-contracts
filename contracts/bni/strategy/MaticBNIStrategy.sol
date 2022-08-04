@@ -63,8 +63,8 @@ contract MaticBNIStrategy is BNIStrategy {
     }
 
     function getWMATICPoolInUSD() private view  returns (uint) {
-        uint amt = WMATICVault.getAllPoolInUSD();
-        return amt == 0 ? 0 : amt * WMATICVault.balanceOf(address(this)) / WMATICVault.totalSupply(); //to exclude L1 deposits from other addresses
+        uint balance = WMATICVault.balanceOf(address(this));
+        return balance == 0 ? 0 : WMATICVault.getAllPoolInUSD() * balance / WMATICVault.totalSupply(); //to exclude L1 deposits from other addresses
     }
 
     function _getPoolInUSD(uint _pid) internal view virtual override returns (uint pool) {

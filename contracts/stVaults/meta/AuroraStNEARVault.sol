@@ -91,8 +91,8 @@ contract AuroraStNEARVault is BasicStVault {
             }
 
             if (stBalance > 0) {
-                _redeemed = MathUpgradeable.min(_redeemed, stBalance);
-                metaPool.swapstNEARForwNEAR(_redeemed);
+                // The withdrawn stNEARs can be less than the calcualted _redeemed.
+                metaPool.swapstNEARForwNEAR(MathUpgradeable.min(_redeemed, stBalance));
             } else {
                 // Because _stAmount may be a calculation delta in withdraw function,
                 // it will reduce the pendingRedeems even though no redeeming on the staking pool.
@@ -119,12 +119,13 @@ contract AuroraStNEARVault is BasicStVault {
     }
 
     function getInvestedStTokens() public override view returns (uint _stAmount) {
-        uint stNEARVaultTotalSupply = stNEARVault.totalSupply();
-        if (stNEARVaultTotalSupply > 0) {
-            _stAmount = stNEARVault.getAllPool() * stNEARVault.balanceOf(address(this)) / stNEARVaultTotalSupply;
+        uint balance = stNEARVault.balanceOf(address(this));
+        if (balance > 0) {
+            _stAmount = stNEARVault.getAllPool() * balance / stNEARVault.totalSupply();
         }
     }
 
+    ///@dev stNearSwapFee can be changed after redeem requested.
     ///@param _amount Amount of tokens
     function getStTokenByPooledToken(uint _amount) public override view returns(uint) {
         uint stNearAmount = _amount * oneStToken / metaPool.stNearPrice();
@@ -132,6 +133,7 @@ contract AuroraStNEARVault is BasicStVault {
         return stNearAmount - feeAmount;
     }
 
+    ///@dev wNearSwapFee can be changed after redeem requested.
     ///@param _stAmount Amount of stTokens
     function getPooledTokenByStToken(uint _stAmount) public override view returns(uint) {
         uint wNearAmount = _stAmount * metaPool.stNearPrice() / oneStToken;

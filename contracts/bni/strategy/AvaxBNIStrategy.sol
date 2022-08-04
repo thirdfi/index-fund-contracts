@@ -63,8 +63,8 @@ contract AvaxBNIStrategy is BNIStrategy {
     }
 
     function getWAVAXPoolInUSD() private view  returns (uint) {
-        uint amt = WAVAXVault.getAllPoolInUSD();
-        return amt == 0 ? 0 : amt * WAVAXVault.balanceOf(address(this)) / WAVAXVault.totalSupply(); //to exclude L1 deposits from other addresses
+        uint balance = WAVAXVault.balanceOf(address(this));
+        return balance == 0 ? 0 : WAVAXVault.getAllPoolInUSD() * balance / WAVAXVault.totalSupply(); //to exclude L1 deposits from other addresses
     }
 
     function _getPoolInUSD(uint _pid) internal view virtual override returns (uint pool) {

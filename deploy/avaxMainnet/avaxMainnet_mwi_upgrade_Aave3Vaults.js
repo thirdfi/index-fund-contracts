@@ -5,13 +5,13 @@ module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
   const [deployer] = await ethers.getSigners();
 
-  console.log("Now deploying AuroraBastionVault ...");
-  const vault = await deploy("AuroraBastionVault", {
+  console.log("Now deploying Aave3Vault ...");
+  const vault = await deploy("Aave3Vault", {
     from: deployer.address,
   });
-  console.log("  AuroraBastionVault contract address: ", vault.address);
+  console.log("  Aave3Vault contract address: ", vault.address);
 
-  const vaultFactory = await ethers.getContract("CompoundVaultFactory");
+  const vaultFactory = await ethers.getContract("Aave3VaultFactory");
   const beacon = new ethers.Contract(await vaultFactory.getBeacon(), UpgradeableBeacon_ABI, deployer);
   if (await beacon.implementation() !== vault.address) {
     let tx = await vaultFactory.updateLogic(vault.address);
@@ -22,10 +22,10 @@ module.exports = async ({ deployments }) => {
   try {
     await run("verify:verify", {
       address: vault.address,
-      contract: "contracts/l2Vaults/compound/AuroraBastionVault.sol:AuroraBastionVault",
+      contract: "contracts/mwi/deps/Aave3Vault.sol:Aave3Vault",
     });
   } catch(e) {
   }
 
 };
-module.exports.tags = ["auroraMainnet_l2_upgrade_BastionVaults"];
+module.exports.tags = ["avaxMainnet_mwi_upgrade_Aave3Vaults"];
