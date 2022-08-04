@@ -565,7 +565,7 @@ describe("STI on ETH", async () => {
         expect(await usdt.balanceOf(vault.address)).equal(0);
         expect(await usdt.balanceOf(strategy.address)).equal(0);
         expect(await etherBalance(stVault.address)).equal(0);
-        expect(await MATIC.balanceOf(stMaticVault.address)).equal(0);
+        expect(await MATIC.balanceOf(stMaticVault.address)).closeTo(BigNumber.from(1),BigNumber.from(1));
         expect(await stETH.balanceOf(stVault.address)).closeTo(BigNumber.from(1),BigNumber.from(1));
         expect(await stMATIC.balanceOf(stMaticVault.address)).equal(0);
       });
@@ -860,7 +860,7 @@ describe("STI on ETH", async () => {
         expect(await usdt.balanceOf(vault.address)).equal(0);
         expect(await usdt.balanceOf(strategy.address)).equal(0);
         expect(await MATIC.balanceOf(strategy.address)).equal(0);
-        expect(await MATIC.balanceOf(stMaticVault.address)).equal(0);
+        expect(await MATIC.balanceOf(stMaticVault.address)).closeTo(BigNumber.from(1),BigNumber.from(1));
         expect(await stMATIC.balanceOf(stMaticVault.address)).equal(0);
         expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(25));
       });

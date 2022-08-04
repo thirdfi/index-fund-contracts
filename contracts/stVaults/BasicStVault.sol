@@ -200,13 +200,14 @@ contract BasicStVault is IStVault,
         bufferedDeposits = _bufferedDeposits - _amount;
 
         if (withdrawAmt > 0) {
-            uint stTokenAmt = oneStToken * withdrawAmt / getPooledTokenByStToken(oneStToken);
+            uint tokenPerStToken = getPooledTokenByStToken(oneStToken);
+            uint stTokenAmt = oneStToken * withdrawAmt / tokenPerStToken;
             (uint withdrawnStAmount, uint withdrawnAmount) = withdrawStToken(stTokenAmt);
             if (withdrawnStAmount > 0) {
                 _amount += withdrawnAmount;
                 stTokenAmt -= withdrawnStAmount;
             }
-            withdrawAmt = getPooledTokenByStToken(stTokenAmt);
+            withdrawAmt = tokenPerStToken * stTokenAmt / oneStToken;
 
             if (stTokenAmt > 0) {
                 pendingWithdrawals += withdrawAmt;
@@ -246,14 +247,13 @@ contract BasicStVault is IStVault,
         require(block.timestamp >= (usersRequest.requestTs + unbondingPeriod), "Not able to claim yet");
 
         uint tokenAmt = usersRequest.tokenAmt;
-        uint withdrawAmt = getPooledTokenByStToken(usersRequest.stTokenAmt);
-        _amount = MathUpgradeable.min(tokenAmt, withdrawAmt);
-        require(bufferedWithdrawals() >= _amount, "No enough token");
+        _amount = _getClaimableAmount(bufferedWithdrawals(), tokenAmt);
+        require(_amount > 0, "No enough token");
 
         nft.burn(_reqId);
-        _transferOutToken(msg.sender, _amount);
-
         pendingWithdrawals -= tokenAmt;
+
+        _transferOutToken(msg.sender, _amount);
         emit Claim(msg.sender, _reqId, _amount);
     }
 
@@ -265,7 +265,6 @@ contract BasicStVault is IStVault,
         uint buffered = bufferedWithdrawals();
         uint amount;
         uint length = _reqIds.length;
-        uint tokenPerStToken = getPooledTokenByStToken(oneStToken);
         _claimed = new bool[](length);
 
         for (uint i = 0; i < length; i++) {
@@ -276,9 +275,8 @@ contract BasicStVault is IStVault,
             if (block.timestamp < (usersRequest.requestTs + unbondingPeriod)) continue;
 
             uint tokenAmt = usersRequest.tokenAmt;
-            uint withdrawAmt = tokenPerStToken * usersRequest.stTokenAmt / oneStToken;
-            amount = MathUpgradeable.min(tokenAmt, withdrawAmt);
-            if (buffered < amount) continue;
+            amount = _getClaimableAmount(buffered, tokenAmt);
+            if (amount == 0) continue;
 
             _amount += amount;
             buffered -= amount;
@@ -421,9 +419,9 @@ contract BasicStVault is IStVault,
                 _tokenAmt = 0;
             }
             fees = _fees;
+            bufferedDeposits = _tokenAmt;
 
             _transferOutToken(treasuryWallet, feeAmt);
-            bufferedDeposits = _tokenAmt;
             emit TransferredOutFees(feeAmt, address(token)); // Decimal follows token
         }
     }
@@ -593,13 +591,18 @@ contract BasicStVault is IStVault,
         _stTokenAmt = usersRequest.stTokenAmt;
         _requestTs = usersRequest.requestTs;
 
-        uint withdrawAmt = getPooledTokenByStToken(_stTokenAmt);
         uint endTs = _requestTs + unbondingPeriod;
         if (endTs > block.timestamp) {
             _waitForTs = endTs - block.timestamp;
-        } else if (bufferedWithdrawals() >= MathUpgradeable.min(_tokenAmt,withdrawAmt)) {
+        } else if (_getClaimableAmount(bufferedWithdrawals(), _tokenAmt) > 0) {
             _claimable = true;
         }
+    }
+
+    function _getClaimableAmount(uint _buffered, uint _withdrawAmt) internal view returns (uint) {
+        // The tokens withdrawn from the staking pool can be slightly less than the calculated withdrawAmt.
+        uint minWithdrawAmt = _withdrawAmt * (1e8 - 1) / 1e8;
+        return (_buffered < minWithdrawAmt) ? 0 : MathUpgradeable.min(_buffered, _withdrawAmt);
     }
 
     function getTokenUnbonded() public virtual view returns (uint) {
