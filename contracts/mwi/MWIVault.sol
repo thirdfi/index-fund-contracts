@@ -89,7 +89,7 @@ contract MWIVault is ERC20Upgradeable, OwnableUpgradeable,
         if (watermark > 0) _collectProfitAndUpdateWatermark();
         uint USDTAmt = _transferOutFees();
         if (USDTAmt > 0) {
-            strategy.invest(amount);
+            strategy.invest(USDTAmt);
         }
         adjustWatermark(amtDeposit, true);
 
