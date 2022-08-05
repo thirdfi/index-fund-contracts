@@ -33,4 +33,4 @@ module.exports = async ({ deployments }) => {
   } catch (e) {
   }
 };
-module.exports.tags = ["maticMainnet_bni_PriceOracle"];
+module.exports.tags = ["cndlMainnet_bni_PriceOracle"];

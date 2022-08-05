@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { common, maticMainnet: network_ } = require("../../parameters");
+const { common, cndlMainnet: network_ } = require("../../parameters");
 const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
@@ -55,4 +55,4 @@ module.exports = async ({ deployments }) => {
   } catch (e) {
   }
 };
-module.exports.tags = ["maticMainnet_bni_BNIStrategy"];
+module.exports.tags = ["cndlMainnet_bni_BNIStrategy"];

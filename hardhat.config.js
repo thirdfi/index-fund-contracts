@@ -45,6 +45,10 @@ module.exports = {
       url: `https://testnet.aurora.dev`,
       accounts: [process.env.PRIVATE_KEY]
     },
+    cndlMainnet: {
+      url: `https://rpc.cndlchain.com`,
+      accounts: [process.env.PRIVATE_KEY]
+    },
     avaxMainnet: {
       url: `https://api.avax.network/ext/bc/C/rpc`,
       accounts: [process.env.PRIVATE_KEY]

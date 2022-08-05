@@ -68,6 +68,18 @@ module.exports = {
     }
   },
 
+  cndlMainnet: {
+    Aave3: {
+      aPolWMATIC: "0x6d80113e533a2C0fe82EaBD35f1875DcEA89Ea97",
+    },
+    Swap: {
+      router: "0x1a45c9f823F64c9360b0c3df269F824cf404f82b", // CarthageDEX
+      SWAP_BASE_TOKEN: "0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270", // WCNDL
+      USDC: "0x95A0A7953F9292838C0614D690005D5c716E718E",
+      WCNDL: "0x85FA00f55492B0437b3925381fAaf0E024747627",
+    }
+  },
+
   maticMainnet: {
     Aave3: {
       aPolWMATIC: "0x6d80113e533a2C0fe82EaBD35f1875DcEA89Ea97",
