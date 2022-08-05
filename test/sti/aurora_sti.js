@@ -102,6 +102,7 @@ describe("STI on Aurora", async () => {
 
         expect(await vault.owner()).equal(deployer.address);
         expect(await vault.admin()).equal(common.admin);
+        expect(await vault.trustedForwarder()).equal(network_.biconomy);
         expect(await vault.strategy()).equal(strategy.address);
         expect(await vault.priceOracle()).equal(priceOracle.address);
         expect(await vault.USDT()).equal(network_.Swap.USDT);
@@ -139,6 +140,7 @@ describe("STI on Aurora", async () => {
         await expectRevert(priceOracle.setAssetSources([a2.address],[a1.address]), "Ownable: caller is not the owner");
 
         await expectRevert(vault.setAdmin(a2.address), "Ownable: caller is not the owner");
+        await expectRevert(vault.setBiconomy(a2.address), "Ownable: caller is not the owner");
         await expectRevert(vault.depositByAdmin(a1.address, [a2.address], [getUsdtAmount('100')]), "Only owner or admin");
         await expectRevert(vault.withdrawPercByAdmin(a1.address, parseEther('0.1')), "Only owner or admin");
         await expectRevert(vault.emergencyWithdraw(), "Only owner or admin");
@@ -153,7 +155,6 @@ describe("STI on Aurora", async () => {
         await expectRevert(strategy.setStVault(a2.address), "Ownable: caller is not the owner");
         await expectRevert(strategy.invest([a2.address], [getUsdtAmount('100')]), "Only vault");
         await expectRevert(strategy.withdrawPerc(a2.address, 1), "Only vault");
-        await expectRevert(strategy.withdrawFromPool(a2.address, 1, 1), "Only vault");
         await expectRevert(strategy.emergencyWithdraw(), "Only vault");
         await expectRevert(strategy.claimEmergencyWithdrawal(), "Only vault");
         await expectRevert(strategy.claim(a2.address), "Only vault");

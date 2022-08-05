@@ -9,5 +9,5 @@ library EthConstantTest {
     address internal constant stMATIC = 0x9ee91F9f426fA633d227f7a9b000E28b9dfd8599; // Should be replaced with testnet address
     address internal constant USDC = 0xDf5324ebe6F6b852Ff5cBf73627eE137e9075276;
     address internal constant USDT = 0x21e48034753E490ff04f2f75f7CAEdF081B320d5;
-    address internal constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2; // Should be replaced with testnet address
+    address internal constant WETH = 0xc778417E063141139Fce010982780140Aa0cD5Ab;
 }

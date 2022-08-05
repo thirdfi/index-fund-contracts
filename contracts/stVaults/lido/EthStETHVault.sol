@@ -7,7 +7,6 @@ pragma solidity  0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/utils/math/MathUpgradeable.sol";
 import "../BasicStVault.sol";
 import "../../bni/constant/EthConstant.sol";
 import "../../../interfaces/ICurvePool.sol";

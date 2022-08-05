@@ -9,5 +9,6 @@ library AuroraConstant {
     address internal constant stNEAR = 0x07F9F7f963C5cD2BBFFd30CcfB964Be114332E30;
     address internal constant USDC = 0xB12BFcA5A55806AaF64E99521918A4bf0fC40802;
     address internal constant USDT = 0x4988a896b1227218e4A686fdE5EabdcAbd91571f;
+    address internal constant WETH = 0xC9BdeEd33CD01541e1eeD10f90519d2C06Fe3feB;
     address internal constant WNEAR = 0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d;
 }

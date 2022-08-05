@@ -1,15 +1,15 @@
 const { ethers } = require("hardhat");
-const { common, auroraMainnet: network_ } = require("../../parameters");
+const { common, auroraTestnet: network_ } = require("../../parameters/testnet");
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
   const [deployer] = await ethers.getSigners();
 
-  const strategyProxy = await ethers.getContract("AuroraSTIStrategy_Proxy");
-  const STIStrategy = await ethers.getContractFactory("AuroraSTIStrategy");
+  const strategyProxy = await ethers.getContract("AuroraSTIStrategyTest_Proxy");
+  const STIStrategy = await ethers.getContractFactory("AuroraSTIStrategyTest");
   const strategy = STIStrategy.attach(strategyProxy.address);
 
-  const priceOracleProxy = await ethers.getContract("AuroraPriceOracle_Proxy");
+  const priceOracleProxy = await ethers.getContract("AuroraPriceOracleTest_Proxy");
 
   console.log("Now deploying STIVault...");
   const proxy = await deploy("STIVault", {
@@ -49,4 +49,4 @@ module.exports = async ({ deployments }) => {
   } catch (e) {
   }
 };
-module.exports.tags = ["auroraMainnet_sti_STIVault"];
+module.exports.tags = ["auroraTestnet_sti_STIVault"];

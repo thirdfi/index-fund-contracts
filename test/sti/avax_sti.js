@@ -39,13 +39,15 @@ async function serveClaims() {
 
 describe("STI on Avalanche", async () => {
 
-    let vault, strategy, stVault, priceOracle, usdt, nft;
-    let vaultArtifact, strategyArtifact, stVaultArtifact, priceOracleArtifact, nftArtifact;
+    let sti, minter, vault, strategy, stVault, priceOracle, usdt, nft;
+    let stiArtifact, minterArtifact, vaultArtifact, strategyArtifact, stVaultArtifact, priceOracleArtifact, nftArtifact;
     let admin;
 
     before(async () => {
       [deployer, a1, a2, ...accounts] = await ethers.getSigners();
   
+      stiArtifact = await deployments.getArtifact("STI");
+      minterArtifact = await deployments.getArtifact("STIMinter");
       vaultArtifact = await deployments.getArtifact("STIVault");
       strategyArtifact = await deployments.getArtifact("AvaxSTIStrategy");
       stVaultArtifact = await deployments.getArtifact("AvaxStAVAXVault");
@@ -56,6 +58,10 @@ describe("STI on Avalanche", async () => {
     beforeEach(async () => {
       await deployments.fixture(["hardhat_avax_sti"])
 
+      const stiProxy = await ethers.getContract("STI_Proxy");
+      sti = new ethers.Contract(stiProxy.address, stiArtifact.abi, a1);
+      const minterProxy = await ethers.getContract("STIMinter_Proxy");
+      minter = new ethers.Contract(minterProxy.address, minterArtifact.abi, a1);
       const vaultProxy = await ethers.getContract("STIVault_Proxy");
       vault = new ethers.Contract(vaultProxy.address, vaultArtifact.abi, a1);
       const strategyProxy = await ethers.getContract("AvaxSTIStrategy_Proxy");
@@ -80,8 +86,40 @@ describe("STI on Avalanche", async () => {
       it("Should be set with correct initial vaule", async () => {
         expect(await priceOracle.owner()).equal(deployer.address);
 
+        expect(await sti.owner()).equal(deployer.address);
+        expect(await sti.name()).equal('Staking Index Fund');
+        expect(await sti.symbol()).equal('STI');
+        expect(await sti.minter()).equal(minter.address);
+
+        expect(await minter.owner()).equal(deployer.address);
+        expect(await minter.admin()).equal(common.admin);
+        expect(await minter.trustedForwarder()).equal(network_.biconomy);
+        expect(await minter.STI()).equal(sti.address);
+        expect(await minter.priceOracle()).equal(priceOracle.address);
+        expect(await minter.chainIDs(0)).equal(1);
+        expect(await minter.chainIDs(1)).equal(1);
+        expect(await minter.chainIDs(2)).equal(56);
+        expect(await minter.chainIDs(3)).equal(43114);
+        expect(await minter.chainIDs(4)).equal(1313161554);
+        expect(await minter.tokens(0)).equal(common.nativeAsset);
+        expect(await minter.tokens(1)).equal('0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0');
+        expect(await minter.tokens(2)).equal(common.nativeAsset);
+        expect(await minter.tokens(3)).equal(common.nativeAsset);
+        expect(await minter.tokens(4)).equal('0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d');
+        expect(await minter.targetPercentages(0)).equal(2000);
+        expect(await minter.targetPercentages(1)).equal(2000);
+        expect(await minter.targetPercentages(2)).equal(2000);
+        expect(await minter.targetPercentages(3)).equal(2000);
+        expect(await minter.targetPercentages(4)).equal(2000);
+        expect(await minter.tid(1, common.nativeAsset)).equal(0);
+        expect(await minter.tid(1, '0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0')).equal(1);
+        expect(await minter.tid(56, common.nativeAsset)).equal(2);
+        expect(await minter.tid(43114, common.nativeAsset)).equal(3);
+        expect(await minter.tid(1313161554, '0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d')).equal(4);
+
         expect(await vault.owner()).equal(deployer.address);
         expect(await vault.admin()).equal(common.admin);
+        expect(await vault.trustedForwarder()).equal(network_.biconomy);
         expect(await vault.strategy()).equal(strategy.address);
         expect(await vault.priceOracle()).equal(priceOracle.address);
         expect(await vault.USDT()).equal(network_.Swap.USDT);
@@ -110,7 +148,20 @@ describe("STI on Avalanche", async () => {
       it("Should be set by only owner", async () => {
         await expectRevert(priceOracle.setAssetSources([a2.address],[a1.address]), "Ownable: caller is not the owner");
 
+        await expectRevert(sti.setMinter(a2.address), "Ownable: caller is not the owner");
+        await expectRevert(sti.mint(a2.address, parseEther('1')), "Mintable: caller is not the minter");
+
+        await expectRevert(minter.setAdmin(a2.address), "Ownable: caller is not the owner");
+        await expectRevert(minter.setBiconomy(a2.address), "Ownable: caller is not the owner");
+        await expectRevert(minter.setGatewaySigner(a2.address), "Ownable: caller is not the owner");
+        await expectRevert(minter.addToken(1, a1.address), "Ownable: caller is not the owner");
+        await expectRevert(minter.removeToken(1), "Ownable: caller is not the owner");
+        await expectRevert(minter.setTokenCompositionTargetPerc([10000]), "Ownable: caller is not the owner");
+        await expectRevert(minter.mintByAdmin(parseEther('1000'), a1.address, getUsdtAmount('100')), "Only owner or admin");
+        await expectRevert(minter.burnByAdmin(a1.address, getUsdtAmount('100')), "Only owner or admin");
+
         await expectRevert(vault.setAdmin(a2.address), "Ownable: caller is not the owner");
+        await expectRevert(vault.setBiconomy(a2.address), "Ownable: caller is not the owner");
         await expectRevert(vault.depositByAdmin(a1.address, [a2.address], [getUsdVaule('100')]), "Only owner or admin");
         await expectRevert(vault.withdrawPercByAdmin(a1.address, parseEther('0.1')), "Only owner or admin");
         await expectRevert(vault.emergencyWithdraw(), "Only owner or admin");
@@ -125,7 +176,6 @@ describe("STI on Avalanche", async () => {
         await expectRevert(strategy.setStVault(a2.address), "Ownable: caller is not the owner");
         await expectRevert(strategy.invest([a2.address], [getUsdVaule('100')]), "Only vault");
         await expectRevert(strategy.withdrawPerc(a2.address, 1), "Only vault");
-        await expectRevert(strategy.withdrawFromPool(a2.address, 1, 1), "Only vault");
         await expectRevert(strategy.emergencyWithdraw(), "Only vault");
         await expectRevert(strategy.claimEmergencyWithdrawal(), "Only vault");
         await expectRevert(strategy.claim(a2.address), "Only vault");

@@ -26,7 +26,7 @@ interface IMetaPool {
 contract AuroraStNEARVault is BasicStVault {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    IMetaPool constant metaPool = IMetaPool(0x534BACf1126f60EA513F796a3377ff432BE62cf9);
+    IMetaPool public metaPool;
 
     IL2Vault public stNEARVault;
 
@@ -34,7 +34,7 @@ contract AuroraStNEARVault is BasicStVault {
         address _treasury, address _admin,
         address _priceOracle,
         IL2Vault _stNEARVault
-    ) public initializer {
+    ) public virtual initializer {
         super.initialize(
             "STI Staking WNEAR", "stiStNEAR",
             _treasury, _admin,
@@ -42,6 +42,8 @@ contract AuroraStNEARVault is BasicStVault {
             AuroraConstant.WNEAR,
             AuroraConstant.stNEAR
         );
+
+        metaPool = IMetaPool(0x534BACf1126f60EA513F796a3377ff432BE62cf9);
 
         // The backend will call redeem per 1 hour.
         unbondingPeriod = 1 hours;

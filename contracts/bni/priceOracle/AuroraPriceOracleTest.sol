@@ -7,6 +7,8 @@ import "../../../libs/Const.sol";
 
 contract AuroraPriceOracleTest is AuroraPriceOracle {
 
+    IMetaPool constant metaPoolTest = IMetaPool(0x0dF588AabDd4E031f1903326cC0d8E79DFBD3566);
+
     ///@notice Chainlink is not yet supported on Aurora.
     function getAssetPrice(address asset) public override view returns (uint price, uint8 decimals) {
         if (asset == AuroraConstantTest.USDT || asset == AuroraConstantTest.USDC) {
@@ -25,5 +27,12 @@ contract AuroraPriceOracleTest is AuroraPriceOracle {
 
     function getWNEARPrice() public view override returns (uint price, uint8 decimals) {
         return (423e16, 18);
+    }
+
+    function getStNEARPrice() internal view override returns (uint price, uint8 decimals) {
+        uint wNearAmount = metaPoolTest.stNearPrice() * (Const.DENOMINATOR - metaPoolTest.wNearSwapFee()) / Const.DENOMINATOR;
+        (uint WNEARPriceInUSD, uint8 WNEARPriceDecimals) = getWNEARPrice();
+        price = WNEARPriceInUSD * wNearAmount / 1e24; // WNEAR decimals is 24;
+        decimals = WNEARPriceDecimals;
     }
 }

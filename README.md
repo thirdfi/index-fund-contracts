@@ -40,6 +40,14 @@ npx hardhat deploy --network bscMainnet --tags bscMainnet_lci
 npx hardhat deploy --network avaxMainnet --tags avaxMainnet_mwi
 ```
 
+### STI
+```text
+npx hardhat deploy --network bscMainnet --tags bscMainnet_sti
+npx hardhat deploy --network auroraMainnet --tags auroraMainnet_sti
+npx hardhat deploy --network maticMainnet --tags ethMainnet_sti
+npx hardhat deploy --network avaxMainnet --tags avaxMainnet_sti
+```
+
 
 ## Contracts
 

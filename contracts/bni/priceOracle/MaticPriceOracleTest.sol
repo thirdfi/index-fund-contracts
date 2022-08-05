@@ -6,7 +6,7 @@ import "../constant/MaticConstantTest.sol";
 
 contract MaticPriceOracleTest is MaticPriceOracle {
 
-    function initialize() public virtual override initializer {
+    function initialize() public override initializer {
         super.initialize();
 
         address[] memory assets = new address[](3);
@@ -19,5 +19,12 @@ contract MaticPriceOracleTest is MaticPriceOracle {
         sources[2] = 0x572dDec9087154dC5dfBB1546Bb62713147e0Ab0;
 
         setAssetSources(assets, sources);
+    }
+
+    function getAssetPrice(address asset) public override view returns (uint price, uint8 decimals) {
+        if (asset == Const.NATIVE_ASSET) {
+            asset = MaticConstantTest.WMATIC;
+        }
+        return super.getAssetPrice(asset);
     }
 }

@@ -12,7 +12,7 @@ import "../../../interfaces/IStVault.sol";
 import "../../../libs/Const.sol";
 import "../../../libs/Token.sol";
 
-contract BasicSTIStrategy is PausableUpgradeable, OwnableUpgradeable {
+contract BasicSTIStrategyTest is PausableUpgradeable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20UpgradeableExt;
 
     IUniRouter public router;
@@ -70,10 +70,10 @@ contract BasicSTIStrategy is PausableUpgradeable, OwnableUpgradeable {
         tokens.push(_token0);
         updatePid();
 
-        USDT.safeApprove(address(router), type(uint).max);
-        if (_token0 != Const.NATIVE_ASSET) {
-            IERC20UpgradeableExt(_token0).safeApprove(address(router), type(uint).max);
-        }
+        // USDT.safeApprove(address(router), type(uint).max);
+        // if (_token0 != Const.NATIVE_ASSET) {
+        //     IERC20UpgradeableExt(_token0).safeApprove(address(router), type(uint).max);
+        // }
     }
 
     function updatePid() internal {
@@ -101,9 +101,9 @@ contract BasicSTIStrategy is PausableUpgradeable, OwnableUpgradeable {
         _pid = tokens.length-1;
         pid[_token] = _pid;
 
-        if (_token != Const.NATIVE_ASSET && IERC20UpgradeableExt(_token).allowance(address(this), address(router)) == 0) {
-            IERC20UpgradeableExt(_token).safeApprove(address(router), type(uint).max);
-        }
+        // if (_token != Const.NATIVE_ASSET && IERC20UpgradeableExt(_token).allowance(address(this), address(router)) == 0) {
+        //     IERC20UpgradeableExt(_token).safeApprove(address(router), type(uint).max);
+        // }
         emit AddToken(_token, _pid);
     }
 
@@ -140,7 +140,7 @@ contract BasicSTIStrategy is PausableUpgradeable, OwnableUpgradeable {
         }
         USDT.safeTransferFrom(vault, address(this), USDTAmt);
 
-        _invest(USDTAmts);
+        // _invest(USDTAmts);
     }
 
     function _invest(uint[] memory _USDTAmts) internal virtual {
@@ -191,10 +191,11 @@ contract BasicSTIStrategy is PausableUpgradeable, OwnableUpgradeable {
     }
 
     function _withdraw(address _claimer, uint _sharePerc) internal virtual returns (uint USDTAmt) {
-        uint poolCnt = tokens.length;
-        for (uint i = 0; i < poolCnt; i ++) {
-            USDTAmt += _withdrawFromPool(_claimer, i, _sharePerc);
-        }
+        USDTAmt = USDT.balanceOf(address(this)) * _sharePerc / 1e18;
+        // uint poolCnt = tokens.length;
+        // for (uint i = 0; i < poolCnt; i ++) {
+        //     USDTAmt += _withdrawFromPool(_claimer, i, _sharePerc);
+        // }
     }
 
     function _withdrawFromPool(address _claimer, uint _pid, uint _sharePerc) internal virtual returns (uint USDTAmt) {
@@ -433,13 +434,13 @@ contract BasicSTIStrategy is PausableUpgradeable, OwnableUpgradeable {
     }
 
     function _claimAllAndTransfer(address _claimer) internal returns (uint USDTAmt) {
-        uint poolCnt = tokens.length;
-        for (uint _pid = 0; _pid < poolCnt; _pid ++) {
-            USDTAmt += _claim(_claimer, _pid);
-        }
-        if (USDTAmt > 0) {
-            USDT.safeTransfer(vault, USDTAmt);
-        }
+        // uint poolCnt = tokens.length;
+        // for (uint _pid = 0; _pid < poolCnt; _pid ++) {
+        //     USDTAmt += _claim(_claimer, _pid);
+        // }
+        // if (USDTAmt > 0) {
+        //     USDT.safeTransfer(vault, USDTAmt);
+        // }
     }
 
     function _claim(address _claimer, uint _pid) internal returns (uint USDTAmt) {
@@ -504,16 +505,17 @@ contract BasicSTIStrategy is PausableUpgradeable, OwnableUpgradeable {
     }
 
     function _getPoolInUSD(uint _pid) internal view virtual returns (uint pool) {
-        address token = tokens[_pid];
-        IStVault stVault = getStVault(token);
-        if (address(stVault) != address(0)) {
-            pool = getStVaultPoolInUSD(stVault);
-        } else {
-            uint amount = _balanceOf(token, address(this));
-            if (0 < amount) {
-                pool = getValueInUSD(token, amount);
-            }
-        }
+        pool = getValueInUSD(address(USDT), USDT.balanceOf(address(this)) / tokens.length);
+        // address token = tokens[_pid];
+        // IStVault stVault = getStVault(token);
+        // if (address(stVault) != address(0)) {
+        //     pool = getStVaultPoolInUSD(stVault);
+        // } else {
+        //     uint amount = _balanceOf(token, address(this));
+        //     if (0 < amount) {
+        //         pool = getValueInUSD(token, amount);
+        //     }
+        // }
     }
 
     function getStVaultPoolInUSD(IStVault _stVault) internal view returns (uint) {

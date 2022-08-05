@@ -75,7 +75,7 @@ contract AuroraPriceOracle is PriceOracle {
         return (numerator / denominator);
     }
 
-    function getStNEARPrice() internal view returns (uint price, uint8 decimals) {
+    function getStNEARPrice() internal view virtual returns (uint price, uint8 decimals) {
         uint wNearAmount = metaPool.stNearPrice() * (Const.DENOMINATOR - metaPool.wNearSwapFee()) / Const.DENOMINATOR;
         (uint WNEARPriceInUSD, uint8 WNEARPriceDecimals) = getWNEARPrice();
         price = WNEARPriceInUSD * wNearAmount / 1e24; // WNEAR decimals is 24;

@@ -1,18 +1,27 @@
+const { ethers } = require("hardhat");
+const AddressZero = ethers.constants.AddressZero;
+
 module.exports = {
   common: {
     admin: "0x3f68A3c1023d736D8Be867CA49Cb18c543373B99",
     treasury: "0x59E83877bD248cBFe392dbB5A8a29959bcb48592",
+    nativeAsset: "0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE",
   },
 
   auroraTestnet: {
+    biconomy: AddressZero,
     Bastion: {
       cNEAR: "0x8C14ea853321028a7bb5E4FB0d0147F183d3B677",
+      cstNEAR1: "0xB76108eb764b4427505c4bb020A37D95b3ef5AFE",
     },
     Swap: {
       router: "0x26ec2aFBDFdFB972F106100A3deaE5887353d9B9", // Trisolaris
       SWAP_BASE_TOKEN: "0x4861825E75ab14553E5aF711EbbE6873d369d146", // WNEAR
       USDT: "0xF9C249974c1Acf96a59e5757Cc9ba7035cE489B1", // "0x8547A073cbc7D4aF48aD061b9D005C06D55337F5",
       WNEAR: "0x4861825E75ab14553E5aF711EbbE6873d369d146",
+    },
+    Token: {
+      stNEAR: "0x2137df2e54abd6bF1c1a8c1739f2EA6A8C15F144",
     },
   },
 
@@ -35,6 +44,7 @@ module.exports = {
       WETH: "0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB",
       WAVAX: "0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7",
       USDt: "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
+      aAVAXb: "0xBd97c29aa3E83C523C9714edCA8DB8881841a593",
     },
   },
 
@@ -44,10 +54,27 @@ module.exports = {
       Farm_USDT_USDC_pid: 48,
       Farm_USDT_BUSD_pid: 7,
       Farm_USDC_BUSD_pid: 20,
+    },
+    Token: {
+      USDT: "0x1F326a8CA5399418a76eA0efa0403Cbb00790C67",
+      WBNB: "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd",
+      aBNBb: "0xaB56897fE4e9f0757e02B54C27E81B9ddd6A30AE",
+    }
+  },
+
+  ethRinkeby: {
+    biconomy: "0xFD4973FeB2031D4409fB57afEE5dF2051b171104",
+    Token: {
+      MATIC: "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0",
+      stETH: "0xF4242f9d78DB7218Ad72Ee3aE14469DBDE8731eD",
+      stMATIC: "0x9ee91F9f426fA633d227f7a9b000E28b9dfd8599",
+      USDT: "0x21e48034753E490ff04f2f75f7CAEdF081B320d5",
+      WETH: "0xc778417E063141139Fce010982780140Aa0cD5Ab",
     }
   },
 
   maticMumbai: {
+    biconomy: "0x9399BB24DBB5C4b782C70c2969F58716Ebbd6a3b",
     Aave3: {
       aPolWMATIC: "0x89a6AE840b3F8f489418933A220315eeA36d11fF",
     },

@@ -12,6 +12,7 @@ import "../bni/constant/AvaxConstant.sol";
 import "../bni/constant/BscConstant.sol";
 import "../bni/constant/EthConstant.sol";
 import "../../libs/Const.sol";
+import "../../libs/BaseRelayRecipient.sol";
 
 interface ISTI is IERC20Upgradeable {
     function decimals() external view returns (uint8);
@@ -56,7 +57,7 @@ interface Gateway {
     );
 }
 
-contract STIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
+contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
     using ECDSAUpgradeable for bytes32;
 
     uint[] public chainIDs;
@@ -72,6 +73,7 @@ contract STIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     address public gatewaySigner;
 
     event SetAdminWallet(address oldAdmin, address newAdmin);
+    event SetBiconomy(address oldBiconomy, address newBiconomy);
     event AddToken(uint chainID, address token, uint tid);
     event RemoveToken(uint chainID, address token, uint targetPerc, uint tid);
     event Mint(address caller, uint amtDeposit, uint shareMinted);
@@ -83,11 +85,13 @@ contract STIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     }
 
     function initialize(
-        address _admin, address _STI, address _priceOracle
+        address _admin, address _biconomy,
+        address _STI, address _priceOracle
     ) external initializer {
         __Ownable_init();
 
         admin = _admin;
+        trustedForwarder = _biconomy;
         STI = ISTI(_STI);
         priceOracle = IPriceOracle(_priceOracle);
 
@@ -128,6 +132,20 @@ contract STIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         address oldAdmin = admin;
         admin = _admin;
         emit SetAdminWallet(oldAdmin, _admin);
+    }
+
+    function setBiconomy(address _biconomy) external onlyOwner {
+        address oldBiconomy = trustedForwarder;
+        trustedForwarder = _biconomy;
+        emit SetBiconomy(oldBiconomy, _biconomy);
+    }
+
+    function _msgSender() internal override(ContextUpgradeable, BaseRelayRecipient) view returns (address) {
+        return BaseRelayRecipient._msgSender();
+    }
+
+    function versionRecipient() external pure override returns (string memory) {
+        return "1";
     }
 
     function setGatewaySigner(address _signer) external onlyOwner {

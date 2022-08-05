@@ -1,18 +1,19 @@
 const { ethers } = require("hardhat");
-const { common, auroraMainnet: network_ } = require("../../parameters");
+const { common, avaxMainnet: network_ } = require("../../parameters");
+const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
   const [deployer] = await ethers.getSigners();
 
-  const strategyProxy = await ethers.getContract("AuroraSTIStrategy_Proxy");
-  const STIStrategy = await ethers.getContractFactory("AuroraSTIStrategy");
-  const strategy = STIStrategy.attach(strategyProxy.address);
+  const STI = await ethers.getContractFactory("STI");
+  const stiProxy = await ethers.getContract("STI_Proxy");
+  const sti = STI.attach(stiProxy.address);
 
-  const priceOracleProxy = await ethers.getContract("AuroraPriceOracle_Proxy");
+  const priceOracleProxy = await ethers.getContract("AvaxPriceOracle_Proxy");
 
-  console.log("Now deploying STIVault...");
-  const proxy = await deploy("STIVault", {
+  console.log("Now deploying STIMinter...");
+  const proxy = await deploy("STIMinter", {
     from: deployer.address,
     proxy: {
       proxyContract: "OpenZeppelinTransparentProxy",
@@ -21,17 +22,17 @@ module.exports = async ({ deployments }) => {
           methodName: "initialize",
           args: [
             common.admin, network_.biconomy,
-            strategy.address, priceOracleProxy.address,
-            network_.Swap.USDT,
+            sti.address, priceOracleProxy.address,
           ],
         },
       },
     },
   });
-  console.log("  STIVault_Proxy contract address: ", proxy.address);
+  console.log("  STIMinter_Proxy contract address: ", proxy.address);
 
-  if ((await strategy.vault()) === ethers.constants.AddressZero) {
-    const tx = await strategy.setVault(proxy.address);
+  const minter = await sti.minter();
+  if (minter === AddressZero) {
+    const tx = await sti.setMinter(proxy.address);
     await tx.wait();
   }
 
@@ -44,9 +45,9 @@ module.exports = async ({ deployments }) => {
 
     await run("verify:verify", {
       address: implAddress,
-      contract: "contracts/sti/STIVault.sol:STIVault",
+      contract: "contracts/sti/STIMinter.sol:STIMinter",
     });
   } catch (e) {
   }
 };
-module.exports.tags = ["auroraMainnet_sti_STIVault"];
+module.exports.tags = ["avaxMainnet_sti_STIMinter"];

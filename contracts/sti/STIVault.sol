@@ -11,6 +11,7 @@ import "../bni/priceOracle/IPriceOracle.sol";
 import "../../interfaces/IERC20UpgradeableExt.sol";
 import "../../libs/Const.sol";
 import "../../libs/Token.sol";
+import "../../libs/BaseRelayRecipient.sol";
 
 interface IStrategy {
     function invest(address[] memory tokens, uint[] memory USDTAmts) external;
@@ -36,7 +37,7 @@ interface IStrategy {
     function getAPR() external view returns (uint);
 }
 
-contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
+contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20UpgradeableExt;
 
     IERC20UpgradeableExt public USDT;
@@ -50,6 +51,7 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     event Withdraw(address caller, uint amtWithdraw, address tokenWithdraw, uint sharePerc);
     event Reinvest(uint amount);
     event SetAdminWallet(address oldAdmin, address newAdmin);
+    event SetBiconomy(address oldBiconomy, address newBiconomy);
     
     modifier onlyOwnerOrAdmin {
         require(msg.sender == owner() || msg.sender == address(admin), "Only owner or admin");
@@ -57,13 +59,14 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     }
 
     function initialize(
-        address _admin,
+        address _admin, address _biconomy,
         address _strategy, address _priceOracle,
         address _USDT
     ) external initializer {
         __Ownable_init();
 
         admin = _admin;
+        trustedForwarder = _biconomy;
         strategy = IStrategy(_strategy);
         priceOracle = IPriceOracle(_priceOracle);
 
@@ -190,6 +193,20 @@ contract STIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         address oldAdmin = admin;
         admin = _admin;
         emit SetAdminWallet(oldAdmin, _admin);
+    }
+
+    function setBiconomy(address _biconomy) external onlyOwner {
+        address oldBiconomy = trustedForwarder;
+        trustedForwarder = _biconomy;
+        emit SetBiconomy(oldBiconomy, _biconomy);
+    }
+
+    function _msgSender() internal override(ContextUpgradeable, BaseRelayRecipient) view returns (address) {
+        return BaseRelayRecipient._msgSender();
+    }
+
+    function versionRecipient() external pure override returns (string memory) {
+        return "1";
     }
 
     function getPoolsUnbonded(address _account) external view returns (

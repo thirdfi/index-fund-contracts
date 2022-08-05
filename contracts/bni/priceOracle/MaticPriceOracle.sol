@@ -3,6 +3,7 @@ pragma solidity  0.8.9;
 
 import "./PriceOracle.sol";
 import "../constant/MaticConstant.sol";
+import "../../../libs/Const.sol";
 
 contract MaticPriceOracle is PriceOracle {
 
@@ -19,5 +20,12 @@ contract MaticPriceOracle is PriceOracle {
         sources[2] = 0xfE4A8cc5b5B2366C1B58Bea3858e81843581b2F7;
 
         setAssetSources(assets, sources);
+    }
+
+    function getAssetPrice(address asset) public virtual override view returns (uint price, uint8 decimals) {
+        if (asset == Const.NATIVE_ASSET) {
+            asset = MaticConstant.WMATIC;
+        }
+        return super.getAssetPrice(asset);
     }
 }

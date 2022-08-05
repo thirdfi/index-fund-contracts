@@ -1,3 +1,6 @@
+const { ethers } = require("hardhat");
+const AddressZero = ethers.constants.AddressZero;
+
 module.exports = {
   common: {
     admin: "0x3f68A3c1023d736D8Be867CA49Cb18c543373B99",
@@ -6,6 +9,7 @@ module.exports = {
   },
 
   auroraMainnet: {
+    biconomy: AddressZero,
     Bastion: {
       cNEAR: "0x8C14ea853321028a7bb5E4FB0d0147F183d3B677",
       cstNEAR1: "0xB76108eb764b4427505c4bb020A37D95b3ef5AFE",
@@ -59,6 +63,7 @@ module.exports = {
   },
 
   ethMainnet: {
+    biconomy: "0x84a0856b038eaAd1cC7E297cF34A7e72685A8693",
     Token: {
       MATIC: "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0",
       stETH: "0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84",
@@ -69,6 +74,7 @@ module.exports = {
   },
 
   maticMainnet: {
+    biconomy: "0x86C80a8aa58e0A4fa09A69624c31Ab2a6CAD56b8",
     Aave3: {
       aPolWMATIC: "0x6d80113e533a2C0fe82EaBD35f1875DcEA89Ea97",
     },
