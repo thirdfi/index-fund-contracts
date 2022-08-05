@@ -15,9 +15,12 @@ module.exports = async () => {
   const usdt = new ethers.Contract('0xc7198437980c041c805A1EDcbA50c1Ce5db95118', ERC20_ABI, usdtHolder);
   await usdt.transfer(deployer.address, await usdt.balanceOf(usdtHolder.address));
 
+  const avalanchePoolAdmin = '0x2Ffc59d32A524611Bb891cab759112A51f9e33C0';
+  await network.provider.request({method: "hardhat_impersonateAccount", params: [avalanchePoolAdmin]});
+
   const avaxHolder = '0x9f8c163cBA728e99993ABe7495F06c0A3c8Ac8b9';
   await network.provider.request({method: "hardhat_impersonateAccount", params: [avaxHolder]});
-  await sendValue(avaxHolder, deployer.address, (await etherBalance(avaxHolder)).sub(parseEther('1')));
+  await sendValue(avaxHolder, avalanchePoolAdmin, (await etherBalance(avaxHolder)).sub(parseEther('1')));
 };
 
 module.exports.tags = ["hardhat_avax_sti"];

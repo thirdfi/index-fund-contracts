@@ -6,6 +6,9 @@ const parseEther = ethers.utils.parseEther;
 const { increaseTime, etherBalance, sendValue } = require("../../scripts/utils/ethereum");
 
 const ERC20_ABI = require("@openzeppelin/contracts-upgradeable/build/contracts/ERC20Upgradeable.json").abi;
+const AvalanchePool_ABI = [
+  "function serveClaims(address payable residueAddress, uint256 minThreshold) external payable",
+];
 
 const { common, avaxMainnet: network_ } = require("../../parameters");
 
@@ -22,6 +25,16 @@ function getAvaxAmount(amount) {
 }
 function e(decimals) {
   return BigNumber.from(10).pow(decimals)
+}
+
+const avalanchePoolAdminAddr = '0x2Ffc59d32A524611Bb891cab759112A51f9e33C0';
+
+async function serveClaims() {
+  const avalanchePoolAdmin = await ethers.getSigner(avalanchePoolAdminAddr);
+  const avalanchePool = new ethers.Contract('0x7BAa1E3bFe49db8361680785182B80BB420A836D', AvalanchePool_ABI, avalanchePoolAdmin);
+
+  const value = (await etherBalance(avalanchePoolAdmin.address)).sub(parseEther('1'));
+  await avalanchePool.serveClaims(avalanchePoolAdmin.address, 0, {value: value});
 }
 
 describe("STI on Avalanche", async () => {
@@ -316,9 +329,9 @@ describe("STI on Avalanche", async () => {
 
         expect(await stVault.getTokenUnbonded()).equal(0);
 
-        // transfer AVAX to the stVault instead binancePool.
+        // transfer AVAX to the stVault instead avalanchePool.
         const UnstakedAmt = await stVault.getPooledTokenByStToken(aAVAXbBalance);
-        await sendValue(deployer.address, stVault.address, UnstakedAmt);
+        await sendValue(avalanchePoolAdminAddr, stVault.address, UnstakedAmt);
         ret = await vault.getAllUnbonded(a1.address);
         expect(ret[0]).equal(0);
         expect(ret[1]).gt(0);
@@ -410,7 +423,7 @@ describe("STI on Avalanche", async () => {
         await increaseTime(unbondingPeriod.toNumber());
         // transfer AVAX to the stVault instead binancePool.
         const UnstakedAmt = await stVault.getPooledTokenByStToken(aAVAXbBalance);
-        await sendValue(deployer.address, stVault.address, UnstakedAmt);
+        await sendValue(avalanchePoolAdminAddr, stVault.address, UnstakedAmt);
 
         ret = await vault.getEmergencyWithdrawalUnbonded();
         waitingInUSD = ret[0];

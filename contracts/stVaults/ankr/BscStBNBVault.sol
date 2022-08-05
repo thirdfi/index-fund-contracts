@@ -29,13 +29,13 @@ interface IABNBb {
 contract BscStBNBVault is BasicStVault {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    IBinancePool public constant binancePool = IBinancePool(0x66BEA595AEFD5a65799a920974b377Ed20071118);
     uint256 constant TEN_DECIMALS = 1e10;
+    IBinancePool public binancePool;
 
     function initialize1(
         address _treasury, address _admin,
         address _priceOracle
-    ) public initializer {
+    ) public virtual initializer {
         super.initialize(
             "STI Staking BNB", "stiStBNB",
             _treasury, _admin,
@@ -43,6 +43,8 @@ contract BscStBNBVault is BasicStVault {
             Const.NATIVE_ASSET, // BNB
             BscConstant.aBNBb
         );
+
+        binancePool = IBinancePool(0x66BEA595AEFD5a65799a920974b377Ed20071118);
 
         unbondingPeriod = 14 days;
         minInvestAmount = oneToken * 1002 / 1000;

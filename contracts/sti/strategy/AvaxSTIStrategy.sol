@@ -34,7 +34,7 @@ contract AvaxSTIStrategy is BasicSTIStrategy {
         address _admin,
         address _priceOracle,
         IStVault _AVAXVault
-    ) public initializer {
+    ) public virtual initializer {
         super.initialize(
             _admin,
             _priceOracle,

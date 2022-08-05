@@ -29,12 +29,12 @@ interface IAAVAXb {
 contract AvaxStAVAXVault is BasicStVault {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    IAvalanchePool public constant avalanchePool = IAvalanchePool(0x7BAa1E3bFe49db8361680785182B80BB420A836D);
+    IAvalanchePool public avalanchePool;
 
     function initialize1(
         address _treasury, address _admin,
         address _priceOracle
-    ) public initializer {
+    ) public virtual initializer {
         super.initialize(
             "STI Staking AVAX", "stiStAVAX",
             _treasury, _admin,
@@ -42,6 +42,8 @@ contract AvaxStAVAXVault is BasicStVault {
             Const.NATIVE_ASSET, // AVAX
             AvaxConstant.aAVAXb
         );
+
+        avalanchePool = IAvalanchePool(0x7BAa1E3bFe49db8361680785182B80BB420A836D);
 
         unbondingPeriod = 28 days;
         minInvestAmount = avalanchePool.getMinimumStake();
