@@ -240,13 +240,14 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
         return strategy.getEmergencyWithdrawalUnbonded();
     }
 
+    ///@return the percentage of the value in the vault of the total value. It's useful for calculating the withdrawable share under emergency status.
     function getWithdrawableSharePerc() public view returns (uint chainID, uint sharePerc) {
         chainID = getChainID();
         (uint vaultPool, uint strategyPool) = _getAllPoolInUSD();
         sharePerc = 1e18 * vaultPool / (vaultPool + strategyPool);
     }
 
-    /// @return the price of USDT in USD.
+    ///@return the price of USDT in USD.
     function getUSDTPriceInUSD() public view returns(uint, uint8) {
         return priceOracle.getAssetPrice(address(USDT));
     }
