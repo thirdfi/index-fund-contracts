@@ -87,7 +87,7 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
     function initialize(
         address _admin, address _biconomy,
         address _STI, address _priceOracle
-    ) external initializer {
+    ) external virtual initializer {
         __Ownable_init();
 
         admin = _admin;
@@ -118,7 +118,7 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
         gatewaySigner = _admin;
     }
 
-    function updateTid() private {
+    function updateTid() internal {
         uint[] memory _chainIDs = chainIDs;
         address[] memory _tokens = tokens;
 
@@ -357,7 +357,7 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
     }
 
     /// @return the price of USDT in USD.
-    function getUSDTPriceInUSD() public view returns(uint, uint8) {
+    function getUSDTPriceInUSD() public view virtual returns(uint, uint8) {
         return priceOracle.getAssetPrice(AvaxConstant.USDT);
     }
 

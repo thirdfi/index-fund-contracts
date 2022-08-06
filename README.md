@@ -84,7 +84,7 @@ npx hardhat deploy --network avaxMainnet --tags avaxMainnet_sti
 | WBTC on Avalanche             | [0x50b7545627a5162F82A992c33b87aDc75187B218](https://snowtrace.io/address/0x50b7545627a5162F82A992c33b87aDc75187B218) |
 | WETH on Avalanche             | [0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB](https://snowtrace.io/address/0x49D5c2BdFfac6CE2BFdB6640F4F80f226bc10bAB) |
 | USDt on Avalanche             | [0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7](https://snowtrace.io/address/0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7) |
-| aBNBb on BSC                   | [0xBb1Aa6e59E5163D8722a122cd66EBA614b59df0d](https://bscscan.com/address/0xBb1Aa6e59E5163D8722a122cd66EBA614b59df0d) |
+| aBNBb on BSC                  | [0xBb1Aa6e59E5163D8722a122cd66EBA614b59df0d](https://bscscan.com/address/0xBb1Aa6e59E5163D8722a122cd66EBA614b59df0d) |
 | BUSD on BSC                   | [0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56](https://bscscan.com/address/0xe9e7CEA3DedcA5984780Bafc599bD69ADd087D56) |
 | CAKE on BSC (reward)          | [0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82](https://bscscan.com/address/0x0E09FaBB73Bd3Ade0a17ECC321fD13a19e81cE82) |
 | LP USDT-USDC on BSC           | [0xEc6557348085Aa57C72514D67070dC863C0a5A8c](https://bscscan.com/address/0xEc6557348085Aa57C72514D67070dC863C0a5A8c) |
@@ -105,7 +105,9 @@ npx hardhat deploy --network avaxMainnet --tags avaxMainnet_sti
 | Network     | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | Aurora      | [0xf705ceB44C1330766185459afaF9aA41A3288ca2](https://aurorascan.dev/address/0xf705ceb44c1330766185459afaf9aa41a3288ca2) | [0x2f8cC3eaF60D8B136E6266db6BAae9b8C286b38A](https://testnet.aurorascan.dev/address/0x2f8cC3eaF60D8B136E6266db6BAae9b8C286b38A)
-| Avalanche   | [0xb9b31A45bEe57cF30b68a49899021FfCF1930b68](https://snowtrace.io/address/0xb9b31A45bEe57cF30b68a49899021FfCF1930b68) | [0x9C0dd87c001eE4A864b9a394Ea722a4382424005](https://testnet.snowtrace.io/address/0x9C0dd87c001eE4A864b9a394Ea722a4382424005)
+| Avalanche   | [0xb9b31A45bEe57cF30b68a49899021FfCF1930b68](https://snowtrace.io/address/0xb9b31A45bEe57cF30b68a49899021FfCF1930b68) | [0xF7140458031150894d04d9fA3b2E5305deecD617](https://testnet.snowtrace.io/address/0xF7140458031150894d04d9fA3b2E5305deecD617)
+| BSC         |  | [0x7e78D5CaB721Cc7340C9EF97511f846Dfac4594e](https://testnet.bscscan.com/address/0x7e78d5cab721cc7340c9ef97511f846dfac4594e)
+| Ethereum    |  | [0x61BA70b534c1B828c7Df157e5Af6Cb45CD416ADa](https://rinkeby.etherscan.io/address/0x61ba70b534c1b828c7df157e5af6cb45cd416ada)
 | Polygon     | [0x2EDd4b5513e0A9C96921D9e1e9234Fe28cB5519C](https://polygonscan.com/address/0x2edd4b5513e0a9c96921d9e1e9234fe28cb5519c) | [0x6809aadCc6b54926c8bAB1DF52CB85b833dcFb33](https://mumbai.polygonscan.com/address/0x6809aadCc6b54926c8bAB1DF52CB85b833dcFb33)
 
 
@@ -115,14 +117,20 @@ npx hardhat deploy --network avaxMainnet --tags avaxMainnet_sti
 
 | Network     | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ----------------------------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| bniL2WNEAR on Aurora          | [0x463511073EdEeb4842EB6A9776e2D06221C42F88](https://aurorascan.dev/address/0x463511073EdEeb4842EB6A9776e2D06221C42F88) |
+| bniL2WNEAR on Aurora          | [0x463511073EdEeb4842EB6A9776e2D06221C42F88](https://aurorascan.dev/address/0x463511073EdEeb4842EB6A9776e2D06221C42F88) | [0x94A2c970dF27Af68C609E2A3115714211Acd4213](https://testnet.aurorascan.dev/address/0x94A2c970dF27Af68C609E2A3115714211Acd4213)
+| stiL2stNEAR on Aurora         |  | [0x7ae18664426F6626059424f74B4596E5fc909e6D](https://testnet.aurorascan.dev/address/0x7ae18664426F6626059424f74B4596E5fc909e6D)
+| stiStNEAR on Aurora           |  | [0x5A2E621d7d2bDB1b339A500859b019171FBfD009](https://testnet.aurorascan.dev/address/0x5A2E621d7d2bDB1b339A500859b019171FBfD009)
 | mwiL2USDT on Avalanche        | [0x4563883E3cE04cd2fE997b726C987422461a5216](https://snowtrace.io/address/0x4563883E3cE04cd2fE997b726C987422461a5216) |
 | mwiL2WAVAX on Avalanche       | [0xF070c998d8a642E306cf76aF2DB319b3bD843aE6](https://snowtrace.io/address/0xF070c998d8a642E306cf76aF2DB319b3bD843aE6) |
 | mwiL2WBTC on Avalanche        | [0x9e23A237b4a55111dD133A38d48784E8f544309a](https://snowtrace.io/address/0x9e23A237b4a55111dD133A38d48784E8f544309a) |
 | mwiL2WETH on Avalanche        | [0xe337e3ba156663592b293480Db22D66761ad45e9](https://snowtrace.io/address/0xe337e3ba156663592b293480Db22D66761ad45e9) |
+| stiStAVAX on Avalanche        |  | [0x35C076079E3d280935428ec5764F384e3e2aeab4](https://testnet.snowtrace.io/address/0x35c076079e3d280935428ec5764f384e3e2aeab4)
 | lciL2USDCB on BSC             | [0x8083c6a8369D5F386fE75450AD953C1736a004eD](https://bscscan.com/address/0x8083c6a8369D5F386fE75450AD953C1736a004eD) |
 | lciL2USDTB on BSC             | [0x66D83e0e7baD685Bd94b2F7F41B973B42fB1E2d8](https://bscscan.com/address/0x66D83e0e7baD685Bd94b2F7F41B973B42fB1E2d8) |
 | lciL2USDTC on BSC             | [0x04FEd86Cf6227F315669b9d762b2D75c3A2316d1](https://bscscan.com/address/0x04FEd86Cf6227F315669b9d762b2D75c3A2316d1) |
+| stiStBNB on BSC               |  | [0x9D5061c9267531dE92B1e36780bFFE4c1C944852](https://testnet.bscscan.com/address/0x9d5061c9267531de92b1e36780bffe4c1c944852)
+| stiStETH on Ethereum          |  | [0x43Af52B9632C81740f79fdc0944827F1ca52c064](https://rinkeby.etherscan.io/address/0x43af52b9632c81740f79fdc0944827f1ca52c064)
+| stiStMATIC on Ethereum        |  | [0xD50460917B22BAc87aB640e429237b908E4BD7f4](https://rinkeby.etherscan.io/address/0xD50460917B22BAc87aB640e429237b908E4BD7f4)
 | bniL2WMATIC on Polygon        | [0x52235Cf0D2861414EC8363FBbdAe2D8521B23D79](https://polygonscan.com/address/0x52235Cf0D2861414EC8363FBbdAe2D8521B23D79) |
 
 #### Aurora Products
@@ -130,6 +138,7 @@ npx hardhat deploy --network avaxMainnet --tags avaxMainnet_sti
 | Products    | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | BNIVault    | [0x72eB6E3f163E8CFD1Ebdd7B2f4ffB60b6e420448](https://aurorascan.dev/address/0x72eB6E3f163E8CFD1Ebdd7B2f4ffB60b6e420448) | [0x25276F97f70c2E3bC907f6B5A955a76248ae9945](https://testnet.aurorascan.dev/address/0x25276f97f70c2e3bc907f6b5a955a76248ae9945)
+| STIVault    |  | [0x846AB2a040ff470dfb513038e78844014e4686FF](https://testnet.aurorascan.dev/address/0x846AB2a040ff470dfb513038e78844014e4686FF)
 
 #### Avalanche Products
 
@@ -139,12 +148,22 @@ npx hardhat deploy --network avaxMainnet --tags avaxMainnet_sti
 | BNI         | [0x52942c46F355aC354CFdeF72fd96b41eE10D7C72](https://snowtrace.io/address/0x52942c46F355aC354CFdeF72fd96b41eE10D7C72) | [0x25Ce8a40cfe13B890769FD4CC640e16Ce034E73e](https://testnet.snowtrace.io/address/0x25Ce8a40cfe13B890769FD4CC640e16Ce034E73e)
 | BNIMinter   | [0xCbAB0d4c9B040e94cA392f0C3c65D136C17ee290](https://snowtrace.io/address/0xCbAB0d4c9B040e94cA392f0C3c65D136C17ee290) | [0x4f8Ebe88aC0978c0696D6f61ca994CA73903ec96](https://testnet.snowtrace.io/address/0x4f8Ebe88aC0978c0696D6f61ca994CA73903ec96)
 | BNIVault    | [0xe76367024ca3AEeC875A03BB395f54D7c6A82eb0](https://snowtrace.io/address/0xe76367024ca3AEeC875A03BB395f54D7c6A82eb0) | [0x0cB5F3b91161D870A35b6d2671A73a6A5bB7F847](https://testnet.snowtrace.io/address/0x0cB5F3b91161D870A35b6d2671A73a6A5bB7F847)
+| STI         |  | [0x4F7958BaD34D30618C045163fdf740503B1d7770](https://rinkeby.etherscan.io/address/0x4f7958bad34d30618c045163fdf740503b1d7770)
+| STIMinter   |  | [0x1921FDabe06a17A2d49646D99F2F8cc62EBf8c6e](https://rinkeby.etherscan.io/address/0x1921FDabe06a17A2d49646D99F2F8cc62EBf8c6e)
+| STIVault    |  | [0x1edfd9120254B82441fEfbCf2D4fB9ccbCfa07c0](https://testnet.snowtrace.io/address/0x1edfd9120254B82441fEfbCf2D4fB9ccbCfa07c0)
 
 #### BSC Products
 
 | Products    | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | LCI         | [0x8FD52c2156a0475e35E0FEf37Fa396611062c9b6](https://bscscan.com/address/0x8FD52c2156a0475e35E0FEf37Fa396611062c9b6) | [0x69380cc2169046f8A3B2c03D58Fe206475aAe3CB](https://testnet.bscscan.com/address/0x69380cc2169046f8a3b2c03d58fe206475aae3cb)
+| STIVault    |  | [0xdc9638F1664932a67F9632Fd224b9FE06E5F91F6](https://testnet.bscscan.com/address/0xdc9638F1664932a67F9632Fd224b9FE06E5F91F6)
+
+#### Ethereum Products
+
+| Products    | Mainnet                                                                                                               | Testnet                                                                                                               |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| STIVault    |  | [0xee018FA7839BaCb0064562730A6673A20E430a9d](https://rinkeby.etherscan.io/address/0xee018fa7839bacb0064562730a6673a20e430a9d)
 
 #### Polygon Products
 

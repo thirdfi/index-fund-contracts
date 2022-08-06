@@ -4,8 +4,8 @@ module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
   const [deployer] = await ethers.getSigners();
 
-  console.log("Now deploying AvaxPriceOracleTest...");
-  const proxy = await deploy("AvaxPriceOracleTest", {
+  console.log("Now deploying BscPriceOracleTest...");
+  const proxy = await deploy("BscPriceOracleTest", {
     from: deployer.address,
     proxy: {
       proxyContract: "OpenZeppelinTransparentProxy",
@@ -17,7 +17,7 @@ module.exports = async ({ deployments }) => {
       },
     },
   });
-  console.log("  AvaxPriceOracleTest_Proxy contract address: ", proxy.address);
+  console.log("  BscPriceOracleTest_Proxy contract address: ", proxy.address);
 
   // Verify the implementation contract
   try {
@@ -28,9 +28,9 @@ module.exports = async ({ deployments }) => {
 
     await run("verify:verify", {
       address: implAddress,
-      contract: "contracts/bni/priceOracle/AvaxPriceOracleTest.sol:AvaxPriceOracleTest",
+      contract: "contracts/bni/priceOracle/BscPriceOracleTest.sol:BscPriceOracleTest",
     });
   } catch (e) {
   }
 };
-module.exports.tags = ["avaxTestnet_bni_PriceOracle"];
+module.exports.tags = ["bscTestnet_PriceOracle"];

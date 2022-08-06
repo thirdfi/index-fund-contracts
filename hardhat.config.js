@@ -81,16 +81,17 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      auroraMainnet: process.env.AURORASCAN_API_KEY,
+      // Refer to @nomiclabs/hardhat-etherscan/src/ChainConfig.ts
+      aurora: process.env.AURORASCAN_API_KEY,
       auroraTestnet: process.env.AURORASCAN_API_KEY,
-      avaxMainnet: process.env.AVAXSCAN_API_KEY,
-      avaxTestnet: process.env.AVAXSCAN_API_KEY,
-      bscMainnet: process.env.BSCSCAN_API_KEY,
+      avalanche: process.env.AVAXSCAN_API_KEY,
+      avalancheFujiTestnet: process.env.AVAXSCAN_API_KEY,
+      bsc: process.env.BSCSCAN_API_KEY,
       bscTestnet: process.env.BSCSCAN_API_KEY,
-      ethMainnet: process.env.ETHERSCAN_API_KEY,
-      ethRinkeby: process.env.ETHERSCAN_API_KEY,
-      maticMainnet: process.env.POLYGONSCAN_API_KEY,
-      maticMumbai: process.env.POLYGONSCAN_API_KEY,
+      mainnet: process.env.ETHERSCAN_API_KEY,
+      rinkeby: process.env.ETHERSCAN_API_KEY,
+      polygon: process.env.POLYGONSCAN_API_KEY,
+      polygonMumbai: process.env.POLYGONSCAN_API_KEY,
     }
   },
   gasReporter: {
