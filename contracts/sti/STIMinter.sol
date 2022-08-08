@@ -44,7 +44,7 @@ interface Gateway {
         uint[] memory _chainIDs, address[] memory _tokens, uint[] memory _poolInUSDs,
         bytes memory sig
     );
-    function getPoolsUnbonded1() external view returns (
+    function getPoolsUnbonded1(address claimer) external view returns (
         uint[] memory _chainIDs, address[] memory _tokens,
         uint[] memory _waitings, uint[] memory _waitingInUSDs,
         uint[] memory _unbondeds, uint[] memory _unbondedInUSDs,
@@ -52,7 +52,7 @@ interface Gateway {
         bytes memory sig
     );
     function getWithdrawableSharePerc1() external view returns(
-        uint _sharePerc,
+        uint[] memory _chainIDs, uint[] memory _sharePercs,
         bytes memory sig
     );
 }
@@ -438,7 +438,7 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
         uint[] memory // _waitForTses
     ) {
         revert OffchainLookup(address(this), urls,
-            abi.encodeWithSelector(Gateway.getPoolsUnbonded1.selector),
+            abi.encodeWithSelector(Gateway.getPoolsUnbonded1.selector, _account),
             STIMinter.getPoolsUnbonded1WithSig.selector,
             abi.encode(_account)
         );

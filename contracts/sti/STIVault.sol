@@ -240,7 +240,8 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
         return strategy.getEmergencyWithdrawalUnbonded();
     }
 
-    ///@return the percentage of the value in the vault of the total value. It's useful for calculating the withdrawable share under emergency status.
+    ///@return chainID is the ID of the current chain
+    ///@return sharePerc is percentage of the value in the vault of the total value. It's useful for calculating the withdrawable share under emergency status.
     function getWithdrawableSharePerc() public view returns (uint chainID, uint sharePerc) {
         chainID = getChainID();
         (uint vaultPool, uint strategyPool) = _getAllPoolInUSD();
