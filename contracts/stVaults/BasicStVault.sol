@@ -311,16 +311,14 @@ contract BasicStVault is IStVault,
     function _invest(uint _amount) internal virtual returns (uint _invested) {}
 
     function redeem() external onlyOwnerOrAdmin whenNotPaused {
-        uint redeemed = _redeemInternal(pendingRedeems);
-        pendingRedeems -= redeemed;
-    }
-
-    function _redeemInternal(uint _stAmount) internal returns (uint _redeemed) {
-        require(_stAmount >= minRedeemAmount, "too small");
+        uint _pendingRedeems = pendingRedeems;
+        require(_pendingRedeems >= minRedeemAmount, "too small");
         require(block.timestamp >= (lastRedeemTs + redeemInterval), "Not able to redeem yet");
 
-        _redeemed = _redeem(_stAmount);
-        emit Redeem(_redeemed);
+        uint redeemed = _redeem(_pendingRedeems);
+        pendingRedeems -= redeemed;
+        lastRedeemTs = block.timestamp;
+        emit Redeem(redeemed);
     }
 
     function _redeem(uint _stAmount) internal virtual returns (uint _redeemed) {}
@@ -340,10 +338,13 @@ contract BasicStVault is IStVault,
     }
 
     function _emergencyWithdrawInternal() internal {
-        uint _pendingRedeems = pendingRedeems;
-        uint redeemed = _emergencyWithdraw(_pendingRedeems);
-        pendingRedeems = (_pendingRedeems <= redeemed) ? 0 : _pendingRedeems - redeemed;
-        emit EmergencyWithdraw(redeemed);
+        if (block.timestamp >= (lastRedeemTs + redeemInterval)) {
+            uint _pendingRedeems = pendingRedeems;
+            uint redeemed = _emergencyWithdraw(_pendingRedeems);
+            pendingRedeems = (_pendingRedeems <= redeemed) ? 0 : _pendingRedeems - redeemed;
+            lastRedeemTs = block.timestamp;
+            emit EmergencyWithdraw(redeemed);
+        }
     }
 
     function _emergencyWithdraw(uint _pendingRedeems) internal virtual returns (uint _redeemed) {}
