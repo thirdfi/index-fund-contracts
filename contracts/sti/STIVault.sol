@@ -244,8 +244,13 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
     ///@return sharePerc is percentage of the value in the vault of the total value. It's useful for calculating the withdrawable share under emergency status.
     function getWithdrawableSharePerc() public view returns (uint chainID, uint sharePerc) {
         chainID = getChainID();
-        (uint vaultPool, uint strategyPool) = _getAllPoolInUSD();
-        sharePerc = 1e18 * vaultPool / (vaultPool + strategyPool);
+        if (paused() == false) {
+            sharePerc = 1e18;
+        } else {
+            // In emergency mode, the unclaimed assets can not be withdrawn.
+            (uint vaultPool, uint strategyPool) = _getAllPoolInUSD();
+            sharePerc = 1e18 * vaultPool / (vaultPool + strategyPool);
+        }
     }
 
     ///@return the price of USDT in USD.
