@@ -467,24 +467,6 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
         require(gatewaySigner == recovered, "Signer is incorrect");
     }
 
-    /// @dev mint STIs according to the deposited USDT
-    /// @param _pool total USD worth in all pools of STI after deposited
-    /// @param _account account to which STIs will be minted
-    /// @param _USDTAmt the deposited amount of USDT with 6 decimals
-    function mintByAdmin(uint _pool, address _account, uint _USDTAmt) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
-        (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
-        uint amtDeposit = _USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
-        _pool = (amtDeposit < _pool) ? _pool - amtDeposit : 0;
-
-        uint _totalSupply = STI.totalSupply();
-        uint share = (_pool == 0 ||_totalSupply == 0)  ? amtDeposit : _totalSupply * amtDeposit / _pool;
-        // When assets invested in strategy, around 0.3% lost for swapping fee. We will consider it in share amount calculation to avoid pricePerFullShare fall down under 1.
-        share = share * 997 / 1000;
-
-        STI.mint(_account, share);
-        emit Mint(_account, amtDeposit, share);
-    }
-
     /// @param _share amount of STI to be withdrawn
     /// @return _sharePerc percentage of assets which should be withdrawn. It's 18 decimals
     function getWithdrawPerc(address _account, uint _share) public view returns (uint _sharePerc) {
@@ -522,6 +504,24 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
             uint perc = _sharePercs[i];
             if (_sharePerc > perc) _sharePerc = perc;
         }
+    }
+
+    /// @dev mint STIs according to the deposited USDT
+    /// @param _pool total USD worth in all pools of STI after deposited
+    /// @param _account account to which STIs will be minted
+    /// @param _USDTAmt the deposited amount of USDT with 6 decimals
+    function mintByAdmin(uint _pool, address _account, uint _USDTAmt) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
+        (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
+        uint amtDeposit = _USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
+        _pool = (amtDeposit < _pool) ? _pool - amtDeposit : 0;
+
+        uint _totalSupply = STI.totalSupply();
+        uint share = (_pool == 0 ||_totalSupply == 0)  ? amtDeposit : _totalSupply * amtDeposit / _pool;
+        // When assets invested in strategy, around 0.3% lost for swapping fee. We will consider it in share amount calculation to avoid pricePerFullShare fall down under 1.
+        share = share * 997 / 1000;
+
+        STI.mint(_account, share);
+        emit Mint(_account, amtDeposit, share);
     }
 
     /// @dev mint STIs according to the deposited USDT

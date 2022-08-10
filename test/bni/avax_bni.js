@@ -63,6 +63,7 @@ describe("BNI on Avalanche", async () => {
 
         expect(await minter.owner()).equal(deployer.address);
         expect(await minter.admin()).equal(common.admin);
+        expect(await minter.trustedForwarder()).equal(AddressZero);
         expect(await minter.BNI()).equal(bni.address);
         expect(await minter.priceOracle()).equal(priceOracle.address);
         expect(await minter.chainIDs(0)).equal(137);
@@ -77,9 +78,11 @@ describe("BNI on Avalanche", async () => {
         expect(await minter.tid(137, '0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270')).equal(0);
         expect(await minter.tid(43114, '0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7')).equal(1);
         expect(await minter.tid(1313161554, '0xC42C30aC6Cc15faC9bD938618BcaA1a1FaE8501d')).equal(2);
+        expect(await minter.getNonce()).equal(0);
 
         expect(await vault.owner()).equal(deployer.address);
         expect(await vault.admin()).equal(common.admin);
+        expect(await vault.trustedForwarder()).equal(AddressZero);
         expect(await vault.strategy()).equal(strategy.address);
         expect(await vault.priceOracle()).equal(priceOracle.address);
         expect(await vault.USDT()).equal(network_.Swap.USDT);
@@ -113,16 +116,20 @@ describe("BNI on Avalanche", async () => {
         await expectRevert(bni.mint(a2.address, parseEther('1')), "Mintable: caller is not the minter");
 
         await expectRevert(minter.setAdmin(a2.address), "Ownable: caller is not the owner");
+        await expectRevert(minter.setBiconomy(a2.address), "Ownable: caller is not the owner");
         await expectRevert(minter.setGatewaySigner(a2.address), "Ownable: caller is not the owner");
         await expectRevert(minter.addToken(1, a1.address), "Ownable: caller is not the owner");
         await expectRevert(minter.removeToken(1), "Ownable: caller is not the owner");
         await expectRevert(minter.setTokenCompositionTargetPerc([10000]), "Ownable: caller is not the owner");
-        await expectRevert(minter.mint(parseEther('1000'), a1.address, getUsdtAmount('100')), "Only owner or admin");
-        await expectRevert(minter.burn(a1.address, getUsdtAmount('100')), "Only owner or admin");
+        await expectRevert(minter.initDeposit(a1.address, getUsdtAmount('100')), "Only owner or admin");
+        await expectRevert(minter.mintByAdmin(parseEther('1000'), a1.address, getUsdtAmount('100')), "Only owner or admin");
+        await expectRevert(minter.burnByAdmin(a1.address, parseEther('1')), "Only owner or admin");
+        await expectRevert(minter.exitWithdrawal(a1.address), "Only owner or admin");
 
         await expectRevert(vault.setAdmin(a2.address), "Ownable: caller is not the owner");
-        await expectRevert(vault.deposit(a1.address, [a2.address], [getUsdtAmount('100')]), "Only owner or admin");
-        await expectRevert(vault.withdrawPerc(a1.address, parseEther('0.1')), "Only owner or admin");
+        await expectRevert(vault.setBiconomy(a2.address), "Ownable: caller is not the owner");
+        await expectRevert(vault.deposit(a1.address, [a2.address], [getUsdtAmount('100')], 1), "Only owner or admin");
+        await expectRevert(vault.withdrawPerc(a1.address, parseEther('0.1'), 1), "Only owner or admin");
         await expectRevert(vault.rebalance(0, parseEther('0.1'), a2.address), "Only owner or admin");
         await expectRevert(vault.emergencyWithdraw(), "Only owner or admin");
         await expectRevert(vault.reinvest([a2.address], [10000]), "Only owner or admin");
@@ -197,14 +204,38 @@ describe("BNI on Avalanche", async () => {
         expect(USDTAmts[2]).equal(getUsdtAmount('50000').mul(2).div(10));
         expect(USDTAmts[0].add(USDTAmts[1]).add(USDTAmts[2])).equal(getUsdtAmount('50000'));
 
-        await vault.connect(admin).deposit(a1.address, tokens, USDTAmts);
+        await minter.connect(admin).initDeposit(a1.address, getUsdtAmount('50000'));
+        await expectRevert(minter.connect(admin).initDeposit(a1.address, getUsdtAmount('50000')), "Previous operation not finished");
+        expect(await minter.getNonce()).equal(1);
+        expect(await minter.userLastOperationNonce(a1.address)).equal(1);
+        ret = await minter.getOperation(1);
+        expect(ret[0]).equal(a1.address);
+        expect(ret[1]).equal(1);
+        expect(ret[2]).equal(getUsdtAmount('50000'));
+        expect(ret[3]).equal(false);
+
+        var avaxPool = await vault.getAllPoolInUSD()
+        await vault.connect(admin).deposit(a1.address, tokens, USDTAmts, 1);
+        await expectRevert(vault.connect(admin).deposit(a1.address, tokens, USDTAmts, 1), "Nonce is behind");
+        expect(await vault.firstOperationNonce()).equal(1);
+        expect(await vault.lastOperationNonce()).equal(1);
+        ret = await vault.poolAtNonce(1);
+        expect(ret[0]).equal(avaxPool);
+        expect(ret[1]).gt(0);
+        expect(await vault.userLastOperationNonce(a1.address)).equal(1);
+        expect(await vault.operationAmounts(1)).equal(getUsdtAmount('50000'));
+
         expect(await usdt.balanceOf(a1.address)).equal(0);
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(100));
         var avaxAPR = await vault.getAPR();
-        var avaxPool = await vault.getAllPoolInUSD();
+        avaxPool = await vault.getAllPoolInUSD();
         var allPool = await minter.getAllPoolInUSD([avaxPool]);
         expect(allPool).closeTo(parseEther('50000'), parseEther('50000').div(100));
-        await minter.connect(admin).mint(allPool, a1.address, getUsdtAmount('50000'));
+        await minter.connect(admin).mintByAdmin(allPool, a1.address, getUsdtAmount('50000'));
+        await expectRevert(minter.connect(admin).mintByAdmin(allPool, a1.address, getUsdtAmount('50000')), "No operation");
+        ret = await minter.getOperation(1);
+        expect(ret[3]).equal(true);
+
         expect(await bni.balanceOf(a1.address)).closeTo(parseEther('50000'), parseEther('50000').div(100));
         expect(await minter.getPricePerFullShare([avaxPool])).closeTo(parseEther('1'), parseEther('1').div(100));
         expect(await minter.getAPR([avaxPool], [avaxAPR])).gt(0);
@@ -217,10 +248,34 @@ describe("BNI on Avalanche", async () => {
         await expectRevert(minter.getWithdrawPerc(a1.address, share.add(1)), "Invalid share amount");
         const sharePerc = await minter.getWithdrawPerc(a1.address, share);
         expect(sharePerc).equal(parseEther('1'));
-        await minter.connect(admin).burn(a1.address, share);
+        await minter.connect(admin).burnByAdmin(a1.address, share);
+        await expectRevert(minter.connect(admin).burnByAdmin(a1.address, share), "Previous operation not finished");
+        expect(await minter.getNonce()).equal(2);
+        expect(await minter.userLastOperationNonce(a1.address)).equal(2);
+        ret = await minter.getOperation(2);
+        expect(ret[0]).equal(a1.address);
+        expect(ret[1]).equal(2);
+        expect(ret[2]).equal(share);
+        expect(ret[3]).equal(false);
+
         expect(await bni.balanceOf(a1.address)).equal(0);
         expect(await bni.totalSupply()).equal(0);
-        await vault.connect(admin).withdrawPerc(a1.address, sharePerc);
+        avaxPool = await vault.getAllPoolInUSD()
+        await vault.connect(admin).withdrawPerc(a1.address, sharePerc, 2);
+        await expectRevert(vault.connect(admin).withdrawPerc(a1.address, sharePerc, 2), "Nonce is behind");
+        expect(await vault.firstOperationNonce()).equal(1);
+        expect(await vault.lastOperationNonce()).equal(2);
+        ret = await vault.poolAtNonce(2);
+        expect(ret[0]).closeTo(avaxPool, avaxPool.div(10000));
+        expect(ret[1]).gt(0);
+        expect(await vault.userLastOperationNonce(a1.address)).equal(2);
+        expect(await vault.operationAmounts(2)).equal(sharePerc);
+
+        await minter.connect(admin).exitWithdrawal(a1.address);
+        await expectRevert(minter.connect(admin).exitWithdrawal(a1.address), "No operation");
+        ret = await minter.getOperation(2);
+        expect(ret[3]).equal(true);
+
         expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(100));
         expect(await vault.getAllPoolInUSD()).equal(0);
       });
@@ -241,10 +296,11 @@ describe("BNI on Avalanche", async () => {
         tokens = ret[1];
         USDTAmts = ret[2];
 
-        await vault.connect(admin).deposit(a1.address, tokens, USDTAmts);
+        await minter.connect(admin).initDeposit(a1.address, getUsdtAmount('10000'));
+        await vault.connect(admin).deposit(a1.address, tokens, USDTAmts, 1);
         var avaxPool = await vault.getAllPoolInUSD();
         var allPool = await minter.getAllPoolInUSD([avaxPool]);
-        await minter.connect(admin).mint(allPool, a1.address, getUsdtAmount('10000'));
+        await minter.connect(admin).mintByAdmin(allPool, a1.address, getUsdtAmount('10000'));
 
         // deposit with a2
         ret = await vault.getEachPoolInUSD();
@@ -261,13 +317,31 @@ describe("BNI on Avalanche", async () => {
         expect(USDTAmts[2]).gt(0);
         expect(USDTAmts[0].add(USDTAmts[1]).add(USDTAmts[2])).closeTo(getUsdtAmount('10000'), 1);
 
-        await vault.connect(admin).deposit(a2.address, tokens, USDTAmts);
+        await minter.connect(admin).initDeposit(a2.address, getUsdtAmount('10000'));
+        expect(await minter.getNonce()).equal(2);
+        expect(await minter.userLastOperationNonce(a2.address)).equal(2);
+        ret = await minter.getOperation(2);
+        expect(ret[0]).equal(a2.address);
+        expect(ret[1]).equal(1);
+        expect(ret[2]).equal(getUsdtAmount('10000'));
+        expect(ret[3]).equal(false);
+
+        var avaxPool = await vault.getAllPoolInUSD()
+        await vault.connect(admin).deposit(a2.address, tokens, USDTAmts, 2);
+        expect(await vault.firstOperationNonce()).equal(1);
+        expect(await vault.lastOperationNonce()).equal(2);
+        ret = await vault.poolAtNonce(2);
+        expect(ret[0]).closeTo(avaxPool, avaxPool.div(10000));
+        expect(ret[1]).gt(0);
+        expect(await vault.userLastOperationNonce(a2.address)).equal(2);
+        expect(await vault.operationAmounts(2)).closeTo(getUsdtAmount('10000'), 1);
+
         expect(await usdt.balanceOf(a2.address)).closeTo(parseEther('0'), 1);
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('20000'), parseEther('20000').div(100));
-        var avaxPool = await vault.getAllPoolInUSD();
+        avaxPool = await vault.getAllPoolInUSD();
         var allPool = await minter.getAllPoolInUSD([avaxPool]);
         expect(allPool).closeTo(parseEther('20000'), parseEther('20000').div(100));
-        await minter.connect(admin).mint(allPool, a2.address, getUsdtAmount('10000'));
+        await minter.connect(admin).mintByAdmin(allPool, a2.address, getUsdtAmount('10000'));
         expect(await bni.balanceOf(a2.address)).closeTo(parseEther('10000'), parseEther('10000').div(100));
         expect(await minter.getPricePerFullShare([avaxPool])).closeTo(parseEther('1'), parseEther('1').div(100));
 
@@ -275,10 +349,11 @@ describe("BNI on Avalanche", async () => {
         var share = await bni.balanceOf(a1.address);
         var sharePerc = await minter.getWithdrawPerc(a1.address, share);
         expect(sharePerc).closeTo(parseEther('0.5'), parseEther('0.5').div(100));
-        await minter.connect(admin).burn(a1.address, share);
+        await minter.connect(admin).burnByAdmin(a1.address, share);
         expect(await bni.balanceOf(a1.address)).equal(0);
         expect(await bni.totalSupply()).closeTo(parseEther('10000'), parseEther('10000').div(100));
-        await vault.connect(admin).withdrawPerc(a1.address, sharePerc);
+        await vault.connect(admin).withdrawPerc(a1.address, sharePerc, 3);
+        await minter.connect(admin).exitWithdrawal(a1.address);
         expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('10000'), getUsdtAmount('10000').div(100));
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('10000'), parseEther('10000').div(100));
 
@@ -286,10 +361,11 @@ describe("BNI on Avalanche", async () => {
         share = await bni.balanceOf(a2.address);
         sharePerc = await minter.getWithdrawPerc(a2.address, share);
         expect(sharePerc).equal(parseEther('1'));
-        await minter.connect(admin).burn(a2.address, share);
+        await minter.connect(admin).burnByAdmin(a2.address, share);
         expect(await bni.balanceOf(a2.address)).equal(0);
         expect(await bni.totalSupply()).equal(0);
-        await vault.connect(admin).withdrawPerc(a2.address, sharePerc);
+        await vault.connect(admin).withdrawPerc(a2.address, sharePerc, 4);
+        await minter.connect(admin).exitWithdrawal(a2.address);
         expect(await usdt.balanceOf(a2.address)).closeTo(getUsdtAmount('10000'), getUsdtAmount('10000').div(100));
         expect(await vault.getAllPoolInUSD()).equal(0);
       });
@@ -306,10 +382,11 @@ describe("BNI on Avalanche", async () => {
         chainIDs = ret[0];
         tokens = ret[1];
         USDTAmts = ret[2];
-        await vault.connect(admin).deposit(a1.address, tokens, USDTAmts);
+        await minter.connect(admin).initDeposit(a1.address, getUsdtAmount('50000'));
+        await vault.connect(admin).deposit(a1.address, tokens, USDTAmts, 1);
         var avaxPool = await vault.getAllPoolInUSD();
         var allPool = await minter.getAllPoolInUSD([avaxPool]);
-        await minter.connect(admin).mint(allPool, a1.address, getUsdtAmount('50000'));
+        await minter.connect(admin).mintByAdmin(allPool, a1.address, getUsdtAmount('50000'));
 
         await vault.connect(admin).emergencyWithdraw();
         expect(await usdt.balanceOf(vault.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(20));
@@ -324,10 +401,11 @@ describe("BNI on Avalanche", async () => {
         var share = await bni.balanceOf(a1.address);
         var sharePerc = await minter.getWithdrawPerc(a1.address, share);
         expect(sharePerc).equal(parseEther('1'));
-        await minter.connect(admin).burn(a1.address, share);
+        await minter.connect(admin).burnByAdmin(a1.address, share);
         expect(await bni.balanceOf(a1.address)).equal(0);
         expect(await bni.totalSupply()).equal(0);
-        await vault.connect(admin).withdrawPerc(a1.address, sharePerc);
+        await vault.connect(admin).withdrawPerc(a1.address, sharePerc, 2);
+        await minter.connect(admin).exitWithdrawal(a1.address);
         expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(50));
         expect(await vault.getAllPoolInUSD()).equal(0);
       });
@@ -361,13 +439,14 @@ describe("BNI on Avalanche", async () => {
         expect(USDTAmts[3]).equal(getUsdtAmount('50000').mul(1).div(10));
         expect(USDTAmts[0].add(USDTAmts[1]).add(USDTAmts[2]).add(USDTAmts[3])).equal(getUsdtAmount('50000'));
 
-        await vault.connect(admin).deposit(a1.address, tokens, USDTAmts);
+        await minter.connect(admin).initDeposit(a1.address, getUsdtAmount('50000'));
+        await vault.connect(admin).deposit(a1.address, tokens, USDTAmts, 1);
         expect(await usdt.balanceOf(a1.address)).equal(0);
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(100));
         var avaxPool = await vault.getAllPoolInUSD();
         var allPool = await minter.getAllPoolInUSD([avaxPool]);
         expect(allPool).closeTo(parseEther('50000'), parseEther('50000').div(100));
-        await minter.connect(admin).mint(allPool, a1.address, getUsdtAmount('50000'));
+        await minter.connect(admin).mintByAdmin(allPool, a1.address, getUsdtAmount('50000'));
         expect(await bni.balanceOf(a1.address)).closeTo(parseEther('50000'), parseEther('50000').div(100));
         expect(await minter.getPricePerFullShare([avaxPool])).closeTo(parseEther('1'), parseEther('1').div(100));
 
@@ -393,8 +472,9 @@ describe("BNI on Avalanche", async () => {
 
         var share = await bni.balanceOf(a1.address);
         var sharePerc = await minter.getWithdrawPerc(a1.address, share);
-        await minter.connect(admin).burn(a1.address, share);
-        await vault.connect(admin).withdrawPerc(a1.address, sharePerc);
+        await minter.connect(admin).burnByAdmin(a1.address, share);
+        await vault.connect(admin).withdrawPerc(a1.address, sharePerc, 2);
+        await minter.connect(admin).exitWithdrawal(a1.address);
         expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(50));
         expect(await vault.getAllPoolInUSD()).equal(0);
       });

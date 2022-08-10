@@ -473,8 +473,9 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         userLastOperationNonce[_account] = getNonce();
     }
 
-    function _exitOperation(address _account) internal {
+    function _checkAndExitOperation(address _account) internal {
         uint nonce = userLastOperationNonce[_account];
+        require(nonce > 0 && operations[nonce - 1].done == false, "No operation");
         operations[nonce - 1].done = true;
     }
 
@@ -486,7 +487,9 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     /// @param _pool total USD worth in all pools of BNI after deposited
     /// @param _account account to which BNIs will be minted
     /// @param _USDTAmt the deposited amount of USDT with 6 decimals
-    function mint(uint _pool, address _account, uint _USDTAmt) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
+    function mintByAdmin(uint _pool, address _account, uint _USDTAmt) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
+        _checkAndExitOperation(_account);
+
         (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
         uint amtDeposit = _USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
         _pool = (amtDeposit < _pool) ? _pool - amtDeposit : 0;
@@ -497,14 +500,13 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         share = share * 997 / 1000;
 
         BNI.mint(_account, share);
-        _exitOperation(_account);
         emit Mint(_account, amtDeposit, share);
     }
 
     /// @dev mint BNIs according to the deposited USDT
     /// @param _account account to which BNIs will be minted
     /// @param _share amount of BNI to be burnt
-    function burn(address _account, uint _share) external onlyOwnerOrAdmin nonReentrant {
+    function burnByAdmin(address _account, uint _share) external onlyOwnerOrAdmin nonReentrant {
         require(0 < _share && _share <= BNI.balanceOf(_account), "Invalid share amount");
         _checkAndAddOperation(_account, OperationType.WITHDRAWAL, _share);
 
@@ -513,6 +515,6 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     }
 
     function exitWithdrawal(address _account) external onlyOwnerOrAdmin {
-        _exitOperation(_account);
+        _checkAndExitOperation(_account);
     }
 }

@@ -51,6 +51,7 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     uint public lastOperationNonce;
     mapping(uint => PoolSnapshot) public poolAtNonce;
     mapping(address => uint) public userLastOperationNonce;
+    mapping(uint => uint) public operationAmounts;
 
     event Deposit(address caller, uint amtDeposit, address tokenDeposit);
     event Withdraw(address caller, uint amtWithdraw, address tokenWithdraw, uint sharePerc);
@@ -113,6 +114,7 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
 
         require(userLastOperationNonce[_account] < _nonce, "Nonce is behind");
         userLastOperationNonce[_account] = _nonce;
+        operationAmounts[_nonce] = USDTAmt;
         _snapshotPool(_nonce, getAllPoolInUSD());
 
         USDT.safeTransferFrom(_account, address(this), USDTAmt);
@@ -139,6 +141,7 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
 
         require(userLastOperationNonce[_account] < _nonce, "Nonce is behind");
         userLastOperationNonce[_account] = _nonce;
+        operationAmounts[_nonce] = _sharePerc;
         uint pool = getAllPoolInUSD();
         _snapshotPool(_nonce, pool);
 
@@ -166,7 +169,7 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
             firstOperationNonce = _nonce;
         }
         if (lastOperationNonce < _nonce) {
-            lastOperationNonce == _nonce;
+            lastOperationNonce = _nonce;
         }
     }
 
