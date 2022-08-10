@@ -10,6 +10,7 @@ import "./priceOracle/IPriceOracle.sol";
 import "./constant/AvaxConstant.sol";
 import "./constant/AuroraConstant.sol";
 import "./constant/MaticConstant.sol";
+import "../../libs/Const.sol";
 
 interface IBNI is IERC20Upgradeable {
     function decimals() external view returns (uint8);
@@ -26,6 +27,10 @@ interface Gateway {
         bytes memory sig
     );
     function getAllPoolInUSD1() external view returns(
+        uint[] memory _allPoolInUSDs,
+        bytes memory sig
+    );
+    function getAllPoolInUSDAtNonce1(uint _nonce) external view returns(
         uint[] memory _allPoolInUSDs,
         bytes memory sig
     );
@@ -47,7 +52,14 @@ interface Gateway {
 contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
     using ECDSAUpgradeable for bytes32;
 
-    uint constant DENOMINATOR = 10000;
+    enum OperationType { NONE, DEPOSIT, WITHDRAWAL }
+
+    struct Operation {
+        address account;
+        OperationType operation;
+        uint amount;
+        bool done;
+    }
 
     uint[] public chainIDs;
     address[] public tokens;
@@ -60,6 +72,11 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
 
     string[] public urls;
     address public gatewaySigner;
+
+    address public trustedForwarder;
+
+    Operation[] public operations; // The nonce start from 1.
+    mapping(address => uint) public userLastOperationNonce;
 
     event SetAdminWallet(address oldAdmin, address newAdmin);
     event AddToken(uint chainID, address token, uint tid);
@@ -115,8 +132,37 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         emit SetAdminWallet(oldAdmin, _admin);
     }
 
+    function setBiconomy(address _biconomy) external onlyOwner {
+        trustedForwarder = _biconomy;
+    }
+
+    function isTrustedForwarder(address forwarder) public view returns(bool) {
+        return forwarder == trustedForwarder;
+    }
+
+    function _msgSender() internal override(ContextUpgradeable) view returns (address ret) {
+        if (msg.data.length >= 24 && isTrustedForwarder(msg.sender)) {
+            // At this point we know that the sender is a trusted forwarder,
+            // so we trust that the last bytes of msg.data are the verified sender address.
+            // extract sender address from the end of msg.data
+            assembly {
+                ret := shr(96,calldataload(sub(calldatasize(),20)))
+            }
+        } else {
+            return msg.sender;
+        }
+    }
+
+    function versionRecipient() external pure returns (string memory) {
+        return "1";
+    }
+
     function setGatewaySigner(address _signer) external onlyOwner {
         gatewaySigner = _signer;
+    }
+
+    function setUrls(string[] memory _urls) external onlyOwner {
+        urls = _urls;
     }
 
     /// @notice After this method called, setTokenCompositionTargetPerc should be called to adjust percentages.
@@ -166,7 +212,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
             targetPercentages[i] = _targetPerc[i];
             sum += _targetPerc[i];
         }
-        require(sum == DENOMINATOR, "Invalid parameter");
+        require(sum == Const.DENOMINATOR, "Invalid parameter");
     }
 
     /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
@@ -204,7 +250,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
 
         percentages = new uint[](poolCnt);
         for (uint i = 0; i < poolCnt; i ++) {
-            percentages[i] = allPool == 0 ? targetPercentages[i] : pools[i] * DENOMINATOR / allPool;
+            percentages[i] = allPool == 0 ? targetPercentages[i] : pools[i] * Const.DENOMINATOR / allPool;
         }
 
         return (chainIDs, tokens, pools, percentages);
@@ -261,6 +307,14 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         require(gatewaySigner == recovered, "Signer is incorrect");
 
         return getAllPoolInUSD(_allPoolInUSDs);
+    }
+
+    function getAllPoolInUSDAtNonce1(uint _nonce) external view returns (uint) {
+        revert OffchainLookup(address(this), urls,
+            abi.encodeWithSelector(Gateway.getAllPoolInUSDAtNonce1.selector, _nonce),
+            BNIMinter.getAllPoolInUSD1WithSig.selector,
+            abi.encode(_nonce)
+        );
     }
 
     /// @notice Can be used for calculate both user shares & APR
@@ -348,7 +402,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         uint totalAllocation;
         uint[] memory allocations = new uint[](poolCnt);
         for (uint i = 0; i < poolCnt; i ++) {
-            uint target = allPool * targetPercentages[i] / DENOMINATOR;
+            uint target = allPool * targetPercentages[i] / Const.DENOMINATOR;
             if (pools[i] < target) {
                 uint diff = target - pools[i];
                 allocations[i] = diff;
@@ -388,6 +442,46 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         return getDepositTokenComposition(_chainIDs, _tokens, _poolInUSDs, _USDTAmt);
     }
 
+    /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
+    /// @param _share amount of BNI to be withdrawn
+    /// @return _sharePerc percentage of assets which should be withdrawn. It's 18 decimals
+    function getWithdrawPerc(address _account, uint _share) public view returns (uint _sharePerc) {
+        require(0 < _share && _share <= BNI.balanceOf(_account), "Invalid share amount");
+        return (_share * 1e18) / BNI.totalSupply();
+    }
+
+    function getNonce() public view returns (uint) {
+        return operations.length;
+    }
+
+    function getOperation(uint _nonce) public view returns (Operation memory) {
+        return operations[_nonce - 1];
+    }
+
+    function _checkAndAddOperation(address _account, OperationType _operation, uint _amount) internal {
+        uint nonce = userLastOperationNonce[_account];
+        if (nonce > 0) {
+            Operation memory op = getOperation(nonce);
+            require(op.done, "Previous operation not finished");
+        }
+        operations.push(Operation({
+            account: _account,
+            operation: _operation,
+            amount: _amount,
+            done: false
+        }));
+        userLastOperationNonce[_account] = getNonce();
+    }
+
+    function _exitOperation(address _account) internal {
+        uint nonce = userLastOperationNonce[_account];
+        operations[nonce - 1].done = true;
+    }
+
+    function initDeposit(address _account, uint _USDTAmt) external onlyOwnerOrAdmin whenNotPaused {
+        _checkAndAddOperation(_account, OperationType.DEPOSIT, _USDTAmt);
+    }
+
     /// @dev mint BNIs according to the deposited USDT
     /// @param _pool total USD worth in all pools of BNI after deposited
     /// @param _account account to which BNIs will be minted
@@ -403,15 +497,8 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         share = share * 997 / 1000;
 
         BNI.mint(_account, share);
+        _exitOperation(_account);
         emit Mint(_account, amtDeposit, share);
-    }
-
-    /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
-    /// @param _share amount of BNI to be withdrawn
-    /// @return _sharePerc percentage of assets which should be withdrawn. It's 18 decimals
-    function getWithdrawPerc(address _account, uint _share) public view returns (uint _sharePerc) {
-        require(0 < _share && _share <= BNI.balanceOf(_account), "Invalid share amount");
-        return (_share * 1e18) / BNI.totalSupply();
     }
 
     /// @dev mint BNIs according to the deposited USDT
@@ -419,11 +506,13 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     /// @param _share amount of BNI to be burnt
     function burn(address _account, uint _share) external onlyOwnerOrAdmin nonReentrant {
         require(0 < _share && _share <= BNI.balanceOf(_account), "Invalid share amount");
+        _checkAndAddOperation(_account, OperationType.WITHDRAWAL, _share);
+
         BNI.burnFrom(_account, _share);
         emit Burn(_account, _share);
     }
 
-    function setUrls(string[] memory _urls) external onlyOwner {
-        urls = _urls;
+    function exitWithdrawal(address _account) external onlyOwnerOrAdmin {
+        _exitOperation(_account);
     }
 }

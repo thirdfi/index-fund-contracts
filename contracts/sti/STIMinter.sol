@@ -152,6 +152,10 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
         gatewaySigner = _signer;
     }
 
+    function setUrls(string[] memory _urls) external onlyOwner {
+        urls = _urls;
+    }
+
     /// @notice After this method called, setTokenCompositionTargetPerc should be called to adjust percentages.
     function addToken(uint _chainID, address _token) external onlyOwner {
         uint _tid = tid[_chainID][_token];
@@ -527,9 +531,5 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
         require(0 < _share && _share <= STI.balanceOf(_account), "Invalid share amount");
         STI.burnFrom(_account, _share);
         emit Burn(_account, _share);
-    }
-
-    function setUrls(string[] memory _urls) external onlyOwner {
-        urls = _urls;
     }
 }

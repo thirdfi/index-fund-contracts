@@ -8,6 +8,7 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./priceOracle/IPriceOracle.sol";
+import "../../libs/Const.sol";
 
 interface IStrategy {
     function invest(address[] memory tokens, uint[] memory USDTAmts) external;
@@ -27,6 +28,11 @@ interface IERC20UpgradeableExt is IERC20Upgradeable {
 contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20UpgradeableExt;
 
+    struct PoolSnapshot {
+        uint poolInUSD;
+        uint ts;
+    }
+
     IERC20UpgradeableExt public USDT;
     uint8 usdtDecimals;
 
@@ -34,11 +40,17 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     IStrategy public strategy;
     IPriceOracle public priceOracle;
 
-    uint constant DENOMINATOR = 10000;
     uint public profitFeePerc;
     address public treasuryWallet;
     uint public watermark; // In USD (18 decimals)
     uint public fees; // In USD (18 decimals)
+
+    address public trustedForwarder;
+
+    uint public firstOperationNonce;
+    uint public lastOperationNonce;
+    mapping(uint => PoolSnapshot) public poolAtNonce;
+    mapping(address => uint) public userLastOperationNonce;
 
     event Deposit(address caller, uint amtDeposit, address tokenDeposit);
     event Withdraw(address caller, uint amtWithdraw, address tokenWithdraw, uint sharePerc);
@@ -85,7 +97,7 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
     /// @param _USDTAmts amounts of USDT should be deposited to each pools. It's 6 decimals
     function deposit(
-        address _account, address[] memory _tokens, uint[] memory _USDTAmts
+        address _account, address[] memory _tokens, uint[] memory _USDTAmts, uint _nonce
     ) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
         require(_account != address(0), "Invalid account");
         uint poolCnt = _tokens.length;
@@ -98,6 +110,10 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
             USDTAmt += _USDTAmts[i];
         }
         require(0 < USDTAmt, "Amounts must > 0");
+
+        require(userLastOperationNonce[_account] < _nonce, "Nonce is behind");
+        userLastOperationNonce[_account] = _nonce;
+        _snapshotPool(_nonce, getAllPoolInUSD());
 
         USDT.safeTransferFrom(_account, address(this), USDTAmt);
 
@@ -115,11 +131,17 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     }
 
     /// @param _sharePerc percentage of assets which should be withdrawn. It's 18 decimals
-    function withdrawPerc(address _account, uint _sharePerc) external onlyOwnerOrAdmin nonReentrant {
+    function withdrawPerc(
+        address _account, uint _sharePerc, uint _nonce
+    ) external onlyOwnerOrAdmin nonReentrant {
         require(_sharePerc > 0, "SharePerc must > 0");
         require(_sharePerc <= 1e18, "Over 100%");
-        
+
+        require(userLastOperationNonce[_account] < _nonce, "Nonce is behind");
+        userLastOperationNonce[_account] = _nonce;
         uint pool = getAllPoolInUSD();
+        _snapshotPool(_nonce, pool);
+
         uint withdrawAmt = pool * _sharePerc / 1e18;
         uint sharePerc = withdrawAmt * 1e18 / (pool + fees);
         uint USDTAmt;
@@ -132,6 +154,20 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         }
         USDT.safeTransfer(_account, USDTAmt);
         emit Withdraw(_account, withdrawAmt, address(USDT), _sharePerc);
+    }
+
+    function _snapshotPool(uint _nonce, uint _pool) internal {
+        poolAtNonce[_nonce] = PoolSnapshot({
+            poolInUSD: _pool,
+            ts: block.timestamp
+        });
+
+        if (firstOperationNonce == 0) {
+            firstOperationNonce = _nonce;
+        }
+        if (lastOperationNonce < _nonce) {
+            lastOperationNonce == _nonce;
+        }
     }
 
     function rebalance(uint _pid, uint _sharePerc, address _target) external onlyOwnerOrAdmin {
@@ -186,7 +222,7 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         uint fee;
         if (currentWatermark > lastWatermark) {
             uint profit = currentWatermark - lastWatermark;
-            fee = profit * profitFeePerc / DENOMINATOR;
+            fee = profit * profitFeePerc / Const.DENOMINATOR;
             fees += fee;
             watermark = currentWatermark;
         }
@@ -265,6 +301,31 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         emit SetAdminWallet(oldAdmin, _admin);
     }
 
+    function setBiconomy(address _biconomy) external onlyOwner {
+        trustedForwarder = _biconomy;
+    }
+
+    function isTrustedForwarder(address forwarder) public view returns(bool) {
+        return forwarder == trustedForwarder;
+    }
+
+    function _msgSender() internal override(ContextUpgradeable) view returns (address ret) {
+        if (msg.data.length >= 24 && isTrustedForwarder(msg.sender)) {
+            // At this point we know that the sender is a trusted forwarder,
+            // so we trust that the last bytes of msg.data are the verified sender address.
+            // extract sender address from the end of msg.data
+            assembly {
+                ret := shr(96,calldataload(sub(calldatasize(),20)))
+            }
+        } else {
+            return msg.sender;
+        }
+    }
+
+    function versionRecipient() external pure returns (string memory) {
+        return "1";
+    }
+
     /// @return the price of USDT in USD.
     function getUSDTPriceInUSD() public view returns(uint, uint8) {
         return priceOracle.getAssetPrice(address(USDT));
@@ -297,6 +358,21 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
             pool = strategy.getAllPoolInUSD();
         }
         return (pool > fees ? pool - fees : 0);
+    }
+
+    function getAllPoolInUSDAtNonce(uint _nonce) public view returns (uint) {
+        if (firstOperationNonce == 0 || _nonce < firstOperationNonce) {
+            return 0;
+        }
+        if (_nonce <= lastOperationNonce) {
+            for (uint i = _nonce; i >= firstOperationNonce; i --) {
+                PoolSnapshot memory snapshot = poolAtNonce[i];
+                if (snapshot.ts > 0) {
+                    return snapshot.poolInUSD;
+                }
+            }
+        }
+        return getAllPoolInUSD();
     }
 
     function getCurrentCompositionPerc() external view returns (address[] memory tokens, uint[] memory percentages) {
