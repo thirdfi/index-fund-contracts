@@ -141,8 +141,8 @@ describe("STI on Aurora", async () => {
 
         await expectRevert(vault.setAdmin(a2.address), "Ownable: caller is not the owner");
         await expectRevert(vault.setBiconomy(a2.address), "Ownable: caller is not the owner");
-        await expectRevert(vault.depositByAdmin(a1.address, [a2.address], [getUsdtAmount('100')]), "Only owner or admin");
-        await expectRevert(vault.withdrawPercByAdmin(a1.address, parseEther('0.1')), "Only owner or admin");
+        await expectRevert(vault.depositByAdmin(a1.address, [a2.address], [getUsdtAmount('100')], 1), "Only owner or admin");
+        await expectRevert(vault.withdrawPercByAdmin(a1.address, parseEther('0.1'), 1), "Only owner or admin");
         await expectRevert(vault.emergencyWithdraw(), "Only owner or admin");
         await expectRevert(vault.claimEmergencyWithdrawal(), "Only owner or admin");
         await expectRevert(vault.reinvest([a2.address], [10000]), "Only owner or admin");
@@ -253,7 +253,7 @@ describe("STI on Aurora", async () => {
         // deposit
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('50000')]);
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('50000')], 1);
 
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(100));
 
@@ -302,7 +302,7 @@ describe("STI on Aurora", async () => {
         expect(stNEARVaultShare).gt(0);
 
         // withdraw all
-        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'));
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'), 2);
         let usdtBalance = await usdt.balanceOf(a1.address);
         expect(usdtBalance).gt(0); // Some stNEARs is not swapped to WNEAR because metaPool buffer is insufficient
         // expect(await nft.totalSupply()).equal(1);
@@ -339,7 +339,7 @@ describe("STI on Aurora", async () => {
         // deposit
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('100000')]);
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('100000')], 1);
 
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('100000'), parseEther('100000').div(100));
 
@@ -404,7 +404,7 @@ describe("STI on Aurora", async () => {
         await changeTokenBalance(WNEARDeposits.mul(3).div(5));
 
         // withdraw all
-        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'));
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'), 2);
         let usdtBalance = await usdt.balanceOf(a1.address);
         expect(usdtBalance).closeTo(getUsdtAmount('60000'), getUsdtAmount('60000').div(50));
         expect(await nft.totalSupply()).equal(1);
@@ -463,9 +463,9 @@ describe("STI on Aurora", async () => {
         // deposit
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('50000')]);
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('50000')], 1);
         await stVault.connect(admin).invest();
-        await vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdtAmount('50000')]);
+        await vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdtAmount('50000')], 2);
 
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('100000'), parseEther('100000').div(100));
 
@@ -513,11 +513,11 @@ describe("STI on Aurora", async () => {
         // deposit a little, but not invest
         await usdt.transfer(a2.address, getUsdtAmount('10000'));
         await usdt.connect(a2).approve(vault.address, getUsdtAmount('10000'));
-        await vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdtAmount('10000')]);
+        await vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdtAmount('10000')], 3);
         expect(await WNEAR.balanceOf(stVault.address)).gt(0);
 
         // withdraw all of a1's deposit
-        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(5).div(11));
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(5).div(11), 3);
         let usdtBalance = await usdt.balanceOf(a1.address);
         expect(usdtBalance).gt(0); // Some stNEARs is not swapped to WNEAR because metaPool buffer is insufficient
         // expect(await nft.totalSupply()).equal(1);
@@ -537,7 +537,7 @@ describe("STI on Aurora", async () => {
         expect(await l2stNEARVault.totalSupply()).closeTo(l2TotalSupply.mul(6).div(5), l2TotalSupply.mul(6).div(5).div(25));
 
         // withdraw all
-        await vault.connect(admin).withdrawPercByAdmin(a2.address, parseEther('1'));
+        await vault.connect(admin).withdrawPercByAdmin(a2.address, parseEther('1'), 4);
         usdtBalance = await usdt.balanceOf(a2.address);
         expect(usdtBalance).gt(0); // Some stNEARs is not swapped to WNEAR because metaPool buffer is insufficient
         // expect(await nft.totalSupply()).equal(1);
@@ -576,9 +576,9 @@ describe("STI on Aurora", async () => {
         // deposit
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('50000')]);
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('50000')], 1);
         await stVault.connect(admin).invest();
-        await vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdtAmount('50000')]);
+        await vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdtAmount('50000')], 2);
 
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('100000'), parseEther('100000').div(100));
 
@@ -620,10 +620,10 @@ describe("STI on Aurora", async () => {
         // check if deposit is disabled
         await usdt.transfer(a2.address, getUsdtAmount('10000'));
         await usdt.connect(a2).approve(vault.address, getUsdtAmount('10000'));
-        await expectRevert(vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdtAmount('10000')]), "Pausable: paused");
+        await expectRevert(vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdtAmount('10000')], 3), "Pausable: paused");
 
         // withdraw all of a1's deposit
-        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').div(2));
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').div(2), 3);
         let usdtBalance = await usdt.balanceOf(a1.address);
         expect(usdtBalance).gt(0); // Some stNEARs is not swapped to WNEAR because metaPool buffer is insufficient
         // expect(await nft.totalSupply()).equal(1);
@@ -680,7 +680,7 @@ describe("STI on Aurora", async () => {
         // deposit & invest
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('50000')]);
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('50000')], 1);
         await stVault.connect(admin).invest();
 
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(50));
@@ -696,7 +696,7 @@ describe("STI on Aurora", async () => {
         expect(await cstNEAR.balanceOf(l2stNEARVault.address)).equal(0);
 
         // withdraw 40%
-        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(2).div(5));
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(2).div(5), 2);
         let usdtBalance = await usdt.balanceOf(a1.address);
         expect(usdtBalance).gt(0); // Some stNEARs is not swapped to WNEAR because metaPool buffer is insufficient
         // expect(await nft.totalSupply()).equal(1);
@@ -717,7 +717,7 @@ describe("STI on Aurora", async () => {
         await stVault.connect(admin).reinvest();
 
         // withdraw all
-        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'));
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'), 3);
         usdtBalance = await usdt.balanceOf(a1.address);
         expect(usdtBalance).gt(0); // Some stNEARs is not swapped to WNEAR because metaPool buffer is insufficient
         // expect(await nft.totalSupply()).equal(1);
@@ -768,7 +768,7 @@ describe("STI on Aurora", async () => {
 
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('5000')]);
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('5000')], 1);
         await stVault.connect(admin).invest();
 
         expect(await l2stNEARVault.getPendingRewards()).equal(0);

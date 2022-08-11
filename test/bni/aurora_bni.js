@@ -83,8 +83,8 @@ describe("BNI on Aurora", async () => {
 
         await expectRevert(vault.setAdmin(a2.address), "Ownable: caller is not the owner");
         await expectRevert(vault.setBiconomy(a2.address), "Ownable: caller is not the owner");
-        await expectRevert(vault.deposit(a1.address, [a2.address], [getUsdtAmount('100')], 1), "Only owner or admin");
-        await expectRevert(vault.withdrawPerc(a1.address, parseEther('0.1'), 1), "Only owner or admin");
+        await expectRevert(vault.depositByAdmin(a1.address, [a2.address], [getUsdtAmount('100')], 1), "Only owner or admin");
+        await expectRevert(vault.withdrawPercByAdmin(a1.address, parseEther('0.1'), 1), "Only owner or admin");
         await expectRevert(vault.rebalance(0, parseEther('0.1'), a2.address), "Only owner or admin");
         await expectRevert(vault.emergencyWithdraw(), "Only owner or admin");
         await expectRevert(vault.reinvest([a2.address], [10000]), "Only owner or admin");
@@ -156,8 +156,8 @@ describe("BNI on Aurora", async () => {
 
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await vault.connect(admin).deposit(a1.address, tokens, [getUsdtAmount('50000')], 1);
-        await expectRevert(vault.connect(admin).deposit(a1.address, tokens, [getUsdtAmount('50000')], 1), "Nonce is behind");
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('50000')], 1);
+        await expectRevert(vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('50000')], 1), "Nonce is behind");
         expect(await vault.firstOperationNonce()).equal(1);
         expect(await vault.lastOperationNonce()).equal(1);
         ret = await vault.poolAtNonce(1);
@@ -182,8 +182,8 @@ describe("BNI on Aurora", async () => {
         await WNEARVault.connect(deployer).setAdmin(admin.address);
         await WNEARVault.connect(admin).yield();
 
-        await vault.connect(admin).withdrawPerc(a1.address, parseEther('1'), 2);
-        await expectRevert(vault.connect(admin).withdrawPerc(a1.address, parseEther('1'), 2), "Nonce is behind");
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'), 2);
+        await expectRevert(vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'), 2), "Nonce is behind");
         expect(await vault.firstOperationNonce()).equal(1);
         expect(await vault.lastOperationNonce()).equal(2);
         ret = await vault.poolAtNonce(2);
@@ -208,7 +208,7 @@ describe("BNI on Aurora", async () => {
 
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await vault.connect(admin).deposit(a1.address, tokens, [getUsdtAmount('5000')], 1);
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('5000')], 1);
 
         await vault.connect(admin).emergencyWithdraw();
         expect(await usdt.balanceOf(vault.address)).closeTo(getUsdtAmount('5000'), getUsdtAmount('5000').div(20));
@@ -220,7 +220,7 @@ describe("BNI on Aurora", async () => {
 
         await vault.connect(admin).emergencyWithdraw();
 
-        await vault.connect(admin).withdrawPerc(a1.address, parseEther('1'), 2);
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'), 2);
         expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('5000'), getUsdtAmount('5000').div(10));
         expect(await vault.getAllPoolInUSD()).equal(0);
       });
@@ -232,7 +232,7 @@ describe("BNI on Aurora", async () => {
         await strategy.connect(deployer).addToken(network_.Swap.USDT);
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await vault.connect(admin).deposit(a1.address, tokens, [getUsdtAmount('3000'),getUsdtAmount('2000')], 1);
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('3000'),getUsdtAmount('2000')], 1);
         expect(await usdt.balanceOf(a1.address)).equal(0);
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('5000'), parseEther('5000').div(50));
 
@@ -253,7 +253,7 @@ describe("BNI on Aurora", async () => {
         expect(tokenPerc[1][1].toNumber()).equal(0);
 
         await strategy.connect(deployer).removeToken(1);
-        await vault.connect(admin).withdrawPerc(a1.address, parseEther('1'), 2);
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'), 2);
         expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('5000'), getUsdtAmount('5000').div(10));
         expect(await vault.getAllPoolInUSD()).equal(0);
       });
@@ -288,7 +288,7 @@ describe("BNI on Aurora", async () => {
         await rewardDistributor._setRewardSpeed(0, network_.Bastion.cNEAR, 0, 0);
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await vault.connect(admin).deposit(a1.address, tokens, [getUsdtAmount('5000')], 1);
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdtAmount('5000')], 1);
 
         await increaseTime(DAY);
         expect(await WNEARVault.getPendingRewards()).equal(0);

@@ -40,12 +40,23 @@ interface IStrategy {
 contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
     using SafeERC20Upgradeable for IERC20UpgradeableExt;
 
+    struct PoolSnapshot {
+        uint poolInUSD;
+        uint ts;
+    }
+
     IERC20UpgradeableExt public USDT;
     uint8 usdtDecimals;
 
     address public admin;
     IStrategy public strategy;
     IPriceOracle public priceOracle;
+
+    uint public firstOperationNonce;
+    uint public lastOperationNonce;
+    mapping(uint => PoolSnapshot) public poolAtNonce;
+    mapping(address => uint) public userLastOperationNonce;
+    mapping(uint => uint) public operationAmounts;
 
     event Deposit(address caller, uint amtDeposit, address tokenDeposit);
     event Withdraw(address caller, uint amtWithdraw, address tokenWithdraw, uint sharePerc);
@@ -86,7 +97,7 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
     /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
     /// @param _USDTAmts amounts of USDT should be deposited to each pools. It's 6 decimals
     function depositByAdmin(
-        address _account, address[] memory _tokens, uint[] memory _USDTAmts
+        address _account, address[] memory _tokens, uint[] memory _USDTAmts, uint _nonce
     ) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
         require(_account != address(0), "Invalid account");
         uint poolCnt = _tokens.length;
@@ -100,20 +111,31 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
         }
         require(USDTAmt > 0, "Amounts must > 0");
 
+        require(userLastOperationNonce[_account] < _nonce, "Nonce is behind");
+        userLastOperationNonce[_account] = _nonce;
+        operationAmounts[_nonce] = USDTAmt;
+        _snapshotPool(_nonce, getAllPoolInUSD());
+
         USDT.safeTransferFrom(_account, address(this), USDTAmt);
         strategy.invest(_tokens, _USDTAmts);
         emit Deposit(_account, USDTAmt, address(USDT));
     }
 
     /// @param _sharePerc percentage of assets which should be withdrawn. It's 18 decimals
-    function withdrawPercByAdmin(address _account, uint _sharePerc) external onlyOwnerOrAdmin nonReentrant {
+    function withdrawPercByAdmin(
+        address _account, uint _sharePerc, uint _nonce
+    ) external onlyOwnerOrAdmin nonReentrant {
         require(_sharePerc > 0, "SharePerc must > 0");
         require(_sharePerc <= 1e18, "Over 100%");
 
+        require(userLastOperationNonce[_account] < _nonce, "Nonce is behind");
+        userLastOperationNonce[_account] = _nonce;
+        operationAmounts[_nonce] = _sharePerc;
         (uint vaultPool, uint strategyPool) = _getAllPoolInUSD();
         uint pool = vaultPool + strategyPool;
-        uint withdrawAmt = pool * _sharePerc / 1e18;
+        _snapshotPool(_nonce, pool);
 
+        uint withdrawAmt = pool * _sharePerc / 1e18;
         uint USDTAmt;
         if (withdrawAmt <= vaultPool) {
             USDTAmt = USDT.balanceOf(address(this)) * withdrawAmt / vaultPool;
@@ -130,6 +152,20 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
             USDT.safeTransfer(_account, USDTAmt);
         }
         emit Withdraw(_account, withdrawAmt, address(USDT), _sharePerc);
+    }
+
+    function _snapshotPool(uint _nonce, uint _pool) internal {
+        poolAtNonce[_nonce] = PoolSnapshot({
+            poolInUSD: _pool,
+            ts: block.timestamp
+        });
+
+        if (firstOperationNonce == 0) {
+            firstOperationNonce = _nonce;
+        }
+        if (lastOperationNonce < _nonce) {
+            lastOperationNonce = _nonce;
+        }
     }
 
     function claim() external nonReentrant {
@@ -292,6 +328,23 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
             vaultPool = getValueInUSD(address(USDT), USDTAmt);
         }
         strategyPool = strategy.getAllPoolInUSD();
+    }
+
+    function getAllPoolInUSDAtNonce(uint _nonce) public view returns (uint) {
+        if (firstOperationNonce != 0) {
+            if (_nonce < firstOperationNonce) {
+                return 0;
+            }
+            if (_nonce <= lastOperationNonce) {
+                for (uint i = _nonce; i >= firstOperationNonce; i --) {
+                    PoolSnapshot memory snapshot = poolAtNonce[i];
+                    if (snapshot.ts > 0) {
+                        return snapshot.poolInUSD;
+                    }
+                }
+            }
+        }
+        return getAllPoolInUSD();
     }
 
     function getCurrentCompositionPerc() external view returns (address[] memory tokens, uint[] memory percentages) {

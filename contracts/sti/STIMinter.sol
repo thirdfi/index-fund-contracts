@@ -32,6 +32,10 @@ interface Gateway {
         uint[] memory _allPoolInUSDs,
         bytes memory sig
     );
+    function getAllPoolInUSDAtNonce1(uint _nonce) external view returns(
+        uint[] memory _allPoolInUSDs,
+        bytes memory sig
+    );
     function getPricePerFullShare1() external view returns (
         uint[] memory _allPoolInUSDs,
         bytes memory sig
@@ -60,6 +64,15 @@ interface Gateway {
 contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
     using ECDSAUpgradeable for bytes32;
 
+    enum OperationType { NONE, DEPOSIT, WITHDRAWAL }
+
+    struct Operation {
+        address account;
+        OperationType operation;
+        uint amount;
+        bool done;
+    }
+
     uint[] public chainIDs;
     address[] public tokens;
     uint[] public targetPercentages;
@@ -71,6 +84,9 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
 
     string[] public urls;
     address public gatewaySigner;
+
+    Operation[] public operations; // The nonce start from 1.
+    mapping(address => uint) public userLastOperationNonce;
 
     event SetAdminWallet(address oldAdmin, address newAdmin);
     event SetBiconomy(address oldBiconomy, address newBiconomy);
@@ -506,13 +522,54 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
         }
     }
 
+    function getNonce() public view returns (uint) {
+        return operations.length;
+    }
+
+    function getOperation(uint _nonce) public view returns (Operation memory) {
+        return operations[_nonce - 1];
+    }
+
+    function _checkAndAddOperation(address _account, OperationType _operation, uint _amount) internal {
+        uint nonce = userLastOperationNonce[_account];
+        if (nonce > 0) {
+            Operation memory op = getOperation(nonce);
+            require(op.done, "Previous operation not finished");
+        }
+        operations.push(Operation({
+            account: _account,
+            operation: _operation,
+            amount: _amount,
+            done: false
+        }));
+        userLastOperationNonce[_account] = getNonce();
+    }
+
+    function _checkAndExitOperation(address _account, OperationType _operation) internal returns (uint) {
+        uint nonce = userLastOperationNonce[_account];
+        require(nonce > 0, "No operation");
+
+        Operation memory op = getOperation(nonce);
+        require(op.operation == _operation && op.done == false, "Already finished");
+
+        operations[nonce - 1].done = true;
+        return op.amount;
+    }
+
+    /// @param _account account to which BNIs will be minted
+    /// @param _USDTAmt USDT with 6 decimals to be deposited
+    function initDeposit(address _account, uint _USDTAmt) external onlyOwnerOrAdmin whenNotPaused {
+        _checkAndAddOperation(_account, OperationType.DEPOSIT, _USDTAmt);
+    }
+
     /// @dev mint STIs according to the deposited USDT
     /// @param _pool total USD worth in all pools of STI after deposited
     /// @param _account account to which STIs will be minted
-    /// @param _USDTAmt the deposited amount of USDT with 6 decimals
-    function mintByAdmin(uint _pool, address _account, uint _USDTAmt) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
+    function mintByAdmin(uint _pool, address _account) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
+        uint USDTAmt = _checkAndExitOperation(_account, OperationType.DEPOSIT);
+
         (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
-        uint amtDeposit = _USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
+        uint amtDeposit = USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
         _pool = (amtDeposit < _pool) ? _pool - amtDeposit : 0;
 
         uint _totalSupply = STI.totalSupply();
@@ -529,7 +586,13 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
     /// @param _share amount of STI to be burnt
     function burnByAdmin(address _account, uint _share) external onlyOwnerOrAdmin nonReentrant {
         require(0 < _share && _share <= STI.balanceOf(_account), "Invalid share amount");
+        _checkAndAddOperation(_account, OperationType.WITHDRAWAL, _share);
+
         STI.burnFrom(_account, _share);
         emit Burn(_account, _share);
+    }
+
+    function exitWithdrawal(address _account) external onlyOwnerOrAdmin {
+        _checkAndExitOperation(_account, OperationType.WITHDRAWAL);
     }
 }

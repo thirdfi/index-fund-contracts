@@ -208,8 +208,8 @@ describe("STI on ETH", async () => {
 
         await expectRevert(vault.setAdmin(a2.address), "Ownable: caller is not the owner");
         await expectRevert(vault.setBiconomy(a2.address), "Ownable: caller is not the owner");
-        await expectRevert(vault.depositByAdmin(a1.address, [a2.address], [getUsdVaule('100')]), "Only owner or admin");
-        await expectRevert(vault.withdrawPercByAdmin(a1.address, parseEther('0.1')), "Only owner or admin");
+        await expectRevert(vault.depositByAdmin(a1.address, [a2.address], [getUsdVaule('100')], 1), "Only owner or admin");
+        await expectRevert(vault.withdrawPercByAdmin(a1.address, parseEther('0.1'), 1), "Only owner or admin");
         await expectRevert(vault.emergencyWithdraw(), "Only owner or admin");
         await expectRevert(vault.claimEmergencyWithdrawal(), "Only owner or admin");
         await expectRevert(vault.reinvest([a2.address], [10000]), "Only owner or admin");
@@ -389,7 +389,7 @@ describe("STI on ETH", async () => {
         // deposit
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdVaule('50000'),getUsdVaule('50000')]);
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdVaule('50000'),getUsdVaule('50000')], 1);
 
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('100000'), parseEther('100000').div(20));
 
@@ -440,7 +440,7 @@ describe("STI on ETH", async () => {
         expect(await stMaticVault.totalSupply()).equal(MATICDeposits);
 
         // withdraw all
-        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'));
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'), 2);
         let usdtBalance = await usdt.balanceOf(a1.address);
         expect(usdtBalance).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(25));
         expect(await stVault.bufferedDeposits()).equal(0);
@@ -584,10 +584,10 @@ describe("STI on ETH", async () => {
         // deposit
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdVaule('25000'),getUsdVaule('25000')]);
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdVaule('25000'),getUsdVaule('25000')], 1);
         await stVault.connect(admin).invest();
         await stMaticVault.connect(admin).invest();
-        await vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdVaule('25000'),getUsdVaule('25000')]);
+        await vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdVaule('25000'),getUsdVaule('25000')], 2);
 
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('100000'), parseEther('100000').div(20));
 
@@ -642,11 +642,11 @@ describe("STI on ETH", async () => {
         const unbondingPeriod = await stMaticVault.unbondingPeriod();
         expect(waitForTs).closeTo(unbondingPeriod, unbondingPeriod.div(100));
 
-        await expectRevert(vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdVaule('10000')]), "Pausable: paused");
-        await expectRevert(vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(4).div(5)), "Retry after all claimed");
+        await expectRevert(vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdVaule('10000')], 3), "Pausable: paused");
+        await expectRevert(vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(4).div(5), 3), "Retry after all claimed");
 
         // withdraw a little of amount
-        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').div(10));
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').div(10), 3);
         expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('10000'), getUsdtAmount('10000').div(20));
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('90000'), parseEther('90000').div(20));
 
@@ -689,7 +689,7 @@ describe("STI on ETH", async () => {
         expect(await usdt.balanceOf(vault.address)).closeTo(getUsdtAmount('90000'), getUsdtAmount('90000').div(20));
 
         // withdraw rest of a1's deposit
-        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(4).div(9));
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(4).div(9), 4);
         expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(25));
         expect(await usdt.balanceOf(vault.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(20));
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(20));
@@ -737,7 +737,7 @@ describe("STI on ETH", async () => {
         // deposit & invest
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdVaule('25000'),getUsdVaule('25000')]);
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdVaule('25000'),getUsdVaule('25000')], 1);
         const MATICDeposits = await MATIC.balanceOf(stMaticVault.address);
 
         await stMaticVault.connect(admin).invest();
@@ -754,7 +754,7 @@ describe("STI on ETH", async () => {
         expect(await stMaticVault.getEmergencyUnbondings()).equal(stMATICBalance);
 
         // withdraw 20000 USD
-        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(2).div(5));
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(2).div(5), 2);
         let usdtBalance = await usdt.balanceOf(a1.address);
         expect(usdtBalance).closeTo(getUsdtAmount('10000'), getUsdtAmount('10000').div(20));
         expect(await stMaticNft.totalSupply()).equal(1);
@@ -776,7 +776,7 @@ describe("STI on ETH", async () => {
 
         // withdraw again 20000 USD
         await increaseTime(DAY);
-        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(2).div(3));
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(2).div(3), 3);
         usdtBalance = await usdt.balanceOf(a1.address);
         expect(usdtBalance).closeTo(getUsdtAmount('20000'), getUsdtAmount('20000').div(20));
         expect(await stMaticNft.totalSupply()).equal(2);
@@ -836,7 +836,7 @@ describe("STI on ETH", async () => {
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('10000'), parseEther('10000').div(25));
 
         // withdraw all
-        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'));
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'), 4);
         await stMaticVault.connect(admin).redeem();
         expect(await vault.getAllPoolInUSD()).equal(0);
         ret = await vault.getAllUnbonded(a1.address);
@@ -886,7 +886,7 @@ describe("STI on ETH", async () => {
         // deposit & invest
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdVaule('25000'),getUsdVaule('25000')]);
+        await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdVaule('25000'),getUsdVaule('25000')], 1);
         const ETHDeposits = await etherBalance(stVault.address);
         const MATICDeposits = await MATIC.balanceOf(stMaticVault.address);
 
@@ -909,7 +909,7 @@ describe("STI on ETH", async () => {
         expect(await stMaticVault.totalSupply()).equal(MATICDeposits);
 
         // withdraw 20000 USD
-        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(2).div(5));
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(2).div(5), 2);
         let usdtBalance = await usdt.balanceOf(a1.address);
         expect(usdtBalance).closeTo(getUsdtAmount('20000'), getUsdtAmount('20000').div(20));
         expect(await nft.totalSupply()).equal(0);
@@ -924,7 +924,7 @@ describe("STI on ETH", async () => {
 
         // withdraw again 20000 USD
         await increaseTime(DAY);
-        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(2).div(3));
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1').mul(2).div(3), 3);
         usdtBalance = await usdt.balanceOf(a1.address);
         expect(usdtBalance).closeTo(getUsdtAmount('40000'), getUsdtAmount('40000').div(20));
         expect(await stVault.totalSupply()).closeTo(ETHDeposits.div(5), ETHDeposits.div(5).div(50));
@@ -938,7 +938,7 @@ describe("STI on ETH", async () => {
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('10000'), parseEther('10000').div(25));
 
         // withdraw all
-        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'));
+        await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'), 4);
         expect(await vault.getAllPoolInUSD()).equal(0);
 
         expect(await nft.totalSupply()).equal(0);
