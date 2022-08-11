@@ -378,7 +378,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     }
 
     /// @return the price of USDT in USD.
-    function getUSDTPriceInUSD() public view returns(uint, uint8) {
+    function getUSDTPriceInUSD() public virtual view returns(uint, uint8) {
         return priceOracle.getAssetPrice(AvaxConstant.USDT);
     }
 
@@ -473,12 +473,19 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         userLastOperationNonce[_account] = getNonce();
     }
 
-    function _checkAndExitOperation(address _account) internal {
+    function _checkAndExitOperation(address _account, OperationType _operation) internal returns (uint) {
         uint nonce = userLastOperationNonce[_account];
-        require(nonce > 0 && operations[nonce - 1].done == false, "No operation");
+        require(nonce > 0, "No operation");
+
+        Operation memory op = getOperation(nonce);
+        require(op.operation == _operation && op.done == false, "Already finished");
+
         operations[nonce - 1].done = true;
+        return op.amount;
     }
 
+    /// @param _account account to which BNIs will be minted
+    /// @param _USDTAmt USDT with 6 decimals to be deposited
     function initDeposit(address _account, uint _USDTAmt) external onlyOwnerOrAdmin whenNotPaused {
         _checkAndAddOperation(_account, OperationType.DEPOSIT, _USDTAmt);
     }
@@ -486,12 +493,11 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     /// @dev mint BNIs according to the deposited USDT
     /// @param _pool total USD worth in all pools of BNI after deposited
     /// @param _account account to which BNIs will be minted
-    /// @param _USDTAmt the deposited amount of USDT with 6 decimals
-    function mintByAdmin(uint _pool, address _account, uint _USDTAmt) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
-        _checkAndExitOperation(_account);
+    function mintByAdmin(uint _pool, address _account) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
+        uint USDTAmt = _checkAndExitOperation(_account, OperationType.DEPOSIT);
 
         (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
-        uint amtDeposit = _USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
+        uint amtDeposit = USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
         _pool = (amtDeposit < _pool) ? _pool - amtDeposit : 0;
 
         uint _totalSupply = BNI.totalSupply();
@@ -515,6 +521,6 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     }
 
     function exitWithdrawal(address _account) external onlyOwnerOrAdmin {
-        _checkAndExitOperation(_account);
+        _checkAndExitOperation(_account, OperationType.WITHDRAWAL);
     }
 }

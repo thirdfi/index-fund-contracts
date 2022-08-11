@@ -7,7 +7,7 @@ module.exports = async ({ deployments }) => {
   const vaultArtifact = await deployments.getArtifact("BasicAave3VaultTest");
   const vaultIface = new ethers.utils.Interface(JSON.stringify(vaultArtifact.abi));
 
-  const priceOracleProxy = await ethers.getContract("MaticPriceOracle_Proxy");
+  const priceOracleProxy = await ethers.getContract("MaticPriceOracleTest_Proxy");
   const vaultFactory = await ethers.getContract("Aave3VaultFactory");
 
   const dataWMATIC = vaultIface.encodeFunctionData("initialize", [

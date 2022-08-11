@@ -5,7 +5,7 @@ module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
   const [deployer] = await ethers.getSigners();
 
-  const priceOracleProxy = await ethers.getContract("AvaxPriceOracle_Proxy");
+  const priceOracleProxy = await ethers.getContract("AvaxPriceOracleTest_Proxy");
 
   console.log("Now deploying BNIStrategy...");
   const proxy = await deploy("BNIStrategyTest", {

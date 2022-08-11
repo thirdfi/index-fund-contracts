@@ -9,7 +9,7 @@ module.exports = async ({ deployments }) => {
   const BNIStrategy = await ethers.getContractFactory("BNIStrategyTest");
   const strategy = BNIStrategy.attach(strategyProxy.address);
 
-  const priceOracleProxy = await ethers.getContract("AvaxPriceOracle_Proxy");
+  const priceOracleProxy = await ethers.getContract("AvaxPriceOracleTest_Proxy");
 
   console.log("Now deploying BNIVault...");
   const proxy = await deploy("BNIVaultTest", {

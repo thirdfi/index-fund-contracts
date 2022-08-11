@@ -108,7 +108,7 @@ npx hardhat deploy --network avaxMainnet --tags avaxMainnet_sti
 | Avalanche   | [0xb9b31A45bEe57cF30b68a49899021FfCF1930b68](https://snowtrace.io/address/0xb9b31A45bEe57cF30b68a49899021FfCF1930b68) | [0xF7140458031150894d04d9fA3b2E5305deecD617](https://testnet.snowtrace.io/address/0xF7140458031150894d04d9fA3b2E5305deecD617)
 | BSC         |  | [0x7e78D5CaB721Cc7340C9EF97511f846Dfac4594e](https://testnet.bscscan.com/address/0x7e78d5cab721cc7340c9ef97511f846dfac4594e)
 | Ethereum    |  | [0x61BA70b534c1B828c7Df157e5Af6Cb45CD416ADa](https://rinkeby.etherscan.io/address/0x61ba70b534c1b828c7df157e5af6cb45cd416ada)
-| Polygon     | [0x2EDd4b5513e0A9C96921D9e1e9234Fe28cB5519C](https://polygonscan.com/address/0x2edd4b5513e0a9c96921d9e1e9234fe28cb5519c) | [0x6809aadCc6b54926c8bAB1DF52CB85b833dcFb33](https://mumbai.polygonscan.com/address/0x6809aadCc6b54926c8bAB1DF52CB85b833dcFb33)
+| Polygon     | [0x2EDd4b5513e0A9C96921D9e1e9234Fe28cB5519C](https://polygonscan.com/address/0x2edd4b5513e0a9c96921d9e1e9234fe28cb5519c) | [0x927189BDb499ACC18bF025BC34e2fc28539B8b20](https://mumbai.polygonscan.com/address/0x927189BDb499ACC18bF025BC34e2fc28539B8b20)
 
 
 ### Products

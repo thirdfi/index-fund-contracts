@@ -4,8 +4,8 @@ module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
   const [deployer] = await ethers.getSigners();
 
-  console.log("Now deploying MaticPriceOracle...");
-  const proxy = await deploy("MaticPriceOracle", {
+  console.log("Now deploying MaticPriceOracleTest...");
+  const proxy = await deploy("MaticPriceOracleTest", {
     from: deployer.address,
     proxy: {
       proxyContract: "OpenZeppelinTransparentProxy",
@@ -17,7 +17,7 @@ module.exports = async ({ deployments }) => {
       },
     },
   });
-  console.log("  MaticPriceOracle_Proxy contract address: ", proxy.address);
+  console.log("  MaticPriceOracleTest_Proxy contract address: ", proxy.address);
 
   // Verify the implementation contract
   try {
@@ -28,7 +28,7 @@ module.exports = async ({ deployments }) => {
 
     await run("verify:verify", {
       address: implAddress,
-      contract: "contracts/bni/priceOracle/MaticPriceOracle.sol:MaticPriceOracle",
+      contract: "contracts/bni/priceOracle/MaticPriceOracleTest.sol:MaticPriceOracleTest",
     });
   } catch (e) {
   }

@@ -364,14 +364,16 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     }
 
     function getAllPoolInUSDAtNonce(uint _nonce) public view returns (uint) {
-        if (firstOperationNonce == 0 || _nonce < firstOperationNonce) {
-            return 0;
-        }
-        if (_nonce <= lastOperationNonce) {
-            for (uint i = _nonce; i >= firstOperationNonce; i --) {
-                PoolSnapshot memory snapshot = poolAtNonce[i];
-                if (snapshot.ts > 0) {
-                    return snapshot.poolInUSD;
+        if (firstOperationNonce != 0) {
+            if (_nonce < firstOperationNonce) {
+                return 0;
+            }
+            if (_nonce <= lastOperationNonce) {
+                for (uint i = _nonce; i >= firstOperationNonce; i --) {
+                    PoolSnapshot memory snapshot = poolAtNonce[i];
+                    if (snapshot.ts > 0) {
+                        return snapshot.poolInUSD;
+                    }
                 }
             }
         }
