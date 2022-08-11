@@ -316,6 +316,14 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
         return getAllPoolInUSD(_allPoolInUSDs);
     }
 
+    function getAllPoolInUSDAtNonce1(uint _nonce) external view returns (uint) {
+        revert OffchainLookup(address(this), urls,
+            abi.encodeWithSelector(Gateway.getAllPoolInUSDAtNonce1.selector, _nonce),
+            STIMinter.getAllPoolInUSD1WithSig.selector,
+            abi.encode(_nonce)
+        );
+    }
+
     /// @notice Can be used for calculate both user shares & APR
     function getPricePerFullShare(uint[] memory _allPoolInUSDs) public view returns (uint) {
         uint _totalSupply = STI.totalSupply();
