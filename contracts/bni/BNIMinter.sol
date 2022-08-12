@@ -486,7 +486,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
 
     /// @param _account account to which BNIs will be minted
     /// @param _USDTAmt USDT with 6 decimals to be deposited
-    function initDeposit(address _account, uint _USDTAmt) external onlyOwnerOrAdmin whenNotPaused {
+    function initDepositByAdmin(address _account, uint _USDTAmt) external onlyOwnerOrAdmin whenNotPaused {
         _checkAndAddOperation(_account, OperationType.DEPOSIT, _USDTAmt);
     }
 
@@ -520,7 +520,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         emit Burn(_account, _share);
     }
 
-    function exitWithdrawal(address _account) external onlyOwnerOrAdmin {
+    function exitWithdrawalByAdmin(address _account) external onlyOwnerOrAdmin {
         _checkAndExitOperation(_account, OperationType.WITHDRAWAL);
     }
 }
