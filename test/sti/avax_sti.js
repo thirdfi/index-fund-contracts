@@ -296,7 +296,7 @@ describe("STI on Avalanche", async () => {
         expect(ret[0]).equal(avaxPool);
         expect(ret[1]).gt(0);
         expect(await vault.userLastOperationNonce(a1.address)).equal(1);
-        expect(await vault.operationAmounts(1)).equal(getUsdtAmount('50000'));
+        expect(await vault.operationAmounts(1)).closeTo(parseEther('50000'), parseEther('50000').div(100));
 
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(100));
 

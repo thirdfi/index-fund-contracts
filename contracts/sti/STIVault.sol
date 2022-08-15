@@ -56,7 +56,7 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
     uint public lastOperationNonce;
     mapping(uint => PoolSnapshot) public poolAtNonce;
     mapping(address => uint) public userLastOperationNonce;
-    mapping(uint => uint) public operationAmounts;
+    mapping(uint => uint) public operationAmounts; // value in USD scaled by 10^18
 
     event Deposit(address caller, uint amtDeposit, address tokenDeposit);
     event Withdraw(address caller, uint amtWithdraw, address tokenWithdraw, uint sharePerc);
@@ -113,7 +113,7 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
 
         require(userLastOperationNonce[_account] < _nonce, "Nonce is behind");
         userLastOperationNonce[_account] = _nonce;
-        operationAmounts[_nonce] = USDTAmt;
+        operationAmounts[_nonce] = getValueInUSD(address(USDT), USDTAmt);
         _snapshotPool(_nonce, getAllPoolInUSD());
 
         USDT.safeTransferFrom(_account, address(this), USDTAmt);
@@ -128,14 +128,15 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
         require(_sharePerc > 0, "SharePerc must > 0");
         require(_sharePerc <= 1e18, "Over 100%");
 
-        require(userLastOperationNonce[_account] < _nonce, "Nonce is behind");
-        userLastOperationNonce[_account] = _nonce;
-        operationAmounts[_nonce] = _sharePerc;
         (uint vaultPool, uint strategyPool) = _getAllPoolInUSD();
         uint pool = vaultPool + strategyPool;
+        uint withdrawAmt = pool * _sharePerc / 1e18;
+
+        require(userLastOperationNonce[_account] < _nonce, "Nonce is behind");
+        userLastOperationNonce[_account] = _nonce;
+        operationAmounts[_nonce] = withdrawAmt;
         _snapshotPool(_nonce, pool);
 
-        uint withdrawAmt = pool * _sharePerc / 1e18;
         uint USDTAmt;
         if (withdrawAmt <= vaultPool) {
             USDTAmt = USDT.balanceOf(address(this)) * withdrawAmt / vaultPool;

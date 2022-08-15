@@ -8,7 +8,9 @@ import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "./priceOracle/IPriceOracle.sol";
+import "../../interfaces/IERC20UpgradeableExt.sol";
 import "../../libs/Const.sol";
+import "../../libs/Token.sol";
 
 interface IStrategy {
     function invest(address[] memory tokens, uint[] memory USDTAmts) external;
@@ -19,10 +21,6 @@ interface IStrategy {
     function getAllPoolInUSD() external view returns (uint);
     function getCurrentTokenCompositionPerc() external view returns (address[] memory tokens, uint[] memory percentages);
     function getAPR() external view returns (uint);
-}
-
-interface IERC20UpgradeableExt is IERC20Upgradeable {
-    function decimals() external view returns (uint8);
 }
 
 contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
@@ -51,7 +49,7 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     uint public lastOperationNonce;
     mapping(uint => PoolSnapshot) public poolAtNonce;
     mapping(address => uint) public userLastOperationNonce;
-    mapping(uint => uint) public operationAmounts;
+    mapping(uint => uint) public operationAmounts; // value in USD scaled by 10^18
 
     event Deposit(address caller, uint amtDeposit, address tokenDeposit);
     event Withdraw(address caller, uint amtWithdraw, address tokenWithdraw, uint sharePerc);
@@ -114,7 +112,7 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
 
         require(userLastOperationNonce[_account] < _nonce, "Nonce is behind");
         userLastOperationNonce[_account] = _nonce;
-        operationAmounts[_nonce] = USDTAmt;
+        operationAmounts[_nonce] = getValueInUSD(address(USDT), USDTAmt);
         _snapshotPool(_nonce, getAllPoolInUSD());
 
         USDT.safeTransferFrom(_account, address(this), USDTAmt);
@@ -139,13 +137,15 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         require(_sharePerc > 0, "SharePerc must > 0");
         require(_sharePerc <= 1e18, "Over 100%");
 
+        uint pool = getAllPoolInUSD();
+        uint withdrawAmt = pool * _sharePerc / 1e18;
+
         require(userLastOperationNonce[_account] < _nonce, "Nonce is behind");
         userLastOperationNonce[_account] = _nonce;
-        operationAmounts[_nonce] = _sharePerc;
-        uint pool = getAllPoolInUSD();
+        operationAmounts[_nonce] = withdrawAmt;
         _snapshotPool(_nonce, pool);
 
-        uint withdrawAmt = pool * _sharePerc / 1e18;
+        // calculate sharePerc to withdraw from strategy
         uint sharePerc = withdrawAmt * 1e18 / (pool + fees);
         uint USDTAmt;
         if (!paused()) {
@@ -332,6 +332,13 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     /// @return the price of USDT in USD.
     function getUSDTPriceInUSD() public view returns(uint, uint8) {
         return priceOracle.getAssetPrice(address(USDT));
+    }
+
+    ///@return the value in USD. it's scaled by 1e18;
+    function getValueInUSD(address _asset, uint _amount) internal view returns (uint) {
+        (uint priceInUSD, uint8 priceDecimals) = priceOracle.getAssetPrice(_asset);
+        uint8 _decimals = IERC20UpgradeableExt(_asset).decimals();
+        return Token.changeDecimals(_amount, _decimals, 18) * priceInUSD / (10 ** (priceDecimals));
     }
 
     function getEachPoolInUSD() public view returns (uint[] memory chainIDs, address[] memory tokens, uint[] memory pools) {

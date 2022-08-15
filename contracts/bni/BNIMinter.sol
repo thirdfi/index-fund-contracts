@@ -57,7 +57,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     struct Operation {
         address account;
         OperationType operation;
-        uint amount;
+        uint amount; // amount of USDT or shares
         bool done;
     }
 

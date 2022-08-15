@@ -164,7 +164,7 @@ describe("BNI on Aurora", async () => {
         expect(ret[0]).equal(0);
         expect(ret[1]).gt(0);
         expect(await vault.userLastOperationNonce(a1.address)).equal(1);
-        expect(await vault.operationAmounts(1)).equal(getUsdtAmount('50000'));
+        expect(await vault.operationAmounts(1)).closeTo(parseEther('50000'), parseEther('50000').div(100));
 
         expect(await usdt.balanceOf(a1.address)).equal(0);
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('50000'), parseEther('50000').div(10));
@@ -182,6 +182,7 @@ describe("BNI on Aurora", async () => {
         await WNEARVault.connect(deployer).setAdmin(admin.address);
         await WNEARVault.connect(admin).yield();
 
+        var allPool = await vault.getAllPoolInUSD();
         await vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'), 2);
         await expectRevert(vault.connect(admin).withdrawPercByAdmin(a1.address, parseEther('1'), 2), "Nonce is behind");
         expect(await vault.firstOperationNonce()).equal(1);
@@ -190,7 +191,7 @@ describe("BNI on Aurora", async () => {
         expect(ret[0]).gt(0);
         expect(ret[1]).gt(0);
         expect(await vault.userLastOperationNonce(a1.address)).equal(2);
-        expect(await vault.operationAmounts(2)).equal(parseEther('1'));
+        expect(await vault.operationAmounts(2)).closeTo(allPool, allPool.div(100));
 
         expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(10));
         expect(await vault.getAllPoolInUSD()).equal(0);
