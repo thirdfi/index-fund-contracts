@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { common, maticMainnet: network_ } = require("../../parameters");
+const { common, cndlMainnet: network_ } = require("../../parameters");
 const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
@@ -11,7 +11,7 @@ module.exports = async ({ deployments }) => {
   const vaultFactory = await ethers.getContract("Aave3VaultFactory");
 
   const dataWMATIC = vaultIface.encodeFunctionData("initialize", [
-    "BNI L2 WMATIC", "bniL2WMATIC",
+    "BNI L2 WCNDL", "bniL2WCNDL",
     common.treasury, common.admin,
     priceOracleProxy.address,
     network_.Aave3.aPolWMATIC,
@@ -39,4 +39,4 @@ module.exports = async ({ deployments }) => {
   }
 
 };
-module.exports.tags = ["maticMainnet_l2_Aave3Vaults"];
+module.exports.tags = ["cndlMainnet_l2_Aave3Vaults"];

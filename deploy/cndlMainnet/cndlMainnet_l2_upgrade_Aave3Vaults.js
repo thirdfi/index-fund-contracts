@@ -28,4 +28,4 @@ module.exports = async ({ deployments }) => {
   }
 
 };
-module.exports.tags = ["maticMainnet_l2_upgrade_Aave3Vaults"];
+module.exports.tags = ["cndlMainnet_l2_upgrade_Aave3Vaults"];

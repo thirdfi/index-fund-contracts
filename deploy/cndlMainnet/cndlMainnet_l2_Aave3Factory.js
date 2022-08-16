@@ -37,4 +37,4 @@ module.exports = async ({ deployments }) => {
   }
 
 };
-module.exports.tags = ["maticMainnet_l2_Aave3Factory"];
+module.exports.tags = ["cndlMainnet_l2_Aave3Factory"];
