@@ -88,12 +88,6 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
         USDT.safeApprove(address(strategy), type(uint).max);
     }
 
-    function getChainID() public view returns (uint256 id) {
-        assembly {
-            id := chainid()
-        }
-    }
-
     /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
     /// @param _USDTAmts amounts of USDT should be deposited to each pools. It's 6 decimals
     function depositByAdmin(
@@ -258,7 +252,7 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
         (tokens, waitings, waitingInUSDs, unbondeds, unbondedInUSDs, waitForTses) = strategy.getPoolsUnbonded(_account);
 
         uint poolCnt = tokens.length;
-        uint chainID = getChainID();
+        uint chainID = Token.getChainID();
         chainIDs = new uint[](poolCnt);
         for (uint _pid = 0; _pid < poolCnt; _pid ++) {
             chainIDs[_pid] = chainID;
@@ -280,7 +274,7 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
     ///@return chainID is the ID of the current chain
     ///@return sharePerc is percentage of the value in the vault of the total value. It's useful for calculating the withdrawable share under emergency status.
     function getWithdrawableSharePerc() public view returns (uint chainID, uint sharePerc) {
-        chainID = getChainID();
+        chainID = Token.getChainID();
         if (paused() == false) {
             sharePerc = 1e18;
         } else {
@@ -305,7 +299,7 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
     function getEachPoolInUSD() public view returns (uint[] memory chainIDs, address[] memory tokens, uint[] memory pools) {
         (tokens, pools) = strategy.getEachPoolInUSD();
         uint poolCnt = pools.length;
-        uint chainID = getChainID();
+        uint chainID = Token.getChainID();
         chainIDs = new uint[](poolCnt);
         for (uint i = 0; i < poolCnt; i ++) {
             chainIDs[i] = chainID;

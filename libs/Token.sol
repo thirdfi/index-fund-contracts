@@ -16,4 +16,10 @@ library Token {
         (bool success, ) = to.call{value: value}(new bytes(0));
         require(success, "ETH transfer failed");
     }
+
+    function getChainID() internal view returns (uint256 id) {
+        assembly {
+            id := chainid()
+        }
+    }
 }

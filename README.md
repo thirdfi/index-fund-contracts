@@ -25,9 +25,9 @@ Create files storing private key and API keys.
 
 ### BNI
 ```text
-npx hardhat deploy --network maticMainnet --tags maticMainnet_bni
 npx hardhat deploy --network auroraMainnet --tags auroraMainnet_bni
 npx hardhat deploy --network avaxMainnet --tags avaxMainnet_bni
+npx hardhat deploy --network maticMainnet --tags maticMainnet_bni
 ```
 
 ### LCI
@@ -42,10 +42,10 @@ npx hardhat deploy --network avaxMainnet --tags avaxMainnet_mwi
 
 ### STI
 ```text
-npx hardhat deploy --network bscMainnet --tags bscMainnet_sti
 npx hardhat deploy --network auroraMainnet --tags auroraMainnet_sti
-npx hardhat deploy --network maticMainnet --tags ethMainnet_sti
 npx hardhat deploy --network avaxMainnet --tags avaxMainnet_sti
+npx hardhat deploy --network bscMainnet --tags bscMainnet_sti
+npx hardhat deploy --network ethMainnet --tags ethMainnet_sti
 ```
 
 
