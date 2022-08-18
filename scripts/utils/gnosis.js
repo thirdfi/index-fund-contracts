@@ -6,6 +6,7 @@ const GnosisSafe_ABI = [
   "function nonce() external view returns (uint256)",
   "function getOwners() external view returns (address[] memory)",
   "function getThreshold() external view returns (uint256)",
+  "function encodeTransactionData(address to,uint256 value,bytes calldata data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address refundReceiver,uint256 _nonce) external view returns (bytes memory)",
   "function getTransactionHash(address to,uint256 value,bytes memory data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address refundReceiver,uint256 _nonce) external view returns (bytes32)",
   "function approveHash(bytes32 hashToApprove) external",
   "function execTransaction(address to,uint256 value,bytes calldata data,uint8 operation,uint256 safeTxGas,uint256 baseGas,uint256 gasPrice,address gasToken,address payable refundReceiver,bytes calldata signatures) external returns (bool success)",
@@ -37,6 +38,13 @@ async function createTransaction(safe, to, value, data) {
 }
 
 async function signTransaction(safe, safeTransaction) {
+  // const txHashData = await safe.contract.encodeTransactionData(
+  //   safeTransaction.to, safeTransaction.value, safeTransaction.data,
+  //   safeTransaction.operation, safeTransaction.safeTxGas, safeTransaction.baseGas,
+  //   safeTransaction.gasPrice, safeTransaction.gasToken, safeTransaction.refundReceiver,
+  //   safeTransaction.nonce
+  // );
+  // const txHash = '0x' + keccak256(txHashData).toString('hex');
   const txHash = await safe.contract.getTransactionHash(
     safeTransaction.to, safeTransaction.value, safeTransaction.data,
     safeTransaction.operation, safeTransaction.safeTxGas, safeTransaction.baseGas,

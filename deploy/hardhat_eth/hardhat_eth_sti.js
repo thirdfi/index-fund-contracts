@@ -1,10 +1,11 @@
-const { network } = require("hardhat");
+const { ethers, network } = require("hardhat");
 
 const ERC20_ABI = require("@openzeppelin/contracts-upgradeable/build/contracts/ERC20Upgradeable").abi;
 
 const { common } = require("../../parameters");
 
 module.exports = async () => {
+  const [deployer] = await ethers.getSigners();
 
   await network.provider.request({method: "hardhat_impersonateAccount", params: [common.admin]});
 
