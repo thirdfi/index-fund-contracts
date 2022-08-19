@@ -1,18 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "../interfaces/IGnosisSafe.sol";
-import "./Token.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
+import "../../interfaces/IGnosisSafe.sol";
+import "../Token.sol";
+import "./Signature.sol";
 
-library GnosisSafe {
+contract GnosisSafeUpgradeable is Initializable {
+    using AddressUpgradeable for address;
 
     // keccak256("EIP712Domain(uint256 chainId,address verifyingContract)")
-    bytes32 private constant DOMAIN_SEPARATOR_TYPEHASH = 0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
+    bytes32 constant DOMAIN_SEPARATOR_TYPEHASH = 0x47e79534a245952e8b16893a336b85a3d9ea9fa8c573f3d803afb92a79469218;
 
-    address private constant SENTINEL_OWNERS = address(0x1);
+    bytes32 separator;
 
-    //keccak256("SafeMessage(bytes message)")
-    bytes32 private constant SAFE_MSG_TYPEHASH = 0x60b3cbf8b4a223d68d641b3b6ddf9a298e7f33710cf3d3a9d1146b5a6150fbca;
+    function __GnosisSafe_init() internal onlyInitializing {
+        separator = domainSeparator();
+    }
 
     /**
      * @dev Checks whether the signature provided is valid for the provided data, hash. Will revert otherwise.
@@ -40,6 +45,7 @@ library GnosisSafe {
         }
         return false;
     }
+
     /**
      * @dev Checks whether the signature provided is valid for the provided data, hash. Will revert otherwise.
      * @param dataHash Hash of the data (could be either a message hash or transaction hash)
@@ -56,8 +62,6 @@ library GnosisSafe {
     ) internal view returns (bool) {
         // Check that the provided signature data is not too short
         if (signatures.length < (requiredSignatures*65)) return false;
-        // There cannot be an owner with address 0.
-        address lastOwner = address(0);
         address currentOwner;
         address[] memory owners = safe.getOwners();
         uint8 v;
@@ -66,7 +70,7 @@ library GnosisSafe {
         uint256 i;
 
         for (i = 0; i < requiredSignatures; i++) {
-            (v, r, s) = signatureSplit(signatures, i);
+            (v, r, s) = Signature.signatureSplit(signatures, i);
             if (v == 0) {
                 // If v is 0 then it is a contract signature
                 // When handling contract signatures the address of the contract is encoded into r
@@ -95,44 +99,15 @@ library GnosisSafe {
                     // The signature data for contract signatures is appended to the concatenated signatures and the offset is stored in s
                     contractSignature := add(add(signatures, s), 0x20)
                 }
-                if (isValidSignature(IGnosisSafe(currentOwner), data, contractSignature) == false) return false;
-            } else if (v > 30) {
-                // If v > 30 then default va (27,28) has been adjusted for eth_sign flow
-                // To support eth_sign and similar we adjust v and hash the messageHash with the Ethereum message prefix before applying ecrecover
-                currentOwner = ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", dataHash)), v - 4, r, s);
+                if (_isValidSignature(IGnosisSafe(currentOwner), data, contractSignature) == false) return false;
             } else {
                 // Default is the ecrecover flow with the provided data hash
                 // Use ecrecover with the messageHash for EOA signatures
-                currentOwner = ecrecover(dataHash, v, r, s);
+                currentOwner = ecrecover(keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", dataHash)), v, r, s);
             }
-            if (currentOwner <= lastOwner || isAddressIncluded(owners, currentOwner) == false || currentOwner == SENTINEL_OWNERS) return false;
-            lastOwner = currentOwner;
+            if (isAddressIncluded(owners, currentOwner) == false) return false;
         }
         return true;
-    }
-
-    /// @dev divides bytes signature into `uint8 v, bytes32 r, bytes32 s`.
-    /// @notice Make sure to perform a bounds check for @param pos, to avoid out of bounds access on @param signatures
-    /// @param pos which signature to read. A prior bounds check of this parameter should be performed, to avoid out of bounds access
-    /// @param signatures concatenated rsv signatures
-    function signatureSplit(bytes memory signatures, uint256 pos) internal pure returns (
-        uint8 v, bytes32 r, bytes32 s
-    ) {
-        // The signature format is a compact form of:
-        //   {bytes32 r}{bytes32 s}{uint8 v}
-        // Compact means, uint8 is not padded to 32 bytes.
-        // solhint-disable-next-line no-inline-assembly
-        assembly {
-            let signaturePos := mul(0x41, pos)
-            r := mload(add(signatures, add(signaturePos, 0x20)))
-            s := mload(add(signatures, add(signaturePos, 0x40)))
-            // Here we are loading the last 32 bytes, including 31 bytes
-            // of 's'. There is no 'mload8' to do this.
-            //
-            // 'byte' is not working due to the Solidity parser, so lets
-            // use the second best option, 'and'
-            v := and(mload(add(signatures, add(signaturePos, 0x41))), 0xff)
-        }
     }
 
     /**
@@ -142,20 +117,40 @@ library GnosisSafe {
      * @param _signature Signature byte array associated with _data
      * @return a bool upon valid or invalid signature with corresponding _data
      */
-    function isValidSignature(IGnosisSafe _safe, bytes memory _data, bytes memory _signature) internal view returns (bool) {
-        bytes32 messageHash = getMessageHashForSafe(_data);
-        return checkSignatures(_safe, messageHash, _data, _signature);
+    function _isValidSignature(IGnosisSafe _safe, bytes memory _data, bytes memory _signature) internal view returns (bool) {
+        bytes32 dataHash = getMessageHashForSafe(_data);
+        return checkSignatures(_safe, dataHash, _data, _signature);
     }
+
+    function isValidSignature(address _account, bytes memory _data, bytes calldata _signature) public view returns (bool) {
+        bytes32 dataHash = getMessageHashForSafe(_data);
+        if (_account.isContract()) {
+            return checkSignatures(IGnosisSafe(_account), dataHash, _data, _signature);
+        } else {
+            (uint8 v, bytes32 r, bytes32 s) = Signature.signatureSplit(_signature, 0);
+            bytes32 messageDigest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", dataHash));
+            address signer = ecrecover(messageDigest, v, r, s);
+            return (signer == _account);
+        }
+    }
+
 
     /// @dev Returns hash of a message that can be signed by owners.
     /// @param message Message that should be hashed
     /// @return Message hash.
-    function getMessageHashForSafe(bytes memory message) internal view returns (bytes32) {
-        bytes32 safeMessageHash = keccak256(abi.encode(SAFE_MSG_TYPEHASH, keccak256(message)));
-        return keccak256(abi.encodePacked(bytes1(0x19), bytes1(0x01), domainSeparator(), safeMessageHash));
+    function getMessageHashForSafe(bytes memory message) public view returns (bytes32) {
+        bytes32 safeMessageHash = keccak256(message);
+        return keccak256(abi.encodePacked(bytes1(0x19), bytes1(0x01), separator, safeMessageHash));
     }
 
     function domainSeparator() internal view returns (bytes32) {
         return keccak256(abi.encode(DOMAIN_SEPARATOR_TYPEHASH, Token.getChainID(), address(this)));
     }
+
+    /**
+     * @dev This empty reserved space is put in place to allow future versions to add new
+     * variables without shifting down storage in the inheritance chain.
+     * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+     */
+    uint256[49] private __gap;
 }
