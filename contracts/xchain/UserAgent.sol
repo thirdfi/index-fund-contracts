@@ -31,7 +31,8 @@ contract UserAgent is
             return GnosisSafe.checkSignatures(IGnosisSafe(_account), dataHash, _data, _signature);
         } else {
             (uint8 v, bytes32 r, bytes32 s) = GnosisSafe.signatureSplit(_signature, 0);
-            address signer = ecrecover(dataHash, v, r, s);
+            bytes32 messageDigest = keccak256(abi.encodePacked("\x19Ethereum Signed Message:\n32", dataHash));
+            address signer = ecrecover(messageDigest, v, r, s);
             return (signer == _account);
         }
     }
