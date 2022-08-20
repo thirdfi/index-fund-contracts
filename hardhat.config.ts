@@ -23,7 +23,7 @@ dotenv.config();
 // type ArgKey = keyof typeof argv;
 // const networkKey = 'network' as ArgKey;
 // const network = argv[networkKey];
-const chainId = process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : 31337;
+const chainId = process.env.CHAIN_ID ? parseInt(process.env.CHAIN_ID) : 1;
 
 const sharedNetworkConfig: HttpNetworkUserConfig = {};
 if (process.env.PRIVATE_KEY) {

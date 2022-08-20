@@ -22,4 +22,10 @@ library Token {
             id := chainid()
         }
     }
+
+    function bytesToAddress(bytes memory bys) internal pure returns (address addr) {
+        assembly {
+            addr := mload(add(bys, 20))
+        }
+    }
 }

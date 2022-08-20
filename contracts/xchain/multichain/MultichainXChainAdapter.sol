@@ -20,8 +20,6 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
     mapping(Const.TokenID => mapping(uint => AnyswapMap.Entry)) public anyswapMap;
 
     IAnycallExecutor public anycallExecutor;
-    // Map of anycall peers (chainId => peer)
-    mapping(uint => address) public anycallPeers;
 
     function initialize() public virtual override initializer {
         super.initialize();
@@ -56,15 +54,6 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
         }
     }
 
-    function setAnycallPeers(uint[] memory _chainIds, address[] memory _peers) external onlyOwner {
-        uint length = _chainIds.length;
-        for (uint i = 0; i < length; i++) {
-            uint chainId = _chainIds[i];
-            require(chainId != 0, "Invalid chainID");
-            anycallPeers[chainId] = _peers[i];
-        }
-    }
-
     function _swap(
         Const.TokenID _tokenId,
         uint _amount,
@@ -84,7 +73,7 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
         address _from,
         uint[] memory _toChainIds,
         address[] memory _toAddresses
-    ) external onlyRole(CLIENT_ROLE) {
+    ) external override onlyRole(CLIENT_ROLE) {
         uint count = _amounts.length;
         uint chainId = Token.getChainID();
 
@@ -102,7 +91,7 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
     ///@dev The function to receive message from anycall router. The syntax must not be changed.
     function anyExecute(bytes calldata data) external returns (bool success, bytes memory result) {
         (address from, uint fromChainId,) = anycallExecutor.context();
-        require(anycallPeers[fromChainId] == from, "Wrong context");
+        require(peers[fromChainId] == from, "Wrong context");
 
         (address targetContract, uint targetCallValue, bytes memory targetCallData)
             = abi.decode(data, (address, uint, bytes));
@@ -115,7 +104,7 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
         uint _targetCallValue,
         bytes memory _targetCallData
     ) external payable onlyRole(CLIENT_ROLE) {
-        address peer = anycallPeers[_toChainId];
+        address peer = peers[_toChainId];
         require(peer != address(0), "No peer");
 
         bytes memory data = abi.encode(_targetContract, _targetCallValue, _targetCallData);
