@@ -5,11 +5,23 @@ import "../../libs/Const.sol";
 
 interface IXChainAdapter {
 
-    function swap(
-        Const.TokenID _tokenId,
+    function transfer(
+        uint8 _tokenId, // Const.TokenID
         uint[] memory _amounts,
         address _from,
         uint[] memory _toChainIds,
         address[] memory _toAddresses
-    ) external;
+    ) external payable;
+
+    function call(
+        uint _toChainId,
+        address _targetContract,
+        uint _targetCallValue,
+        bytes memory _targetCallData
+    ) external payable;
+
+    function calcMessageFee(
+        uint _toChainId,
+        bytes memory _targetCallData
+    ) external view returns (uint);
 }

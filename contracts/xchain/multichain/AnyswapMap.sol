@@ -19,9 +19,9 @@ library AnyswapMap {
         uint minimumSwap;
     }
 
-    function initMap(mapping(Const.TokenID => mapping(uint => AnyswapMap.Entry)) storage _map) internal {
+    function initMap(mapping(uint8 => mapping(uint => AnyswapMap.Entry)) storage _map) internal {
         // USDT
-        _map[Const.TokenID.USDT][AvaxConstant.CHAINID] = Entry({
+        _map[uint8(Const.TokenID.USDT)][AvaxConstant.CHAINID] = Entry({
             router: 0xB0731d50C681C45856BFc3f7539D5f61d4bE81D8,
             underlying: AvaxConstant.USDT,
             anyToken: 0x94977c9888F3D2FAfae290d33fAB4a5a598AD764,
@@ -29,7 +29,7 @@ library AnyswapMap {
             anyTokenDecimals: 6,
             minimumSwap: 12
         });
-        _map[Const.TokenID.USDT][BscConstant.CHAINID] = Entry({
+        _map[uint8(Const.TokenID.USDT)][BscConstant.CHAINID] = Entry({
             router: 0xd1C5966f9F5Ee6881Ff6b261BBeDa45972B1B5f3,
             underlying: BscConstant.USDT,
             anyToken: 0xEDF0c420bc3b92B961C6eC411cc810CA81F5F21a,
@@ -37,7 +37,7 @@ library AnyswapMap {
             anyTokenDecimals: 18,
             minimumSwap: 12
         });
-        _map[Const.TokenID.USDT][EthConstant.CHAINID] = Entry({
+        _map[uint8(Const.TokenID.USDT)][EthConstant.CHAINID] = Entry({
             router: 0x6b7a87899490EcE95443e979cA9485CBE7E71522,
             underlying: EthConstant.USDT,
             anyToken: 0x22648C12acD87912EA1710357B1302c6a4154Ebc,
@@ -45,7 +45,7 @@ library AnyswapMap {
             anyTokenDecimals: 6,
             minimumSwap: 45
         });
-        _map[Const.TokenID.USDT][MaticConstant.CHAINID] = Entry({
+        _map[uint8(Const.TokenID.USDT)][MaticConstant.CHAINID] = Entry({
             router: 0x4f3Aff3A747fCADe12598081e80c6605A8be192F,
             underlying: MaticConstant.USDT,
             anyToken: 0xE3eeDa11f06a656FcAee19de663E84C7e61d3Cac,
@@ -55,7 +55,7 @@ library AnyswapMap {
         });
 
         // USDC
-        _map[Const.TokenID.USDC][AvaxConstant.CHAINID] = Entry({
+        _map[uint8(Const.TokenID.USDC)][AvaxConstant.CHAINID] = Entry({
             router: 0xB0731d50C681C45856BFc3f7539D5f61d4bE81D8,
             underlying: AvaxConstant.USDC,
             anyToken: 0xcc9b1F919282c255eB9AD2C0757E8036165e0cAd,
@@ -63,7 +63,7 @@ library AnyswapMap {
             anyTokenDecimals: 6,
             minimumSwap: 12
         });
-        _map[Const.TokenID.USDC][BscConstant.CHAINID] = Entry({
+        _map[uint8(Const.TokenID.USDC)][BscConstant.CHAINID] = Entry({
             router: 0xd1C5966f9F5Ee6881Ff6b261BBeDa45972B1B5f3,
             underlying: BscConstant.USDC,
             anyToken: 0x8965349fb649A33a30cbFDa057D8eC2C48AbE2A2,
@@ -71,7 +71,7 @@ library AnyswapMap {
             anyTokenDecimals: 18,
             minimumSwap: 12
         });
-        _map[Const.TokenID.USDC][EthConstant.CHAINID] = Entry({
+        _map[uint8(Const.TokenID.USDC)][EthConstant.CHAINID] = Entry({
             router: 0x6b7a87899490EcE95443e979cA9485CBE7E71522,
             underlying: EthConstant.USDC,
             anyToken: 0x7EA2be2df7BA6E54B1A9C70676f668455E329d29,
@@ -79,7 +79,7 @@ library AnyswapMap {
             anyTokenDecimals: 6,
             minimumSwap: 45
         });
-        _map[Const.TokenID.USDC][MaticConstant.CHAINID] = Entry({
+        _map[uint8(Const.TokenID.USDC)][MaticConstant.CHAINID] = Entry({
             router: 0x4f3Aff3A747fCADe12598081e80c6605A8be192F,
             underlying: MaticConstant.USDC,
             anyToken: 0xd69b31c3225728CC57ddaf9be532a4ee1620Be51,

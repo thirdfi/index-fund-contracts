@@ -5,8 +5,10 @@ import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "../../libs/multiSig/GnosisSafeUpgradeable.sol";
+import "./IUserAgent.sol";
 
 contract UserAgent is
+    IUserAgent,
     GnosisSafeUpgradeable,
     AccessControlEnumerableUpgradeable,
     PausableUpgradeable,
@@ -22,6 +24,9 @@ contract UserAgent is
         require(nonces[_account] == _nonce, "Invalid nonce");
         bytes memory data = abi.encodePacked(keccak256(abi.encodePacked(_value1, _nonce)));
         return isValidSignature(_account, data, _signature);
+    }
+
+    function onRefunded(address _adapter, address _token, uint _amount, uint _nonce) external {
     }
 
     receive() external payable {}

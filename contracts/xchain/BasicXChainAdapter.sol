@@ -37,13 +37,27 @@ contract BasicXChainAdapter is IXChainAdapter,
         }
     }
 
-    function swap(
-        Const.TokenID _tokenId,
+    function transfer(
+        uint8 _tokenId,
         uint[] memory _amounts,
         address _from,
         uint[] memory _toChainIds,
         address[] memory _toAddresses
-    ) external virtual onlyRole(CLIENT_ROLE) {
+    ) external payable virtual onlyRole(CLIENT_ROLE) {
+    }
+
+    function call(
+        uint _toChainId,
+        address _targetContract,
+        uint _targetCallValue,
+        bytes memory _targetCallData
+    ) external payable virtual onlyRole(CLIENT_ROLE) {
+    }
+
+    function calcMessageFee(
+        uint _toChainId,
+        bytes memory _targetCallData
+    ) external view virtual returns (uint) {
     }
 
     receive() external payable {}

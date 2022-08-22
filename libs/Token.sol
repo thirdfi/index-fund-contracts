@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
+import "../contracts/bni/constant/AuroraConstant.sol";
+import "../contracts/bni/constant/AvaxConstant.sol";
+import "../contracts/bni/constant/BscConstant.sol";
+import "../contracts/bni/constant/EthConstant.sol";
+import "../contracts/bni/constant/MaticConstant.sol";
+import "./Const.sol";
+
 library Token {
     function changeDecimals(uint amount, uint curDecimals, uint newDecimals) internal pure returns(uint) {
         if (curDecimals == newDecimals) {
@@ -27,5 +34,26 @@ library Token {
         assembly {
             addr := mload(add(bys, 20))
         }
+    }
+
+    function getTokenAddress(Const.TokenID _tokenId) internal view returns (address) {
+        uint chainId = getChainID();
+        if (chainId == AuroraConstant.CHAINID) {
+            if (_tokenId == Const.TokenID.USDC) return AuroraConstant.USDC;
+            else if (_tokenId == Const.TokenID.USDT) return AuroraConstant.USDT;
+        } else if (chainId == AvaxConstant.CHAINID) {
+            if (_tokenId == Const.TokenID.USDC) return AvaxConstant.USDC;
+            else if (_tokenId == Const.TokenID.USDT) return AvaxConstant.USDT;
+        } else if (chainId == BscConstant.CHAINID) {
+            if (_tokenId == Const.TokenID.USDC) return BscConstant.USDC;
+            else if (_tokenId == Const.TokenID.USDT) return BscConstant.USDT;
+        } else if (chainId == EthConstant.CHAINID) {
+            if (_tokenId == Const.TokenID.USDC) return EthConstant.USDC;
+            else if (_tokenId == Const.TokenID.USDT) return EthConstant.USDT;
+        } else if (chainId == MaticConstant.CHAINID) {
+            if (_tokenId == Const.TokenID.USDC) return MaticConstant.USDC;
+            else if (_tokenId == Const.TokenID.USDT) return MaticConstant.USDT;
+        }
+        return address(0);
     }
 }
