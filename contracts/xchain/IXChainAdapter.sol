@@ -8,7 +8,6 @@ interface IXChainAdapter {
     function transfer(
         uint8 _tokenId, // Const.TokenID
         uint[] memory _amounts,
-        address _from,
         uint[] memory _toChainIds,
         address[] memory _toAddresses
     ) external payable;
@@ -20,8 +19,12 @@ interface IXChainAdapter {
         bytes memory _targetCallData
     ) external payable;
 
-    function calcMessageFee(
+    function calcTransferFee() external view returns (uint);
+
+    function calcCallFee(
         uint _toChainId,
+        address _targetContract,
+        uint _targetCallValue,
         bytes memory _targetCallData
     ) external view returns (uint);
 }

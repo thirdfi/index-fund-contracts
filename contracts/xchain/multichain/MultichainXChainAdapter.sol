@@ -21,7 +21,7 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
 
     IAnycallExecutor public anycallExecutor;
 
-    event Transfer(address from, address token, uint amount, uint toChainId, address to);
+    event Transfer(address from, address indexed token, uint indexed amount, uint indexed toChainId, address to);
 
     function initialize() public virtual override initializer {
         super.initialize();
@@ -69,19 +69,19 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
     function transfer(
         uint8 _tokenId,
         uint[] memory _amounts,
-        address _from,
         uint[] memory _toChainIds,
         address[] memory _toAddresses
     ) external payable override onlyRole(CLIENT_ROLE) {
         require(msg.value == 0, "No fee needed");
         uint count = _amounts.length;
         uint chainId = Token.getChainID();
+        address from = _msgSender();
 
         uint amount;
         for (uint i = 0; i < count; i++) {
             amount += _amounts[i];
         }
-        IERC20Upgradeable(anyswapMap[_tokenId][chainId].underlying).safeTransferFrom(_from, address(this), amount);
+        IERC20Upgradeable(anyswapMap[_tokenId][chainId].underlying).safeTransferFrom(from, address(this), amount);
 
         for (uint i = 0; i < count; i++) {
             _transfer(_tokenId, _amounts[i], chainId, _toChainIds[i], _toAddresses[i]);
@@ -111,15 +111,17 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
         address peer = peers[_toChainId];
         require(peer != address(0), "No peer");
 
-        bytes memory data = abi.encode(_targetContract, _targetCallValue, _targetCallData);
-        anycallRouter.anyCall{value: msg.value}(peer, data, address(0), _toChainId, FLAG_PAY_FEE_ON_SRC);
+        bytes memory message = abi.encode(_targetContract, _targetCallValue, _targetCallData);
+        anycallRouter.anyCall{value: msg.value}(peer, message, address(0), _toChainId, FLAG_PAY_FEE_ON_SRC);
     }
 
-    function calcMessageFee(
+    function calcCallFee(
         uint _toChainId,
+        address _targetContract,
+        uint _targetCallValue,
         bytes memory _targetCallData
-    ) external view override returns (uint) {
-        bytes memory data = abi.encode(address(0), uint(0), _targetCallData);
-        return anycallRouter.calcSrcFees("", _toChainId, data.length);
+    ) public view override returns (uint) {
+        bytes memory message = abi.encode(_targetContract, _targetCallValue, _targetCallData);
+        return anycallRouter.calcSrcFees("", _toChainId, message.length);
     }
 }

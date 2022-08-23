@@ -40,7 +40,6 @@ contract BasicXChainAdapter is IXChainAdapter,
     function transfer(
         uint8 _tokenId,
         uint[] memory _amounts,
-        address _from,
         uint[] memory _toChainIds,
         address[] memory _toAddresses
     ) external payable virtual onlyRole(CLIENT_ROLE) {
@@ -54,10 +53,17 @@ contract BasicXChainAdapter is IXChainAdapter,
     ) external payable virtual onlyRole(CLIENT_ROLE) {
     }
 
-    function calcMessageFee(
+    function calcTransferFee() public view virtual returns (uint) {
+        return 0;
+    }
+
+    function calcCallFee(
         uint _toChainId,
+        address _targetContract,
+        uint _targetCallValue,
         bytes memory _targetCallData
-    ) external view virtual returns (uint) {
+    ) public view virtual returns (uint) {
+        return 0;
     }
 
     receive() external payable {}
