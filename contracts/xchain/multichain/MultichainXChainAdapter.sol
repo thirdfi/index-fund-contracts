@@ -17,7 +17,7 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
     uint constant FLAG_PAY_FEE_ON_SRC = 0x1 << 1;
 
     // Map of anyswap entries (tokenId => chainId => entry)
-    mapping(uint8 => mapping(uint => AnyswapMap.Entry)) public anyswapMap;
+    mapping(Const.TokenID => mapping(uint => AnyswapMap.Entry)) public anyswapMap;
 
     IAnycallExecutor public anycallExecutor;
 
@@ -30,16 +30,16 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
         
         uint chainId = Token.getChainID();
         AnyswapMap.Entry memory entry;
-        entry = anyswapMap[uint8(Const.TokenID.USDT)][chainId];
+        entry = anyswapMap[Const.TokenID.USDT][chainId];
         IERC20Upgradeable(entry.underlying).safeApprove(entry.router, type(uint).max);
-        entry = anyswapMap[uint8(Const.TokenID.USDC)][chainId];
+        entry = anyswapMap[Const.TokenID.USDC][chainId];
         IERC20Upgradeable(entry.underlying).safeApprove(entry.router, type(uint).max);
 
         anycallExecutor = IAnycallExecutor(anycallRouter.executor());
     }
 
     function setAnyswapEntry(
-        uint8 _tokenId, uint _chainId,
+        Const.TokenID _tokenId, uint _chainId,
         address _router, address _unterlying, address _anyToken,
         uint8 _underlyingDecimals, uint8 _anyTokenDecimals, uint _minimumSwap
     ) external onlyOwner {
@@ -61,13 +61,14 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
         (address from, uint fromChainId,) = anycallExecutor.context();
         require(peers[fromChainId] == from, "Wrong context");
 
+        // TODO This function should be called on UserAgent
         (address targetContract, uint targetCallValue, bytes memory targetCallData)
             = abi.decode(data, (address, uint, bytes));
         (success, result) = targetContract.call{value: targetCallValue}(targetCallData);
     }
 
     function transfer(
-        uint8 _tokenId,
+        Const.TokenID _tokenId,
         uint[] memory _amounts,
         uint[] memory _toChainIds,
         address[] memory _toAddresses
@@ -89,7 +90,7 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
     }
 
     function _transfer(
-        uint8 _tokenId,
+        Const.TokenID _tokenId,
         uint _amount,
         uint _chainId,
         uint _toChainId,

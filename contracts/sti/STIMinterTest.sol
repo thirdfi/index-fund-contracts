@@ -12,12 +12,18 @@ import "../../libs/Const.sol";
 contract STIMinterTest is STIMinter {
 
     function initialize(
-        address _admin, address _biconomy,
+        address _admin, address _userAgent, address _biconomy,
         address _STI, address _priceOracle
     ) external override initializer {
         __Ownable_init();
-
+        address _owner = owner();
         admin = _admin;
+        userAgent = _userAgent;
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+        _setupRole(ADMIN_ROLE, _admin);
+        _setupRole(ADMIN_ROLE, _userAgent);
+
         trustedForwarder = _biconomy;
         STI = ISTI(_STI);
         priceOracle = IPriceOracle(_priceOracle);

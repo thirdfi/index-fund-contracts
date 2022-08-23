@@ -3,13 +3,11 @@ pragma solidity  0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "../../libs/Const.sol";
 import "./IXChainAdapter.sol";
 
 contract BasicXChainAdapter is IXChainAdapter,
     AccessControlEnumerableUpgradeable,
-    PausableUpgradeable,
     OwnableUpgradeable
 {
     bytes32 public constant CLIENT_ROLE = keccak256("CLIENT_ROLE");
@@ -38,18 +36,18 @@ contract BasicXChainAdapter is IXChainAdapter,
     }
 
     function transfer(
-        uint8 _tokenId,
-        uint[] memory _amounts,
-        uint[] memory _toChainIds,
-        address[] memory _toAddresses
+        Const.TokenID, // _tokenId
+        uint[] memory, // _amounts
+        uint[] memory, // _toChainIds
+        address[] memory // _toAddresses
     ) external payable virtual onlyRole(CLIENT_ROLE) {
     }
 
     function call(
-        uint _toChainId,
-        address _targetContract,
-        uint _targetCallValue,
-        bytes memory _targetCallData
+        uint, // _toChainId
+        address, // _targetContract
+        uint, // _targetCallValue
+        bytes memory // _targetCallData
     ) external payable virtual onlyRole(CLIENT_ROLE) {
     }
 
@@ -58,10 +56,10 @@ contract BasicXChainAdapter is IXChainAdapter,
     }
 
     function calcCallFee(
-        uint _toChainId,
-        address _targetContract,
-        uint _targetCallValue,
-        bytes memory _targetCallData
+        uint, // _toChainId
+        address, // _targetContract,
+        uint, // _targetCallValue
+        bytes memory // _targetCallData
     ) public view virtual returns (uint) {
         return 0;
     }

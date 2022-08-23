@@ -158,10 +158,10 @@ describe("STI on Avalanche", async () => {
         await expectRevert(minter.addToken(1, a1.address), "Ownable: caller is not the owner");
         await expectRevert(minter.removeToken(1), "Ownable: caller is not the owner");
         await expectRevert(minter.setTokenCompositionTargetPerc([10000]), "Ownable: caller is not the owner");
-        await expectRevert(minter.initDepositByAdmin(a1.address, getUsdtAmount('100')), "Only owner or admin");
-        await expectRevert(minter.mintByAdmin(parseEther('1000'), a1.address), "Only owner or admin");
-        await expectRevert(minter.burnByAdmin(a1.address, getUsdtAmount('100')), "Only owner or admin");
-        await expectRevert(minter.exitWithdrawalByAdmin(a1.address), "Only owner or admin");
+        await expect(minter.initDepositByAdmin(a1.address, getUsdtAmount('100'))).to.be.reverted; //With(/AccessControl: account .* is missing role .*/);
+        await expect(minter.mintByAdmin(parseEther('1000'), a1.address)).to.be.reverted;
+        await expect(minter.burnByAdmin(a1.address, getUsdtAmount('100'))).to.be.reverted;
+        await expect(minter.exitWithdrawalByAdmin(a1.address)).to.be.reverted;
 
         await expectRevert(vault.setAdmin(a2.address), "Ownable: caller is not the owner");
         await expectRevert(vault.setBiconomy(a2.address), "Ownable: caller is not the owner");
@@ -262,20 +262,14 @@ describe("STI on Avalanche", async () => {
     });
 
     describe('Basic function', () => {
-      beforeEach(async () => {
-        await vault.connect(deployer).setAdmin(accounts[0].address);
-        await stVault.connect(deployer).setAdmin(accounts[0].address);
-        admin = accounts[0];
-      });
-
       it("Basic Deposit/withdraw with small amount", async () => {
         await usdt.transfer(a1.address, getUsdtAmount('50000'));
         await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
 
         const aAVAXb = new ethers.Contract(network_.Token.aAVAXb, ERC20_ABI, deployer);
 
-        await minter.connect(deployer).initDepositByAdmin(a1.address, getUsdtAmount('50000'));
-        await expectRevert(minter.connect(deployer).initDepositByAdmin(a1.address, getUsdtAmount('50000')), "Previous operation not finished");
+        await minter.connect(admin).initDepositByAdmin(a1.address, getUsdtAmount('50000'));
+        await expectRevert(minter.connect(admin).initDepositByAdmin(a1.address, getUsdtAmount('50000')), "Previous operation not finished");
         expect(await minter.getNonce()).equal(1);
         expect(await minter.userLastOperationNonce(a1.address)).equal(1);
         ret = await minter.getOperation(1);
@@ -440,13 +434,13 @@ describe("STI on Avalanche", async () => {
         // deposit
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await minter.connect(deployer).initDepositByAdmin(a1.address, getUsdtAmount('50000'));
+        await minter.connect(admin).initDepositByAdmin(a1.address, getUsdtAmount('50000'));
         await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdVaule('50000')], 1);
-        await minter.connect(deployer).mintByAdmin(await vault.getAllPoolInUSD(), a1.address);
+        await minter.connect(admin).mintByAdmin(await vault.getAllPoolInUSD(), a1.address);
         await stVault.connect(admin).invest();
-        await minter.connect(deployer).initDepositByAdmin(a2.address, getUsdtAmount('50000'));
+        await minter.connect(admin).initDepositByAdmin(a2.address, getUsdtAmount('50000'));
         await vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdVaule('50000')], 2);
-        await minter.connect(deployer).mintByAdmin(await vault.getAllPoolInUSD(), a2.address);
+        await minter.connect(admin).mintByAdmin(await vault.getAllPoolInUSD(), a2.address);
 
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('100000'), parseEther('100000').div(50));
 
@@ -546,12 +540,6 @@ describe("STI on Avalanche", async () => {
     });
 
     describe('StVault', () => {
-      beforeEach(async () => {
-        await vault.connect(deployer).setAdmin(accounts[0].address);
-        await stVault.connect(deployer).setAdmin(accounts[0].address);
-        admin = accounts[0];
-      });
-
       it("emergencyWithdraw", async () => {
         await usdt.transfer(a1.address, getUsdtAmount('50000'));
         await usdt.connect(a1).approve(vault.address, getUsdtAmount('50000'));
@@ -561,7 +549,7 @@ describe("STI on Avalanche", async () => {
         // deposit & invest
         var ret = await vault.getEachPoolInUSD();
         var tokens = ret[1];
-        await minter.connect(deployer).initDepositByAdmin(a1.address, getUsdtAmount('50000'));
+        await minter.connect(admin).initDepositByAdmin(a1.address, getUsdtAmount('50000'));
         await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdVaule('50000')], 1);
         const AVAXDeposits = await etherBalance(stVault.address);
 

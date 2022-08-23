@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
+import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
-import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/utils/cryptography/ECDSAUpgradeable.sol";
@@ -13,6 +13,7 @@ import "../bni/constant/BscConstant.sol";
 import "../bni/constant/EthConstant.sol";
 import "../../libs/Const.sol";
 import "../../libs/BaseRelayRecipient.sol";
+import "./ISTIMinter.sol";
 
 interface ISTI is IERC20Upgradeable {
     function decimals() external view returns (uint8);
@@ -61,10 +62,16 @@ interface Gateway {
     );
 }
 
-contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
+contract STIMinter is
+    ISTIMinter,
+    AccessControlEnumerableUpgradeable,
+    BaseRelayRecipient,
+    PausableUpgradeable,
+    OwnableUpgradeable
+{
     using ECDSAUpgradeable for bytes32;
 
-    enum OperationType { NONE, DEPOSIT, WITHDRAWAL }
+    enum OperationType { Null, Deposit, Withdrawal }
 
     struct Operation {
         address account;
@@ -72,6 +79,8 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
         uint amount; // amount of USDT or shares
         bool done;
     }
+
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     uint[] public chainIDs;
     address[] public tokens;
@@ -88,25 +97,26 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
     Operation[] public operations; // The nonce start from 1.
     mapping(address => uint) public userLastOperationNonce;
 
-    event SetAdminWallet(address oldAdmin, address newAdmin);
-    event SetBiconomy(address oldBiconomy, address newBiconomy);
+    address public userAgent;
+
     event AddToken(uint chainID, address token, uint tid);
     event RemoveToken(uint chainID, address token, uint targetPerc, uint tid);
     event Mint(address caller, uint amtDeposit, uint shareMinted);
     event Burn(address caller, uint shareBurned);
 
-    modifier onlyOwnerOrAdmin {
-        require(msg.sender == owner() || msg.sender == address(admin), "Only owner or admin");
-        _;
-    }
-
     function initialize(
-        address _admin, address _biconomy,
+        address _admin, address _userAgent, address _biconomy,
         address _STI, address _priceOracle
     ) external virtual initializer {
         __Ownable_init();
-
+        address _owner = owner();
         admin = _admin;
+        userAgent = _userAgent;
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+        _setupRole(ADMIN_ROLE, _admin);
+        _setupRole(ADMIN_ROLE, _userAgent);
+
         trustedForwarder = _biconomy;
         STI = ISTI(_STI);
         priceOracle = IPriceOracle(_priceOracle);
@@ -134,6 +144,25 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
         gatewaySigner = _admin;
     }
 
+    function transferOwnership(address newOwner) public virtual override onlyOwner {
+        address oldOwner = owner();
+        _revokeRole(DEFAULT_ADMIN_ROLE, oldOwner);
+        super.transferOwnership(newOwner);
+        _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
+    }
+
+    function setAdmin(address _admin) external onlyOwner {
+        _revokeRole(ADMIN_ROLE, admin);
+        admin = _admin;
+        _setupRole(ADMIN_ROLE, _admin);
+    }
+
+    function setUserAgent(address _userAgent) external onlyOwner {
+        _revokeRole(ADMIN_ROLE, userAgent);
+        userAgent = _userAgent;
+        _setupRole(ADMIN_ROLE, _userAgent);
+    }
+
     function updateTid() internal {
         uint[] memory _chainIDs = chainIDs;
         address[] memory _tokens = tokens;
@@ -144,16 +173,8 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
         }
     }
 
-    function setAdmin(address _admin) external onlyOwner {
-        address oldAdmin = admin;
-        admin = _admin;
-        emit SetAdminWallet(oldAdmin, _admin);
-    }
-
     function setBiconomy(address _biconomy) external onlyOwner {
-        address oldBiconomy = trustedForwarder;
         trustedForwarder = _biconomy;
-        emit SetBiconomy(oldBiconomy, _biconomy);
     }
 
     function _msgSender() internal override(ContextUpgradeable, BaseRelayRecipient) view returns (address) {
@@ -566,15 +587,15 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
 
     /// @param _account account to which BNIs will be minted
     /// @param _USDTAmt USDT with 6 decimals to be deposited
-    function initDepositByAdmin(address _account, uint _USDTAmt) external onlyOwnerOrAdmin whenNotPaused {
-        _checkAndAddOperation(_account, OperationType.DEPOSIT, _USDTAmt);
+    function initDepositByAdmin(address _account, uint _USDTAmt) external onlyRole(ADMIN_ROLE) whenNotPaused {
+        _checkAndAddOperation(_account, OperationType.Deposit, _USDTAmt);
     }
 
     /// @dev mint STIs according to the deposited USDT
     /// @param _pool total USD worth in all pools of STI after deposited
     /// @param _account account to which STIs will be minted
-    function mintByAdmin(uint _pool, address _account) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
-        uint USDTAmt = _checkAndExitOperation(_account, OperationType.DEPOSIT);
+    function mintByAdmin(uint _pool, address _account) external onlyRole(ADMIN_ROLE) whenNotPaused {
+        uint USDTAmt = _checkAndExitOperation(_account, OperationType.Deposit);
 
         (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
         uint amtDeposit = USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
@@ -592,15 +613,15 @@ contract STIMinter is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUp
     /// @dev mint STIs according to the deposited USDT
     /// @param _account account to which STIs will be minted
     /// @param _share amount of STI to be burnt
-    function burnByAdmin(address _account, uint _share) external onlyOwnerOrAdmin nonReentrant {
+    function burnByAdmin(address _account, uint _share) external onlyRole(ADMIN_ROLE) {
         require(0 < _share && _share <= STI.balanceOf(_account), "Invalid share amount");
-        _checkAndAddOperation(_account, OperationType.WITHDRAWAL, _share);
+        _checkAndAddOperation(_account, OperationType.Withdrawal, _share);
 
         STI.burnFrom(_account, _share);
         emit Burn(_account, _share);
     }
 
-    function exitWithdrawalByAdmin(address _account) external onlyOwnerOrAdmin {
-        _checkAndExitOperation(_account, OperationType.WITHDRAWAL);
+    function exitWithdrawalByAdmin(address _account) external onlyRole(ADMIN_ROLE) {
+        _checkAndExitOperation(_account, OperationType.Withdrawal);
     }
 }

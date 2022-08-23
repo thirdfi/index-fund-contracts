@@ -6,7 +6,7 @@ import "../../libs/Const.sol";
 interface IXChainAdapter {
 
     function transfer(
-        uint8 _tokenId, // Const.TokenID
+        Const.TokenID _tokenId,
         uint[] memory _amounts,
         uint[] memory _toChainIds,
         address[] memory _toAddresses

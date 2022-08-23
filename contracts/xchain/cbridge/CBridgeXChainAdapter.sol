@@ -44,8 +44,10 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
         bool handled;
     }
 
-    address public USDC;
-    address public USDT;
+    uint32 constant MAX_SLIPPAGE = 50000; // 5%
+
+    IERC20Upgradeable public USDC;
+    IERC20Upgradeable public USDT;
     uint public nonce;
     // Map of transfer entries (nonce => TransferEntry)
     mapping(uint => TransferEntry) public transfers;
@@ -58,8 +60,8 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
     function initialize(address _messageBus) public initializer {
         super.initialize();
         messageBus = _messageBus;
-        USDC = Token.getTokenAddress(Const.TokenID.USDC);
-        USDT = Token.getTokenAddress(Const.TokenID.USDT);
+        USDC = IERC20Upgradeable(Token.getTokenAddress(Const.TokenID.USDC));
+        USDT = IERC20Upgradeable(Token.getTokenAddress(Const.TokenID.USDT));
     }
 
     function transferOwnership(address newOwner) public virtual override(OwnableUpgradeable, BasicXChainAdapter) onlyOwner {
@@ -128,6 +130,7 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
         return ExecutionStatus.Success;
     }
 
+    ///@notice This functions won't be called because executeMessageWithTransfer always returns Success.
     // handler function required by MsgReceiverApp
     // called only if handleMessageWithTransfer above was reverted
     function executeMessageWithTransferFallback(
@@ -152,7 +155,7 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
     }
 
     function transfer(
-        uint8 _tokenId,
+        Const.TokenID _tokenId,
         uint[] memory _amounts,
         uint[] memory _toChainIds,
         address[] memory _toAddresses
@@ -167,22 +170,23 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
             amount += _amounts[i];
         }
 
-        address token;
-        if (_tokenId == uint8(Const.TokenID.USDT)) {
+        IERC20Upgradeable token;
+        if (_tokenId == Const.TokenID.USDT) {
             token = USDT;
-        } else if (_tokenId == uint8(Const.TokenID.USDC)) {
+        } else if (_tokenId == Const.TokenID.USDC) {
             token = USDC;
         } else {
-            revert("unsupported token");
+            return;
         }
-        IERC20Upgradeable(token).safeTransferFrom(from, address(this), amount);
+        token.safeTransferFrom(from, address(this), amount);
 
         for (uint i = 0; i < count; i++) {
-            _transfer(token, _amounts[i], _toChainIds[i], _toAddresses[i], fee);
+            _transfer(from, address(token), _amounts[i], _toChainIds[i], _toAddresses[i], fee);
         }
     }
 
     function _transfer(
+        address _from,
         address _token,
         uint _amount,
         uint _toChainId,
@@ -191,14 +195,15 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
     ) internal {
         address peer = peers[_toChainId];
         require(peer != address(0), "No peer");
+        uint _nonce = nonce;
 
-        transfers[nonce] = TransferEntry({
-            from: msg.sender,
+        transfers[_nonce] = TransferEntry({
+            from: _from,
             status: TransferStatus.Null
         });
 
         bytes memory message = abi.encode(TransferRequest({
-            nonce: nonce,
+            nonce: _nonce,
             toChainId: _toChainId,
             to: _to
         }));
@@ -209,14 +214,14 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
             _token,
             _amount,
             uint64(_toChainId),
-            uint64(nonce),
-            50000, // MaxSlippage is 5%
+            uint64(_nonce),
+            MAX_SLIPPAGE,
             message,
             MsgDataTypes.BridgeSendType.Liquidity,
             _fee
         );
         nonce ++;
-        emit Transfer(nonce, msg.sender, _token, _amount, _toChainId, _to);
+        emit Transfer(_nonce, msg.sender, _token, _amount, _toChainId, _to);
     }
 
     function call(

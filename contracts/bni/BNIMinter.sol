@@ -52,7 +52,7 @@ interface Gateway {
 contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
     using ECDSAUpgradeable for bytes32;
 
-    enum OperationType { NONE, DEPOSIT, WITHDRAWAL }
+    enum OperationType { Null, Deposit, Withdrawal }
 
     struct Operation {
         address account;
@@ -487,14 +487,14 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     /// @param _account account to which BNIs will be minted
     /// @param _USDTAmt USDT with 6 decimals to be deposited
     function initDepositByAdmin(address _account, uint _USDTAmt) external onlyOwnerOrAdmin whenNotPaused {
-        _checkAndAddOperation(_account, OperationType.DEPOSIT, _USDTAmt);
+        _checkAndAddOperation(_account, OperationType.Deposit, _USDTAmt);
     }
 
     /// @dev mint BNIs according to the deposited USDT
     /// @param _pool total USD worth in all pools of BNI after deposited
     /// @param _account account to which BNIs will be minted
     function mintByAdmin(uint _pool, address _account) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
-        uint USDTAmt = _checkAndExitOperation(_account, OperationType.DEPOSIT);
+        uint USDTAmt = _checkAndExitOperation(_account, OperationType.Deposit);
 
         (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
         uint amtDeposit = USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
@@ -514,13 +514,13 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     /// @param _share amount of BNI to be burnt
     function burnByAdmin(address _account, uint _share) external onlyOwnerOrAdmin nonReentrant {
         require(0 < _share && _share <= BNI.balanceOf(_account), "Invalid share amount");
-        _checkAndAddOperation(_account, OperationType.WITHDRAWAL, _share);
+        _checkAndAddOperation(_account, OperationType.Withdrawal, _share);
 
         BNI.burnFrom(_account, _share);
         emit Burn(_account, _share);
     }
 
     function exitWithdrawalByAdmin(address _account) external onlyOwnerOrAdmin {
-        _checkAndExitOperation(_account, OperationType.WITHDRAWAL);
+        _checkAndExitOperation(_account, OperationType.Withdrawal);
     }
 }

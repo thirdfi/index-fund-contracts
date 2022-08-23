@@ -21,7 +21,7 @@ module.exports = async ({ deployments }) => {
         init: {
           methodName: "initialize",
           args: [
-            common.admin, network_.biconomy,
+            common.admin, AddressZero, network_.biconomy,
             sti.address, priceOracleProxy.address,
           ],
         },
