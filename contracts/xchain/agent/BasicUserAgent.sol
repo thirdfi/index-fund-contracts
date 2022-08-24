@@ -35,8 +35,10 @@ contract BasicUserAgent is
     mapping(address => uint) public nonces;
 
     IERC20Upgradeable public USDC;
-    mapping(address => uint) public usdcBalances;
     IERC20Upgradeable public USDT;
+    // These stores the balance that is deposited directly, not cross-transferred.
+    // And these also store the refunded amount.
+    mapping(address => uint) public usdcBalances;
     mapping(address => uint) public usdtBalances;
 
     IXChainAdapter public multichainAdapter;
@@ -44,7 +46,7 @@ contract BasicUserAgent is
     // Map of transfer addresses (cbridgeAdapter's nonce => sender)
     mapping(uint => address) public cbridgeSenders;
 
-    // Map of message peers (chainId => userAgent).
+    // Map of user agents (chainId => userAgent).
     mapping(uint => address) public userAgents;
 
     modifier onlyCBridgeAdapter {
@@ -162,9 +164,54 @@ contract BasicUserAgent is
         uint[] memory _amounts,
         uint[] memory _toChainIds,
         address[] memory _toAddresses,
-        AdapterType[] memory _adapterTypes
+        AdapterType[] memory _adapterTypes,
+        uint length
     ) internal returns (uint _feeAmt) {
-        uint length = _amounts.length;
+        (uint[] memory mchainAmounts, uint[] memory mchainToChainIds, address[] memory mchainToAddresses,
+        uint[] memory cbridgeAmounts, uint[] memory cbridgeToChainIds, address[] memory cbridgeToAddresses)
+            = splitTranfersPerAdapter(_amounts, _toChainIds, _toAddresses, _adapterTypes, length);
+
+        if (mchainAmounts.length > 0) {
+            multichainAdapter.transfer(_tokenId, mchainAmounts, mchainToChainIds, mchainToAddresses);
+        }
+        if (cbridgeAmounts.length > 0) {
+            _feeAmt = transferThroughCBridge(_from, _tokenId, cbridgeAmounts, cbridgeToChainIds, cbridgeToAddresses);
+        }
+    }
+
+    function transferThroughCBridge (
+        address _from,
+        Const.TokenID _tokenId,
+        uint[] memory _cbridgeAmounts,
+        uint[] memory _cbridgeToChainIds,
+        address[] memory _cbridgeToAddresses
+    ) private returns (uint _feeAmt) {
+        uint cbridgeReqCount = _cbridgeAmounts.length;
+        _feeAmt = cbridgeAdapter.calcTransferFee() * cbridgeReqCount;
+
+        if (address(this).balance >= _feeAmt) {
+            uint cbridgeNonce = ICBridgeAdapter(address(cbridgeAdapter)).nonce();
+            cbridgeAdapter.transfer{value: _feeAmt}(_tokenId, _cbridgeAmounts, _cbridgeToChainIds, _cbridgeToAddresses);
+            for (uint _nonce = cbridgeNonce; _nonce < (cbridgeNonce + cbridgeReqCount); _nonce ++) {
+                cbridgeSenders[_nonce] = _from;
+            }
+        }
+    }
+
+    function splitTranfersPerAdapter (
+        uint[] memory _amounts,
+        uint[] memory _toChainIds,
+        address[] memory _toAddresses,
+        AdapterType[] memory _adapterTypes,
+        uint length
+    ) private view returns (
+        uint[] memory _mchainAmounts,
+        uint[] memory _mchainToChainIds,
+        address[] memory _mchainToAddresses,
+        uint[] memory _cbridgeAmounts,
+        uint[] memory _cbridgeToChainIds,
+        address[] memory _cbridgeToAddresses
+    ){
         uint mchainReqCount;
         uint cbridgeReqCount;
         for (uint i = 0; i < length; i ++) {
@@ -172,42 +219,28 @@ contract BasicUserAgent is
             else if (_adapterTypes[i] == AdapterType.CBridge) cbridgeReqCount ++;
         }
 
-        uint[] memory mchainAmounts = new uint[](mchainReqCount);
-        uint[] memory mchainToChainIds = new uint[](mchainReqCount);
-        address[] memory mchainToAddresses = new address[](mchainReqCount);
-        uint[] memory cbridgeAmounts = new uint[](cbridgeReqCount);
-        uint[] memory cbridgeToChainIds = new uint[](cbridgeReqCount);
-        address[] memory cbridgeToAddresses = new address[](cbridgeReqCount);
+        _mchainAmounts = new uint[](mchainReqCount);
+        _mchainToChainIds = new uint[](mchainReqCount);
+        _mchainToAddresses = new address[](mchainReqCount);
+        _cbridgeAmounts = new uint[](cbridgeReqCount);
+        _cbridgeToChainIds = new uint[](cbridgeReqCount);
+        _cbridgeToAddresses = new address[](cbridgeReqCount);
 
         mchainReqCount = 0;
         cbridgeReqCount = 0;
         for (uint i = 0; i < length; i ++) {
             if (_adapterTypes[i] == AdapterType.Multichain) {
-                mchainAmounts[mchainReqCount] = _amounts[i];
-                mchainToChainIds[mchainReqCount] = _toChainIds[i];
-                mchainToAddresses[mchainReqCount] = _toAddresses[i];
+                _mchainAmounts[mchainReqCount] = _amounts[i];
+                _mchainToChainIds[mchainReqCount] = _toChainIds[i];
+                _mchainToAddresses[mchainReqCount] = _toAddresses[i];
                 mchainReqCount ++;
             } else if (_adapterTypes[i] == AdapterType.CBridge) {
-                cbridgeAmounts[cbridgeReqCount] = _amounts[i];
-                cbridgeToChainIds[cbridgeReqCount] = _toChainIds[i];
-                cbridgeToAddresses[cbridgeReqCount] = _toAddresses[i];
+                _cbridgeAmounts[cbridgeReqCount] = _amounts[i];
+                _cbridgeToChainIds[cbridgeReqCount] = _toChainIds[i];
+                _cbridgeToAddresses[cbridgeReqCount] = _toAddresses[i];
                 cbridgeReqCount ++;
             } else {
                 revert("Invalid adapter type");
-            }
-        }
-
-        if (mchainReqCount > 0) {
-            multichainAdapter.transfer(_tokenId, mchainAmounts, mchainToChainIds, mchainToAddresses);
-        }
-        if (cbridgeReqCount > 0) {
-            _feeAmt = cbridgeAdapter.calcTransferFee() * cbridgeReqCount;
-            if (address(this).balance >= _feeAmt) {
-                uint cbridgeNonce = ICBridgeAdapter(address(cbridgeAdapter)).nonce();
-                cbridgeAdapter.transfer{value: _feeAmt}(_tokenId, cbridgeAmounts, cbridgeToChainIds, cbridgeToAddresses);
-                for (uint _nonce = cbridgeNonce; _nonce < (cbridgeNonce + cbridgeReqCount); _nonce ++) {
-                    cbridgeSenders[_nonce] = _from;
-                }
             }
         }
     }
