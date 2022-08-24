@@ -1,8 +1,8 @@
 //SPDX-License-Identifier: MIT
 pragma solidity  0.8.9;
 
-import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "../../libs/Const.sol";
 import "./IXChainAdapter.sol";
 
@@ -17,7 +17,7 @@ contract BasicXChainAdapter is IXChainAdapter,
 
     function initialize() public virtual initializer {
         __Ownable_init_unchained();
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(DEFAULT_ADMIN_ROLE, owner());
     }
 
     function transferOwnership(address newOwner) public virtual override onlyOwner {

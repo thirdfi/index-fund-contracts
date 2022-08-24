@@ -51,15 +51,13 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     mapping(address => uint) public userLastOperationNonce;
     mapping(uint => uint) public operationAmounts; // value in USD scaled by 10^18
 
-    event Deposit(address caller, uint amtDeposit, address tokenDeposit);
-    event Withdraw(address caller, uint amtWithdraw, address tokenWithdraw, uint sharePerc);
-    event Rebalance(uint pid, uint sharePerc, uint amount, address target);
-    event Reinvest(uint amount);
-    event SetTreasuryWallet(address oldTreasuryWallet, address newTreasuryWallet);
-    event SetAdminWallet(address oldAdmin, address newAdmin);
-    event CollectProfitAndUpdateWatermark(uint currentWatermark, uint lastWatermark, uint fee);
-    event AdjustWatermark(uint currentWatermark, uint lastWatermark);
-    event TransferredOutFees(uint fees, address token);
+    event Deposit(address indexed caller, uint indexed amtDeposit, address indexed tokenDeposit);
+    event Withdraw(address indexed caller, uint indexed amtWithdraw, address indexed tokenWithdraw, uint sharePerc);
+    event Rebalance(uint indexed pid, uint sharePerc, uint indexed amount, address indexed target);
+    event Reinvest(uint indexed amount);
+    event CollectProfitAndUpdateWatermark(uint indexed currentWatermark, uint indexed lastWatermark, uint indexed fee);
+    event AdjustWatermark(uint indexed currentWatermark, uint indexed lastWatermark);
+    event TransferredOutFees(uint indexed fees, address indexed token);
     
     modifier onlyOwnerOrAdmin {
         require(msg.sender == owner() || msg.sender == address(admin), "Only owner or admin");
@@ -287,15 +285,11 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     }
 
     function setTreasuryWallet(address _treasuryWallet) external onlyOwner {
-        address oldTreasuryWallet = treasuryWallet;
         treasuryWallet = _treasuryWallet;
-        emit SetTreasuryWallet(oldTreasuryWallet, _treasuryWallet);
     }
 
     function setAdmin(address _admin) external onlyOwner {
-        address oldAdmin = admin;
         admin = _admin;
-        emit SetAdminWallet(oldAdmin, _admin);
     }
 
     function setBiconomy(address _biconomy) external onlyOwner {

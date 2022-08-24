@@ -78,11 +78,11 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     Operation[] public operations; // The nonce start from 1.
     mapping(address => uint) public userLastOperationNonce;
 
-    event SetAdminWallet(address oldAdmin, address newAdmin);
-    event AddToken(uint chainID, address token, uint tid);
-    event RemoveToken(uint chainID, address token, uint targetPerc, uint tid);
-    event Mint(address caller, uint amtDeposit, uint shareMinted);
-    event Burn(address caller, uint shareBurned);
+    event AddToken(uint indexed chainID, address indexed token, uint indexed tid);
+    event RemoveToken(uint indexed chainID, address indexed token, uint indexed tid, uint targetPerc);
+    event NewOperation(address indexed account, OperationType indexed operation, uint amount, uint indexed nonce);
+    event Mint(address indexed caller, uint indexed amtDeposit, uint indexed shareMinted);
+    event Burn(address indexed caller, uint indexed shareBurned);
 
     modifier onlyOwnerOrAdmin {
         require(msg.sender == owner() || msg.sender == address(admin), "Only owner or admin");
@@ -127,9 +127,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     }
 
     function setAdmin(address _admin) external onlyOwner {
-        address oldAdmin = admin;
         admin = _admin;
-        emit SetAdminWallet(oldAdmin, _admin);
     }
 
     function setBiconomy(address _biconomy) external onlyOwner {
@@ -199,7 +197,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         tid[_chainID][_token] = 0;
         updateTid();
 
-        emit RemoveToken(_chainID, _token, _targetPerc, _tid);
+        emit RemoveToken(_chainID, _token, _tid, _targetPerc);
     }
 
     /// @notice The length of array is based on token count.
@@ -470,7 +468,9 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
             amount: _amount,
             done: false
         }));
-        userLastOperationNonce[_account] = getNonce();
+        nonce = getNonce();
+        userLastOperationNonce[_account] = nonce;
+        emit NewOperation(_account, _operation, _amount, nonce);
     }
 
     function _checkAndExitOperation(address _account, OperationType _operation) internal returns (uint) {

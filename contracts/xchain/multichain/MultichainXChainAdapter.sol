@@ -61,7 +61,6 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
         (address from, uint fromChainId,) = anycallExecutor.context();
         require(peers[fromChainId] == from, "Wrong context");
 
-        // TODO This function should be called on UserAgent
         (address targetContract, uint targetCallValue, bytes memory targetCallData)
             = abi.decode(data, (address, uint, bytes));
         (success, result) = targetContract.call{value: targetCallValue}(targetCallData);

@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity  0.8.9;
 
+import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
@@ -19,6 +20,7 @@ contract BasicUserAgent is
     IUserAgent,
     BaseRelayRecipient,
     GnosisSafeUpgradeable,
+    AccessControlEnumerableUpgradeable,
     PausableUpgradeable,
     OwnableUpgradeable
 {
@@ -26,6 +28,8 @@ contract BasicUserAgent is
         Multichain,
         CBridge
     }
+
+    bytes32 public constant ADAPTER_ROLE = keccak256("ADAPTER_ROLE");
 
     address public admin;
     mapping(address => uint) public nonces;
@@ -36,10 +40,12 @@ contract BasicUserAgent is
     mapping(address => uint) public usdtBalances;
 
     IXChainAdapter public multichainAdapter;
-
     IXChainAdapter public cbridgeAdapter;
     // Map of transfer addresses (cbridgeAdapter's nonce => sender)
     mapping(uint => address) public cbridgeSenders;
+
+    // Map of message peers (chainId => userAgent).
+    mapping(uint => address) public userAgents;
 
     modifier onlyCBridgeAdapter {
         require(msg.sender == address(cbridgeAdapter), "Only cBridge");
@@ -50,13 +56,22 @@ contract BasicUserAgent is
         address _admin,
         IXChainAdapter _multichainAdapter, IXChainAdapter _cbridgeAdapter
     ) public virtual initializer {
+        __Ownable_init_unchained();
+        _setupRole(DEFAULT_ADMIN_ROLE, owner());
         __GnosisSafe_init();
+
         USDC = IERC20Upgradeable(Token.getTokenAddress(Const.TokenID.USDC));
         USDT = IERC20Upgradeable(Token.getTokenAddress(Const.TokenID.USDT));
 
         admin = _admin;
         setMultichainAdapter(_multichainAdapter);
         setCBridgeAdapter(_cbridgeAdapter);
+    }
+
+    function transferOwnership(address newOwner) public virtual override onlyOwner {
+        _revokeRole(DEFAULT_ADMIN_ROLE, owner());
+        super.transferOwnership(newOwner);
+        _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
     }
 
     function pause() external virtual onlyOwner whenNotPaused {
@@ -108,12 +123,23 @@ contract BasicUserAgent is
     function onChangeAdapter(address oldAdapter, address newAdapter) internal {
         require(oldAdapter != newAdapter, "Same");
         if (oldAdapter != address(0)) {
+            _revokeRole(ADAPTER_ROLE, oldAdapter);
             USDT.approve(oldAdapter, 0);
             USDC.approve(oldAdapter, 0);
         }
         if (newAdapter != address(0)) {
+            _setupRole(ADAPTER_ROLE, newAdapter);
             USDC.approve(newAdapter, type(uint).max);
             USDT.approve(newAdapter, type(uint).max);
+        }
+    }
+
+    function setUserAgents(uint[] memory _chainIds, address[] memory _userAgents) external onlyOwner {
+        uint length = _chainIds.length;
+        for (uint i = 0; i < length; i++) {
+            uint chainId = _chainIds[i];
+            require(chainId != 0, "Invalid chainID");
+            userAgents[chainId] = _userAgents[i];
         }
     }
 
@@ -175,11 +201,13 @@ contract BasicUserAgent is
             multichainAdapter.transfer(_tokenId, mchainAmounts, mchainToChainIds, mchainToAddresses);
         }
         if (cbridgeReqCount > 0) {
-            uint cbridgeNonce = ICBridgeAdapter(address(cbridgeAdapter)).nonce();
             _feeAmt = cbridgeAdapter.calcTransferFee() * cbridgeReqCount;
-            cbridgeAdapter.transfer{value: _feeAmt}(_tokenId, cbridgeAmounts, cbridgeToChainIds, cbridgeToAddresses);
-            for (uint _nonce = cbridgeNonce; _nonce < (cbridgeNonce + cbridgeReqCount); _nonce ++) {
-                cbridgeSenders[_nonce] = _from;
+            if (address(this).balance >= _feeAmt) {
+                uint cbridgeNonce = ICBridgeAdapter(address(cbridgeAdapter)).nonce();
+                cbridgeAdapter.transfer{value: _feeAmt}(_tokenId, cbridgeAmounts, cbridgeToChainIds, cbridgeToAddresses);
+                for (uint _nonce = cbridgeNonce; _nonce < (cbridgeNonce + cbridgeReqCount); _nonce ++) {
+                    cbridgeSenders[_nonce] = _from;
+                }
             }
         }
     }
@@ -197,7 +225,9 @@ contract BasicUserAgent is
         else revert("Invalid adapter type");
 
         _feeAmt = adapter.calcCallFee(_toChainId, _targetContract, _targetCallValue, _targetCallData);
-        adapter.call{value: _feeAmt}(_toChainId, _targetContract, _targetCallValue, _targetCallData);
+        if (address(this).balance >= _feeAmt) {
+            adapter.call{value: _feeAmt}(_toChainId, _targetContract, _targetCallValue, _targetCallData);
+        }
     }
 
     receive() external payable {}
@@ -207,5 +237,5 @@ contract BasicUserAgent is
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[41] private __gap;
+    uint256[40] private __gap;
 }

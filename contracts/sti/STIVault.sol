@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
+import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
@@ -12,6 +13,7 @@ import "../../interfaces/IERC20UpgradeableExt.sol";
 import "../../libs/Const.sol";
 import "../../libs/Token.sol";
 import "../../libs/BaseRelayRecipient.sol";
+import "./ISTIVault.sol";
 
 interface IStrategy {
     function invest(address[] memory tokens, uint[] memory USDTAmts) external;
@@ -37,13 +39,22 @@ interface IStrategy {
     function getAPR() external view returns (uint);
 }
 
-contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
+contract STIVault is
+    ISTIVault,
+    AccessControlEnumerableUpgradeable,
+    BaseRelayRecipient,
+    ReentrancyGuardUpgradeable,
+    PausableUpgradeable,
+    OwnableUpgradeable
+{
     using SafeERC20Upgradeable for IERC20UpgradeableExt;
 
     struct PoolSnapshot {
         uint poolInUSD;
         uint ts;
     }
+
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     IERC20UpgradeableExt public USDT;
     uint8 usdtDecimals;
@@ -58,11 +69,11 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
     mapping(address => uint) public userLastOperationNonce;
     mapping(uint => uint) public operationAmounts; // value in USD scaled by 10^18
 
-    event Deposit(address caller, uint amtDeposit, address tokenDeposit);
-    event Withdraw(address caller, uint amtWithdraw, address tokenWithdraw, uint sharePerc);
-    event Reinvest(uint amount);
-    event SetAdminWallet(address oldAdmin, address newAdmin);
-    event SetBiconomy(address oldBiconomy, address newBiconomy);
+    address public userAgent;
+
+    event Deposit(address indexed caller, uint indexed amtDeposit, address indexed tokenDeposit);
+    event Withdraw(address indexed caller, uint indexed amtWithdraw, address indexed tokenWithdraw, uint sharePerc);
+    event Reinvest(uint indexed amount);
     
     modifier onlyOwnerOrAdmin {
         require(msg.sender == owner() || msg.sender == address(admin), "Only owner or admin");
@@ -70,13 +81,19 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
     }
 
     function initialize(
-        address _admin, address _biconomy,
+        address _admin, address _userAgent, address _biconomy,
         address _strategy, address _priceOracle,
         address _USDT
     ) external initializer {
         __Ownable_init();
-
+        address _owner = owner();
         admin = _admin;
+        userAgent = _userAgent;
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+        _setupRole(ADMIN_ROLE, _admin);
+        _setupRole(ADMIN_ROLE, _userAgent);
+
         trustedForwarder = _biconomy;
         strategy = IStrategy(_strategy);
         priceOracle = IPriceOracle(_priceOracle);
@@ -88,11 +105,18 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
         USDT.safeApprove(address(strategy), type(uint).max);
     }
 
+    function transferOwnership(address newOwner) public virtual override onlyOwner {
+        address oldOwner = owner();
+        _revokeRole(DEFAULT_ADMIN_ROLE, oldOwner);
+        super.transferOwnership(newOwner);
+        _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
+    }
+
     /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
     /// @param _USDTAmts amounts of USDT should be deposited to each pools. It's 6 decimals
     function depositByAdmin(
         address _account, address[] memory _tokens, uint[] memory _USDTAmts, uint _nonce
-    ) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
+    ) external onlyRole(ADMIN_ROLE) nonReentrant whenNotPaused {
         require(_account != address(0), "Invalid account");
         uint poolCnt = _tokens.length;
         require(poolCnt == _USDTAmts.length, "Not match array length");
@@ -118,7 +142,7 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
     /// @param _sharePerc percentage of assets which should be withdrawn. It's 18 decimals
     function withdrawPercByAdmin(
         address _account, uint _sharePerc, uint _nonce
-    ) external onlyOwnerOrAdmin nonReentrant {
+    ) external onlyRole(ADMIN_ROLE) nonReentrant {
         require(_sharePerc > 0, "SharePerc must > 0");
         require(_sharePerc <= 1e18, "Over 100%");
 
@@ -167,7 +191,7 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
         _claimAllAndTransfer(msg.sender);
     }
 
-    function claimByAdmin(address _account) external onlyOwnerOrAdmin nonReentrant {
+    function claimByAdmin(address _account) external onlyRole(ADMIN_ROLE) nonReentrant {
         _claimAllAndTransfer(_account);
     }
 
@@ -221,15 +245,19 @@ contract STIVault is BaseRelayRecipient, ReentrancyGuardUpgradeable, PausableUpg
     }
 
     function setAdmin(address _admin) external onlyOwner {
-        address oldAdmin = admin;
+        _revokeRole(ADMIN_ROLE, admin);
         admin = _admin;
-        emit SetAdminWallet(oldAdmin, _admin);
+        _setupRole(ADMIN_ROLE, _admin);
+    }
+
+    function setUserAgent(address _userAgent) external onlyOwner {
+        _revokeRole(ADMIN_ROLE, userAgent);
+        userAgent = _userAgent;
+        _setupRole(ADMIN_ROLE, _userAgent);
     }
 
     function setBiconomy(address _biconomy) external onlyOwner {
-        address oldBiconomy = trustedForwarder;
         trustedForwarder = _biconomy;
-        emit SetBiconomy(oldBiconomy, _biconomy);
     }
 
     function _msgSender() internal override(ContextUpgradeable, BaseRelayRecipient) view returns (address) {

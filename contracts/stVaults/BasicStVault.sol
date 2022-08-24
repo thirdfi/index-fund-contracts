@@ -62,16 +62,16 @@ contract BasicStVault is IStVault,
     uint baseTokenRate;
     uint baseAprLastUpdate;
 
-    event Deposit(address user, uint amount, uint shares);
-    event Withdraw(address user, uint shares, uint amount, uint reqId, uint pendingAmount);
-    event Claim(address user, uint reqId, uint amount);
-    event ClaimMulti(address user, uint amount, uint claimedCount);
-    event Invest(uint amount);
-    event Redeem(uint stAmount);
-    event EmergencyWithdraw(uint stAmount);
-    event CollectProfitAndUpdateWatermark(uint currentWatermark, uint lastWatermark, uint fee);
-    event AdjustWatermark(uint currentWatermark, uint lastWatermark);
-    event TransferredOutFees(uint fees, address token);
+    event Deposit(address indexed user, uint indexed amount, uint indexed shares);
+    event Withdraw(address indexed user, uint shares, uint indexed amount, uint reqId, uint indexed pendingAmount);
+    event Claim(address indexed user, uint indexed reqId, uint indexed amount);
+    event ClaimMulti(address indexed user, uint indexed amount, uint indexed claimedCount);
+    event Invest(uint indexed amount);
+    event Redeem(uint indexed stAmount);
+    event EmergencyWithdraw(uint indexed stAmount);
+    event CollectProfitAndUpdateWatermark(uint indexed currentWatermark, uint indexed lastWatermark, uint indexed fee);
+    event AdjustWatermark(uint indexed currentWatermark, uint indexed lastWatermark);
+    event TransferredOutFees(uint indexed fees, address indexed token);
 
     modifier onlyOwnerOrAdmin {
         require(msg.sender == owner() || msg.sender == admin, "Only owner or admin");

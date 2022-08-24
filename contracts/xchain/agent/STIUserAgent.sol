@@ -7,6 +7,7 @@ import "../../../libs/Const.sol";
 import "../../../libs/Token.sol";
 import "../../bni/constant/AvaxConstant.sol";
 import "../../sti/ISTIMinter.sol";
+import "../../sti/ISTIVault.sol";
 import "./BasicUserAgent.sol";
 
 contract STIUserAgent is BasicUserAgent {
@@ -28,7 +29,7 @@ contract STIUserAgent is BasicUserAgent {
     }
 
     /// @param _USDTAmt USDT with 6 decimals to be deposited
-    function initDeposit(uint _USDTAmt, bytes calldata _signature) external payable whenNotPaused {
+    function initDeposit(uint _USDTAmt, bytes calldata _signature) external payable whenNotPaused returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
         bytes memory data = abi.encodePacked(keccak256(abi.encodePacked(account, _USDTAmt, _nonce)));
@@ -38,11 +39,15 @@ contract STIUserAgent is BasicUserAgent {
         if (chainId == AvaxConstant.CHAINID) {
             stiMinter.initDepositByAdmin(account, _USDTAmt);
         } else {
-            bytes memory _targetCallData = abi.encodeWithSelector(ISTIMinter.initDepositByAdmin.selector, account, _USDTAmt);
-            // TODO Needs to calc fee
-            call(AvaxConstant.CHAINID, address(stiMinter), 0, _targetCallData, AdapterType.Multichain);
+            address _toUserAgent = userAgents[AvaxConstant.CHAINID];
+            require(_toUserAgent != address(0), "Invalid Avalanche User Agent");
+            bytes memory _targetCallData = abi.encodeWithSelector(STIUserAgent.initDepositByAdmin.selector, account, _USDTAmt);
+            _feeAmt = call(AvaxConstant.CHAINID, _toUserAgent, 0, _targetCallData, AdapterType.Multichain);
         }
-
         nonces[account] = _nonce + 1;
+    }
+
+    function initDepositByAdmin(address _account, uint _USDTAmt) external onlyRole(ADAPTER_ROLE) {
+        stiMinter.initDepositByAdmin(_account, _USDTAmt);
     }
 }
