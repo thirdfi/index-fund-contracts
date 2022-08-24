@@ -427,12 +427,15 @@ contract BasicStVaultTest is IStVault,
     }
 
     function _transferOutToken(address _to, uint _amount) internal {
+        _to;
+        _amount;
         // (address(token) != Const.NATIVE_ASSET)
         //     ? token.safeTransfer(_to, _amount)
         //     : Token.safeTransferETH(_to, _amount);
     }
 
     function _tokenBalanceOf(address _account) internal view returns (uint) {
+        _account;
         return 0;
         // return (address(token) != Const.NATIVE_ASSET)
         //     ? token.balanceOf(_account)
@@ -525,6 +528,8 @@ contract BasicStVaultTest is IStVault,
 
     ///@return the value in USD. it's scaled by 1e18;
     function getValueInUSD(address _asset, uint _amount) internal view returns (uint) {
+        _asset;
+        _amount;
         return 0;
         // (uint priceInUSD, uint8 priceDecimals) = priceOracle.getAssetPrice(_asset);
         // uint8 _decimals = _assetDecimals(_asset);

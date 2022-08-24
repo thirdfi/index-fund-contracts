@@ -191,6 +191,8 @@ contract BasicSTIStrategyTest is PausableUpgradeable, OwnableUpgradeable {
     }
 
     function _withdraw(address _claimer, uint _sharePerc) internal virtual returns (uint USDTAmt) {
+        _claimer;
+        _sharePerc;
         USDTAmt = USDT.balanceOf(address(this)) * _sharePerc / 1e18;
         // uint poolCnt = tokens.length;
         // for (uint i = 0; i < poolCnt; i ++) {
@@ -505,6 +507,7 @@ contract BasicSTIStrategyTest is PausableUpgradeable, OwnableUpgradeable {
     }
 
     function _getPoolInUSD(uint _pid) internal view virtual returns (uint pool) {
+        _pid;
         pool = getValueInUSD(address(USDT), USDT.balanceOf(address(this)) / tokens.length);
         // address token = tokens[_pid];
         // IStVault stVault = getStVault(token);

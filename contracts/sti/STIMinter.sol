@@ -76,6 +76,7 @@ contract STIMinter is
     struct Operation {
         address account;
         OperationType operation;
+        uint pool; // total pool in USD
         uint amount; // amount of USDT or shares
         bool done;
     }
@@ -560,7 +561,7 @@ contract STIMinter is
         return operations[_nonce - 1];
     }
 
-    function _checkAndAddOperation(address _account, OperationType _operation, uint _amount) internal {
+    function _checkAndAddOperation(address _account, OperationType _operation, uint _pool, uint _amount) internal {
         uint nonce = userLastOperationNonce[_account];
         if (nonce > 0) {
             Operation memory op = getOperation(nonce);
@@ -569,6 +570,7 @@ contract STIMinter is
         operations.push(Operation({
             account: _account,
             operation: _operation,
+            pool: _pool,
             amount: _amount,
             done: false
         }));
@@ -577,7 +579,7 @@ contract STIMinter is
         emit NewOperation(_account, _operation, _amount, nonce);
     }
 
-    function _checkAndExitOperation(address _account, OperationType _operation) internal returns (uint) {
+    function _checkAndExitOperation(address _account, OperationType _operation) internal returns (uint _pool, uint _amount) {
         uint nonce = userLastOperationNonce[_account];
         require(nonce > 0, "No operation");
 
@@ -585,27 +587,26 @@ contract STIMinter is
         require(op.operation == _operation && op.done == false, "Already finished");
 
         operations[nonce - 1].done = true;
-        return op.amount;
+        return (op.pool, op.amount);
     }
 
     /// @param _account account to which BNIs will be minted
+    /// @param _pool total pool in USD
     /// @param _USDTAmt USDT with 6 decimals to be deposited
-    function initDepositByAdmin(address _account, uint _USDTAmt) external onlyRole(ADMIN_ROLE) whenNotPaused {
-        _checkAndAddOperation(_account, OperationType.Deposit, _USDTAmt);
+    function initDepositByAdmin(address _account, uint _pool, uint _USDTAmt) external onlyRole(ADMIN_ROLE) whenNotPaused {
+        _checkAndAddOperation(_account, OperationType.Deposit, _pool, _USDTAmt);
     }
 
     /// @dev mint STIs according to the deposited USDT
-    /// @param _pool total USD worth in all pools of STI after deposited
     /// @param _account account to which STIs will be minted
-    function mintByAdmin(uint _pool, address _account) external onlyRole(ADMIN_ROLE) whenNotPaused {
-        uint USDTAmt = _checkAndExitOperation(_account, OperationType.Deposit);
+    function mintByAdmin(address _account) external onlyRole(ADMIN_ROLE) whenNotPaused {
+        (uint pool, uint USDTAmt) = _checkAndExitOperation(_account, OperationType.Deposit);
 
         (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
         uint amtDeposit = USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
-        _pool = (amtDeposit < _pool) ? _pool - amtDeposit : 0;
 
         uint _totalSupply = STI.totalSupply();
-        uint share = (_pool == 0 ||_totalSupply == 0)  ? amtDeposit : _totalSupply * amtDeposit / _pool;
+        uint share = (pool == 0 ||_totalSupply == 0)  ? amtDeposit : _totalSupply * amtDeposit / pool;
         // When assets invested in strategy, around 0.3% lost for swapping fee. We will consider it in share amount calculation to avoid pricePerFullShare fall down under 1.
         share = share * 997 / 1000;
 
@@ -615,10 +616,11 @@ contract STIMinter is
 
     /// @dev mint STIs according to the deposited USDT
     /// @param _account account to which STIs will be minted
+    /// @param _pool total pool in USD
     /// @param _share amount of STI to be burnt
-    function burnByAdmin(address _account, uint _share) external onlyRole(ADMIN_ROLE) {
+    function burnByAdmin(address _account, uint _pool, uint _share) external onlyRole(ADMIN_ROLE) {
         require(0 < _share && _share <= STI.balanceOf(_account), "Invalid share amount");
-        _checkAndAddOperation(_account, OperationType.Withdrawal, _share);
+        _checkAndAddOperation(_account, OperationType.Withdrawal, _pool, _share);
 
         STI.burnFrom(_account, _share);
         emit Burn(_account, _share);
