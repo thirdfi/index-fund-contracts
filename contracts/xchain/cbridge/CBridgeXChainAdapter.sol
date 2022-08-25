@@ -64,7 +64,7 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
         USDT = IERC20Upgradeable(Token.getTokenAddress(Const.TokenID.USDT));
     }
 
-    function transferOwnership(address newOwner) public virtual override(OwnableUpgradeable, BasicXChainAdapter) onlyOwner {
+    function transferOwnership(address newOwner) public virtual override(BasicXChainAdapter, OwnableUpgradeable) onlyOwner {
         BasicXChainAdapter.transferOwnership(newOwner);
     }
 
