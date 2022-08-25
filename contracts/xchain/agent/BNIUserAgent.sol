@@ -6,13 +6,13 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "../../../libs/Const.sol";
 import "../../../libs/Token.sol";
 import "../../bni/constant/AvaxConstant.sol";
-import "../../sti/ISTIMinter.sol";
-import "../../sti/ISTIVault.sol";
+import "../../bni/IBNIMinter.sol";
+import "../../bni/IBNIVault.sol";
 import "../../swap/ISwap.sol";
 import "./BasicUserAgent.sol";
-import "./STIUserAgentBase.sol";
+import "./BNIUserAgentBase.sol";
 
-contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
+contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     function initialize1(
@@ -20,7 +20,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         address _admin,
         ISwap _swap,
         IXChainAdapter _multichainAdapter, IXChainAdapter _cbridgeAdapter,
-        ISTIMinter _stiMinter, ISTIVault _stiVault
+        IBNIMinter _bniMinter, IBNIVault _bniVault
     ) external initializer {
         super.initialize(_admin, _swap, _multichainAdapter, _cbridgeAdapter);
 
@@ -29,28 +29,28 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         chainIdOnLP = AvaxConstant.CHAINID;
         isLPChain = (chainIdOnLP == chainId);
 
-        stiMinter = _stiMinter;
-        stiVaults[chainId] = _stiVault;
+        bniMinter = _bniMinter;
+        bniVaults[chainId] = _bniVault;
     }
 
     function transferOwnership(address newOwner) public virtual override(BasicUserAgent, OwnableUpgradeable) onlyOwner {
         BasicUserAgent.transferOwnership(newOwner);
     }
 
-    function setSTIMinter(ISTIMinter _stiMinter) external onlyOwner {
-        stiMinter = _stiMinter;
+    function setBNIMinter(IBNIMinter _bniMinter) external onlyOwner {
+        bniMinter = _bniMinter;
     }
 
-    function setSTIVaults(uint[] memory _chainIds, ISTIVault[] memory _stiVaults) external onlyOwner {
+    function setBNIVaults(uint[] memory _chainIds, IBNIVault[] memory _bniVaults) external onlyOwner {
         uint length = _chainIds.length;
         for (uint i = 0; i < length; i++) {
             uint chainId = _chainIds[i];
             require(chainId != 0, "Invalid chainID");
-            stiVaults[chainId] = _stiVaults[i];
+            bniVaults[chainId] = _bniVaults[i];
         }
     }
 
-    /// @dev It calls initDepositByAdmin of STIMinter.
+    /// @dev It calls initDepositByAdmin of BNIMinter.
     /// @param _pool total pool in USD
     /// @param _USDTAmt USDT with 6 decimals to be deposited
     function initDeposit(uint _pool, uint _USDTAmt, bytes calldata _signature) external payable whenNotPaused returns (uint _feeAmt) {
@@ -59,10 +59,10 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _pool, _USDTAmt)), _signature);
 
         if (isLPChain) {
-            stiMinter.initDepositByAdmin(account, _pool, _USDTAmt);
+            bniMinter.initDepositByAdmin(account, _pool, _USDTAmt);
         } else {
             bytes memory _targetCallData = abi.encodeWithSelector(
-                STIUserAgent.initDepositByAdmin.selector,
+                BNIUserAgent.initDepositByAdmin.selector,
                 account, _pool, _USDTAmt
             );
             _feeAmt = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData, false);
@@ -71,7 +71,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
     }
 
     function initDepositByAdmin(address _account, uint _pool, uint _USDTAmt) external onlyRole(ADAPTER_ROLE) {
-        stiMinter.initDepositByAdmin(_account, _pool, _USDTAmt);
+        bniMinter.initDepositByAdmin(_account, _pool, _USDTAmt);
     }
 
     /// @dev It transfers tokens to user agents
@@ -107,7 +107,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
             uint amount = _amounts[i];
             uint toChainId = _toChainIds[i];
             if (toChainId == chainId) {
-                require(address(stiVaults[chainId]) != address(0), "Invalid stiVault");
+                require(address(bniVaults[chainId]) != address(0), "Invalid bniVault");
                 amountOn += amount;
             } else {
                 if (_lengthOut != i) {
@@ -128,7 +128,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         usdtBalances[account] += amountOn;
     }
 
-    /// @dev It calls depositByAdmin of STIVaults.
+    /// @dev It calls depositByAdmin of BNIVaults.
     function deposit(
         uint[] memory _toChainIds,
         address[] memory _tokens,
@@ -158,7 +158,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         delegateAndReturn();
     }
 
-    /// @dev It calls mintByAdmin of STIMinter.
+    /// @dev It calls mintByAdmin of BNIMinter.
     function mint(uint _USDTAmt, bytes calldata _signature) external payable returns (uint _feeAmt) {
         _USDTAmt;
         _signature;
@@ -172,7 +172,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         delegateAndReturn();
     }
 
-    /// @dev It calls burnByAdmin of STIMinter.
+    /// @dev It calls burnByAdmin of BNIMinter.
     /// @param _pool total pool in USD
     /// @param _share amount of shares
     function burn(uint _pool, uint _share, bytes calldata _signature) external payable returns (uint _feeAmt) {
@@ -190,7 +190,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         delegateAndReturn();
     }
 
-    /// @dev It calls withdrawPercByAdmin of STIVaults.
+    /// @dev It calls withdrawPercByAdmin of BNIVaults.
     function withdraw(
         uint[] memory _chainIds, uint _sharePerc, uint _minterNonce, bytes calldata _signature
     ) external payable returns (uint _feeAmt) {
@@ -233,7 +233,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         delegateAndReturn();
     }
 
-    /// @dev It calls exitWithdrawalByAdmin of STIMinter.
+    /// @dev It calls exitWithdrawalByAdmin of BNIMinter.
     /// @param _gatheredAmount is the amount of token that is gathered.
     /// @notice _gatheredAmount doesn't include the balance which is withdrawan in this agent.
     function exitWithdrawal(uint _gatheredAmount, bytes calldata _signature) external payable returns (uint _feeAmt) {
@@ -244,21 +244,6 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
     }
 
     function exitWithdrawalByAdmin(address _account) external {
-        _account;
-        delegateAndReturn();
-    }
-
-    /// @dev It calls claimByAdmin of STIVaults.
-    function claim(
-        uint[] memory _chainIds, bytes calldata _signature
-    ) external payable returns (uint _feeAmt) {
-        _chainIds;
-        _signature;
-        _feeAmt;
-        delegateAndReturn();
-    }
-
-    function claimByAdmin(address _account) external {
         _account;
         delegateAndReturn();
     }

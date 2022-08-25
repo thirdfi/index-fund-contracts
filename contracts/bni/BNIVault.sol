@@ -1,6 +1,7 @@
  // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
+import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
@@ -11,6 +12,7 @@ import "./priceOracle/IPriceOracle.sol";
 import "../../interfaces/IERC20UpgradeableExt.sol";
 import "../../libs/Const.sol";
 import "../../libs/Token.sol";
+import "./IBNIVault.sol";
 
 interface IStrategy {
     function invest(address[] memory tokens, uint[] memory USDTAmts) external;
@@ -23,8 +25,7 @@ interface IStrategy {
     function getAPR() external view returns (uint);
 }
 
-contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
-    using SafeERC20Upgradeable for IERC20UpgradeableExt;
+contract BNIVaultV1 is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
 
     struct PoolSnapshot {
         uint poolInUSD;
@@ -50,6 +51,20 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     mapping(uint => PoolSnapshot) public poolAtNonce;
     mapping(address => uint) public userLastOperationNonce;
     mapping(uint => uint) public operationAmounts; // value in USD scaled by 10^18
+}
+
+contract BNIVault is
+    IBNIVault,
+    AccessControlEnumerableUpgradeable,
+    BNIVaultV1
+{
+    using SafeERC20Upgradeable for IERC20UpgradeableExt;
+
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
+    uint public version;
+
+    address public userAgent;
 
     event Deposit(address indexed caller, uint indexed amtDeposit, address indexed tokenDeposit);
     event Withdraw(address indexed caller, uint indexed amtWithdraw, address indexed tokenWithdraw, uint sharePerc);
@@ -85,11 +100,30 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
         USDT.safeApprove(address(strategy), type(uint).max);
     }
 
+    function initialize2(address _userAgent, address _biconomy) external {
+        require(version < 2, "Already called");
+        version = 2;
+
+        _setupRole(DEFAULT_ADMIN_ROLE, owner());
+        _setupRole(ADMIN_ROLE, admin);
+        _setupRole(ADMIN_ROLE, _userAgent);
+
+        userAgent = _userAgent;
+        trustedForwarder = _biconomy;
+    }
+
+    function transferOwnership(address newOwner) public virtual override onlyOwner {
+        address oldOwner = owner();
+        _revokeRole(DEFAULT_ADMIN_ROLE, oldOwner);
+        super.transferOwnership(newOwner);
+        _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
+    }
+
     /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
     /// @param _USDTAmts amounts of USDT should be deposited to each pools. It's 6 decimals
     function depositByAdmin(
         address _account, address[] memory _tokens, uint[] memory _USDTAmts, uint _nonce
-    ) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
+    ) external onlyRole(ADMIN_ROLE) nonReentrant whenNotPaused {
         require(_account != address(0), "Invalid account");
         uint poolCnt = _tokens.length;
         require(poolCnt == _USDTAmts.length, "Not match array length");
@@ -125,7 +159,7 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     /// @param _sharePerc percentage of assets which should be withdrawn. It's 18 decimals
     function withdrawPercByAdmin(
         address _account, uint _sharePerc, uint _nonce
-    ) external onlyOwnerOrAdmin nonReentrant {
+    ) external onlyRole(ADMIN_ROLE) nonReentrant {
         require(_sharePerc > 0, "SharePerc must > 0");
         require(_sharePerc <= 1e18, "Over 100%");
 
@@ -289,7 +323,15 @@ contract BNIVault is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpg
     }
 
     function setAdmin(address _admin) external onlyOwner {
+        _revokeRole(ADMIN_ROLE, admin);
         admin = _admin;
+        _setupRole(ADMIN_ROLE, _admin);
+    }
+
+    function setUserAgent(address _userAgent) external onlyOwner {
+        _revokeRole(ADMIN_ROLE, userAgent);
+        userAgent = _userAgent;
+        _setupRole(ADMIN_ROLE, _userAgent);
     }
 
     function setBiconomy(address _biconomy) external onlyOwner {

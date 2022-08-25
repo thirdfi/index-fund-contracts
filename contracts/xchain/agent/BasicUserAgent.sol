@@ -106,6 +106,15 @@ contract BasicUserAgent is IUserAgent, BasicUserAgentBase {
         }
     }
 
+    function setCallAdapterTypes(uint[] memory _chainIds, AdapterType[] memory _adapterTypes) external onlyOwner {
+        uint length = _chainIds.length;
+        for (uint i = 0; i < length; i++) {
+            uint chainId = _chainIds[i];
+            require(chainId != 0, "Invalid chainID");
+            callAdapterTypes[chainId] = _adapterTypes[i];
+        }
+    }
+
     ///@notice Never revert in this function. If not, cbridgeAdapter.executeMessageWithTransferRefund will be failed.
     function onRefunded(
         uint _cbridgeNonce,

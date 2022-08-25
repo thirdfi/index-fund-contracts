@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { common } = require("../../parameters");
+const { common, avaxMainnet: network_ } = require("../../parameters");
 const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
@@ -11,6 +11,7 @@ module.exports = async ({ deployments }) => {
   const bni = BNI.attach(bniProxy.address);
 
   const priceOracleProxy = await ethers.getContract("AvaxPriceOracle_Proxy");
+  const userAgentProxy = await ethers.getContract("BNIUserAgent_Proxy");
 
   console.log("Now deploying BNIMinter...");
   const proxy = await deploy("BNIMinter", {
@@ -26,6 +27,13 @@ module.exports = async ({ deployments }) => {
             priceOracleProxy.address,
           ],
         },
+        onUpgrade: {
+          methodName: "initialize2",
+          args: [
+            userAgentProxy.address,
+            network_.biconomy,
+          ],
+        }
       },
     },
   });

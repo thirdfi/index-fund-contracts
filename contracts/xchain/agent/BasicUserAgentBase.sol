@@ -23,8 +23,8 @@ contract BasicUserAgentBase is
     OwnableUpgradeable
 {
     enum AdapterType {
-        Multichain,
-        CBridge
+        CBridge,
+        Multichain
     }
 
     bytes32 public constant ADAPTER_ROLE = keccak256("ADAPTER_ROLE");
@@ -47,6 +47,10 @@ contract BasicUserAgentBase is
 
     // Map of user agents (chainId => userAgent).
     mapping(uint => address) public userAgents;
+
+    // Map of adapter types for calling (chainId => AdapterType).
+    // AdapterType.CBridge is the default adapter because it is 0.
+    mapping(uint => AdapterType) public callAdapterTypes;
 
     function _msgSender() internal override(ContextUpgradeable, BaseRelayRecipient) view returns (address) {
         return BaseRelayRecipient._msgSender();
@@ -154,15 +158,10 @@ contract BasicUserAgentBase is
         address _targetContract,
         uint _targetCallValue,
         bytes memory _targetCallData,
-        AdapterType _adapterType,
         bool _skim // It's a flag to calculate fee without execution
     ) internal returns (uint _feeAmt) {
         require(_targetContract != address(0), "Invalid targetContract");
-
-        IXChainAdapter adapter;
-        if (_adapterType == AdapterType.Multichain) adapter = multichainAdapter;
-        else if (_adapterType == AdapterType.CBridge) adapter = cbridgeAdapter;
-        else revert("Invalid adapter type");
+        IXChainAdapter adapter = (callAdapterTypes[_toChainId] == AdapterType.Multichain) ? multichainAdapter : cbridgeAdapter;
 
         _feeAmt = adapter.calcCallFee(_toChainId, _targetContract, _targetCallValue, _targetCallData);
         if (_skim == false || address(this).balance >= _feeAmt) {

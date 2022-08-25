@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
+import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/ReentrancyGuardUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
@@ -11,6 +12,7 @@ import "./constant/AvaxConstant.sol";
 import "./constant/AuroraConstant.sol";
 import "./constant/MaticConstant.sol";
 import "../../libs/Const.sol";
+import "./IBNIMinter.sol";
 
 interface IBNI is IERC20Upgradeable {
     function decimals() external view returns (uint8);
@@ -49,9 +51,11 @@ interface Gateway {
 }
 
 
-contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
-    using ECDSAUpgradeable for bytes32;
-
+contract BNIMinterV1 is
+    ReentrancyGuardUpgradeable,
+    PausableUpgradeable,
+    OwnableUpgradeable
+{
     enum OperationType { Null, Deposit, Withdrawal }
 
     struct Operation {
@@ -78,17 +82,6 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
 
     Operation[] public operations; // The nonce start from 1.
     mapping(address => uint) public userLastOperationNonce;
-
-    event AddToken(uint indexed chainID, address indexed token, uint indexed tid);
-    event RemoveToken(uint indexed chainID, address indexed token, uint indexed tid, uint targetPerc);
-    event NewOperation(address indexed account, OperationType indexed operation, uint amount, uint indexed nonce);
-    event Mint(address indexed caller, uint indexed amtDeposit, uint indexed shareMinted);
-    event Burn(address indexed caller, uint indexed shareBurned);
-
-    modifier onlyOwnerOrAdmin {
-        require(msg.sender == owner() || msg.sender == address(admin), "Only owner or admin");
-        _;
-    }
 
     function initialize(
         address _admin, address _BNI, address _priceOracle
@@ -117,7 +110,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         gatewaySigner = _admin;
     }
 
-    function updateTid() private {
+    function updateTid() internal {
         uint[] memory _chainIDs = chainIDs;
         address[] memory _tokens = tokens;
 
@@ -126,9 +119,56 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
             tid[_chainIDs[i]][_tokens[i]] = i;
         }
     }
+}
+
+contract BNIMinter is
+    IBNIMinter,
+    AccessControlEnumerableUpgradeable,
+    BNIMinterV1
+{
+    using ECDSAUpgradeable for bytes32;
+
+    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
+
+    uint public version;
+
+    address public userAgent;
+
+    event AddToken(uint indexed chainID, address indexed token, uint indexed tid);
+    event RemoveToken(uint indexed chainID, address indexed token, uint indexed tid, uint targetPerc);
+    event NewOperation(address indexed account, OperationType indexed operation, uint amount, uint indexed nonce);
+    event Mint(address indexed caller, uint indexed amtDeposit, uint indexed shareMinted);
+    event Burn(address indexed caller, uint indexed shareBurned);
+
+    function initialize2(address _userAgent, address _biconomy) external {
+        require(version < 2, "Already called");
+        version = 2;
+
+        _setupRole(DEFAULT_ADMIN_ROLE, owner());
+        _setupRole(ADMIN_ROLE, admin);
+        _setupRole(ADMIN_ROLE, _userAgent);
+
+        userAgent = _userAgent;
+        trustedForwarder = _biconomy;
+    }
+
+    function transferOwnership(address newOwner) public virtual override onlyOwner {
+        address oldOwner = owner();
+        _revokeRole(DEFAULT_ADMIN_ROLE, oldOwner);
+        super.transferOwnership(newOwner);
+        _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
+    }
 
     function setAdmin(address _admin) external onlyOwner {
+        _revokeRole(ADMIN_ROLE, admin);
         admin = _admin;
+        _setupRole(ADMIN_ROLE, _admin);
+    }
+
+    function setUserAgent(address _userAgent) external onlyOwner {
+        _revokeRole(ADMIN_ROLE, userAgent);
+        userAgent = _userAgent;
+        _setupRole(ADMIN_ROLE, _userAgent);
     }
 
     function setBiconomy(address _biconomy) external onlyOwner {
@@ -489,14 +529,14 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     /// @param _account account to which BNIs will be minted
     /// @param _pool total pool in USD
     /// @param _USDTAmt USDT with 6 decimals to be deposited
-    function initDepositByAdmin(address _account, uint _pool, uint _USDTAmt) external onlyOwnerOrAdmin whenNotPaused {
+    function initDepositByAdmin(address _account, uint _pool, uint _USDTAmt) external onlyRole(ADMIN_ROLE) whenNotPaused {
         _checkAndAddOperation(_account, OperationType.Deposit, _pool, _USDTAmt);
     }
 
     /// @dev mint BNIs according to the deposited USDT
     /// @param _account account to which BNIs will be minted
     /// @param _USDTAmt the deposited USDT with 6 decimals
-    function mintByAdmin(address _account, uint _USDTAmt) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
+    function mintByAdmin(address _account, uint _USDTAmt) external onlyRole(ADMIN_ROLE) whenNotPaused {
         (uint pool,) = _checkAndExitOperation(_account, OperationType.Deposit);
 
         (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
@@ -515,7 +555,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
     /// @param _account account to which BNIs will be minted
     /// @param _pool total pool in USD
     /// @param _share amount of BNI to be burnt
-    function burnByAdmin(address _account, uint _pool, uint _share) external onlyOwnerOrAdmin nonReentrant {
+    function burnByAdmin(address _account, uint _pool, uint _share) external onlyRole(ADMIN_ROLE) {
         require(0 < _share && _share <= BNI.balanceOf(_account), "Invalid share amount");
         _checkAndAddOperation(_account, OperationType.Withdrawal, _pool, _share);
 
@@ -523,7 +563,7 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
         emit Burn(_account, _share);
     }
 
-    function exitWithdrawalByAdmin(address _account) external onlyOwnerOrAdmin {
+    function exitWithdrawalByAdmin(address _account) external onlyRole(ADMIN_ROLE) {
         _checkAndExitOperation(_account, OperationType.Withdrawal);
     }
 }
