@@ -9,6 +9,7 @@ import "../../../libs/multiSig/GnosisSafeUpgradeable.sol";
 import "../../../libs/BaseRelayRecipient.sol";
 import "../../../libs/Const.sol";
 import "../../../libs/Token.sol";
+import "../../swap/ISwap.sol";
 import "../IXChainAdapter.sol";
 import "./IUserAgent.sol";
 
@@ -34,6 +35,7 @@ contract BasicUserAgent is
     address public admin;
     mapping(address => uint) public nonces;
 
+    ISwap swap;
     IERC20Upgradeable public USDC;
     IERC20Upgradeable public USDT;
     // These stores the balance that is deposited directly, not cross-transferred.
@@ -56,6 +58,7 @@ contract BasicUserAgent is
 
     function initialize(
         address _admin,
+        ISwap _swap,
         IXChainAdapter _multichainAdapter, IXChainAdapter _cbridgeAdapter
     ) public virtual initializer {
         __Ownable_init_unchained();
@@ -66,6 +69,7 @@ contract BasicUserAgent is
         USDT = IERC20Upgradeable(Token.getTokenAddress(Const.TokenID.USDT));
 
         admin = _admin;
+        swap = _swap;
         setMultichainAdapter(_multichainAdapter);
         setCBridgeAdapter(_cbridgeAdapter);
     }
@@ -255,6 +259,8 @@ contract BasicUserAgent is
         AdapterType _adapterType,
         bool _skim // It's a flag to calculate fee without execution
     ) internal returns (uint _feeAmt) {
+        require(_targetContract != address(0), "Invalid targetContract");
+
         IXChainAdapter adapter;
         if (_adapterType == AdapterType.Multichain) adapter = multichainAdapter;
         else if (_adapterType == AdapterType.CBridge) adapter = cbridgeAdapter;
@@ -273,5 +279,5 @@ contract BasicUserAgent is
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[40] private __gap;
+    uint256[39] private __gap;
 }

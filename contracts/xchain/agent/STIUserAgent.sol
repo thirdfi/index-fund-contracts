@@ -8,10 +8,14 @@ import "../../../libs/Token.sol";
 import "../../bni/constant/AvaxConstant.sol";
 import "../../sti/ISTIMinter.sol";
 import "../../sti/ISTIVault.sol";
+import "../../swap/ISwap.sol";
 import "./BasicUserAgent.sol";
 
 contract STIUserAgent is BasicUserAgent {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+
+    uint public chainIdOnLP;
+    bool public isLPChain;
 
     ISTIMinter public stiMinter;
     // Map of STIVaults (chainId => STIVault).
@@ -21,12 +25,18 @@ contract STIUserAgent is BasicUserAgent {
 
     function initialize1(
         address _admin,
+        ISwap _swap,
         IXChainAdapter _multichainAdapter, IXChainAdapter _cbridgeAdapter,
         ISTIMinter _stiMinter, ISTIVault _stiVault
     ) external initializer {
-        super.initialize(_admin, _multichainAdapter, _cbridgeAdapter);
+        super.initialize(_admin, _swap, _multichainAdapter, _cbridgeAdapter);
+
+        uint chainId = Token.getChainID();
+        chainIdOnLP = AvaxConstant.CHAINID;
+        isLPChain = (chainIdOnLP == chainId);
+
         stiMinter = _stiMinter;
-        stiVaults[Token.getChainID()] = _stiVault;
+        stiVaults[chainId] = _stiVault;
     }
 
     function setSTIMinter(ISTIMinter _stiMinter) external onlyOwner {
@@ -51,16 +61,14 @@ contract STIUserAgent is BasicUserAgent {
         bytes memory data = abi.encodePacked(keccak256(abi.encodePacked(account, _pool, _USDTAmt, _nonce)));
         require(isValidSignature(admin, data, _signature), "Invalid signature");
 
-        if (Token.getChainID() == AvaxConstant.CHAINID) {
+        if (isLPChain) {
             stiMinter.initDepositByAdmin(account, _pool, _USDTAmt);
         } else {
-            address toUserAgent = userAgents[AvaxConstant.CHAINID];
-            require(toUserAgent != address(0), "Invalid Avalanche user agent");
             bytes memory _targetCallData = abi.encodeWithSelector(
                 STIUserAgent.initDepositByAdmin.selector,
                 account, _pool, _USDTAmt
             );
-            _feeAmt = _call(AvaxConstant.CHAINID, toUserAgent, 0, _targetCallData, AdapterType.CBridge, false);
+            _feeAmt = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData, AdapterType.CBridge, false);
         }
         nonces[account] = _nonce + 1;
     }
@@ -152,7 +160,7 @@ contract STIUserAgent is BasicUserAgent {
         address[] memory _tokens,
         uint[] memory _USDTAmts,
         uint pos
-    ) private view returns (
+    ) private pure returns (
         uint _toChainId,
         address[] memory _subTokens,
         uint[] memory _subUSDTAmts,
@@ -203,13 +211,11 @@ contract STIUserAgent is BasicUserAgent {
 
             stiVault.depositByAdmin(_account, _tokens, _USDTAmts, _minterNonce);
         } else {
-            address toUserAgent = userAgents[_toChainId];
-            require(toUserAgent != address(0), "Invalid user agent");
             bytes memory _targetCallData = abi.encodeWithSelector(
                 STIUserAgent.depositByAdmin.selector,
                 _account, _tokens, _USDTAmts, _minterNonce
             );
-            _feeAmt = _call(_toChainId, toUserAgent, 0, _targetCallData, AdapterType.CBridge, false);
+            _feeAmt = _call(_toChainId, userAgents[_toChainId], 0, _targetCallData, AdapterType.CBridge, false);
         }
     }
 
@@ -224,28 +230,26 @@ contract STIUserAgent is BasicUserAgent {
     }
 
     /// @dev It calls mintByAdmin of STIMinter.
-    function mint(bytes calldata _signature) external payable whenNotPaused returns (uint _feeAmt) {
+    function mint(uint _USDTAmt, bytes calldata _signature) external payable whenNotPaused returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
-        bytes memory data = abi.encodePacked(keccak256(abi.encodePacked(account, _nonce)));
+        bytes memory data = abi.encodePacked(keccak256(abi.encodePacked(account, _USDTAmt, _nonce)));
         require(isValidSignature(admin, data, _signature), "Invalid signature");
 
-        if (Token.getChainID() == AvaxConstant.CHAINID) {
-            stiMinter.mintByAdmin(account);
+        if (isLPChain) {
+            stiMinter.mintByAdmin(account, _USDTAmt);
         } else {
-            address toUserAgent = userAgents[AvaxConstant.CHAINID];
-            require(toUserAgent != address(0), "Invalid Avalanche user agent");
             bytes memory _targetCallData = abi.encodeWithSelector(
                 STIUserAgent.mintByAdmin.selector,
-                account
+                account, _USDTAmt
             );
-            _feeAmt = _call(AvaxConstant.CHAINID, toUserAgent, 0, _targetCallData, AdapterType.CBridge, false);
+            _feeAmt = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData, AdapterType.CBridge, false);
         }
         nonces[account] = _nonce + 1;
     }
 
-    function mintByAdmin(address _account) external onlyRole(ADAPTER_ROLE) {
-        stiMinter.mintByAdmin(_account);
+    function mintByAdmin(address _account, uint _USDTAmt) external onlyRole(ADAPTER_ROLE) {
+        stiMinter.mintByAdmin(_account, _USDTAmt);
     }
 
     /// @dev It calls burnByAdmin of STIMinter.
@@ -257,16 +261,14 @@ contract STIUserAgent is BasicUserAgent {
         bytes memory data = abi.encodePacked(keccak256(abi.encodePacked(account, _pool, _share, _nonce)));
         require(isValidSignature(admin, data, _signature), "Invalid signature");
 
-        if (Token.getChainID() == AvaxConstant.CHAINID) {
+        if (isLPChain) {
             stiMinter.burnByAdmin(account, _pool, _share);
         } else {
-            address toUserAgent = userAgents[AvaxConstant.CHAINID];
-            require(toUserAgent != address(0), "Invalid Avalanche user agent");
             bytes memory _targetCallData = abi.encodeWithSelector(
                 STIUserAgent.burnByAdmin.selector,
                 account, _pool, _share
             );
-            _feeAmt = _call(AvaxConstant.CHAINID, toUserAgent, 0, _targetCallData, AdapterType.CBridge, false);
+            _feeAmt = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData, AdapterType.CBridge, false);
         }
         nonces[account] = _nonce + 1;
     }
@@ -299,13 +301,11 @@ contract STIUserAgent is BasicUserAgent {
         if (_chainId == Token.getChainID()) {
             stiVault.withdrawPercByAdmin(_account, _sharePerc, _minterNonce);
         } else {
-            address toUserAgent = userAgents[_chainId];
-            require(toUserAgent != address(0), "Invalid user agent");
             bytes memory _targetCallData = abi.encodeWithSelector(
                 STIUserAgent.withdrawPercByAdmin.selector,
                 _account, _sharePerc, _minterNonce
             );
-            _feeAmt = _call(_chainId, toUserAgent, 0, _targetCallData, AdapterType.CBridge, false);
+            _feeAmt = _call(_chainId, userAgents[_chainId], 0, _targetCallData, AdapterType.CBridge, false);
         }
     }
 
@@ -340,13 +340,11 @@ contract STIUserAgent is BasicUserAgent {
     ) private returns (uint _feeAmt) {
         uint chainId = Token.getChainID();
         if (_fromChainId != chainId) {
-            address toUserAgent = userAgents[_fromChainId];
-            require(toUserAgent != address(0), "Invalid user agent");
             bytes memory _targetCallData = abi.encodeWithSelector(
                 STIUserAgent.gatherByAdmin.selector,
                 _account, chainId, _adapterType
             );
-            _feeAmt = _call(_fromChainId, toUserAgent, 0, _targetCallData, AdapterType.CBridge, false);
+            _feeAmt = _call(_fromChainId, userAgents[_fromChainId], 0, _targetCallData, AdapterType.CBridge, false);
         }
     }
 
@@ -368,11 +366,98 @@ contract STIUserAgent is BasicUserAgent {
             adapterTypes[0] = _adapterType;
 
             uint feeAmt = _transfer(_account, Const.TokenID.USDT, amounts, toChainIds, toAddresses, adapterTypes, 1, true);
-            // TODO swap for fee, and adjust the balance
+            uint tokensForFee = swap.getAmountsInForETH(address(USDT), feeAmt);
+            if (balance > tokensForFee) {
+                uint spentTokenAmount = swap.swapTokensForExactETH(address(USDT), tokensForFee, feeAmt);
+                amounts[0] = balance - spentTokenAmount;
+                usdtBalances[_account] = 0;
 
-            usdtBalances[_account] = 0;
-            emit Transfer(Token.getChainID(), address(USDT), balance, _toChainId, _account);
+                _transfer(_account, Const.TokenID.USDT, amounts, toChainIds, toAddresses, adapterTypes, 1, false);
+                emit Transfer(Token.getChainID(), address(USDT), balance, _toChainId, _account);
+            }
         }
     }
 
+    /// @dev It calls exitWithdrawalByAdmin of STIMinter.
+    /// @param _gatheredAmount is the amount of token that is gathered.
+    /// @notice _gatheredAmount doesn't include the balance which is withdrawan in this agent.
+    function exitWithdrawal(uint _gatheredAmount, bytes calldata _signature) external payable returns (uint _feeAmt) {
+        address account = _msgSender();
+        uint _nonce = nonces[account];
+        bytes memory data = abi.encodePacked(keccak256(abi.encodePacked(account, _gatheredAmount, _nonce)));
+        require(isValidSignature(admin, data, _signature), "Invalid signature");
+
+        if (isLPChain) {
+            stiMinter.exitWithdrawalByAdmin(account);
+        } else {
+            bytes memory _targetCallData = abi.encodeWithSelector(
+                STIUserAgent.exitWithdrawalByAdmin.selector,
+                account
+            );
+            _feeAmt = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData, AdapterType.CBridge, false);
+        }
+
+        uint amount = _gatheredAmount + usdtBalances[account];
+        usdtBalances[account] = 0;
+        USDT.safeTransfer(account, amount);
+
+        nonces[account] = _nonce + 1;
+    }
+
+    function exitWithdrawalByAdmin(address _account) external onlyRole(ADAPTER_ROLE) {
+        stiMinter.exitWithdrawalByAdmin(_account);
+    }
+
+    /// @dev It calls claimByAdmin of STIVaults.
+    function claim(
+        uint[] memory _chainIds, bytes calldata _signature
+    ) external payable returns (uint _feeAmt) {
+        address account = _msgSender();
+        uint _nonce = nonces[account];
+        bytes memory data = abi.encodePacked(keccak256(abi.encodePacked(account, _chainIds, _nonce)));
+        require(isValidSignature(admin, data, _signature), "Invalid signature");
+
+        for (uint i = 0; i < _chainIds.length; i ++) {
+            _feeAmt += _claim(account, _chainIds[i]);
+        }
+        nonces[account] = _nonce + 1;
+    }
+
+    function _claim(address _account, uint _chainId) private returns (uint _feeAmt) {
+        ISTIVault stiVault = stiVaults[_chainId];
+        require(address(stiVault) != address(0), "Invalid stiVault");
+
+        if (_chainId == Token.getChainID()) {
+            stiVault.claimByAdmin(_account);
+        } else {
+            bytes memory _targetCallData = abi.encodeWithSelector(
+                STIUserAgent.claimByAdmin.selector,
+                _account
+            );
+            _feeAmt = _call(_chainId, userAgents[_chainId], 0, _targetCallData, AdapterType.CBridge, false);
+        }
+    }
+
+    function claimByAdmin(address _account) external onlyRole(ADAPTER_ROLE) {
+        ISTIVault stiVault = stiVaults[Token.getChainID()];
+        uint balanceBefore = USDT.balanceOf(address(this));
+        stiVault.claimByAdmin(_account);
+        usdtBalances[_account] += (USDT.balanceOf(address(this)) - balanceBefore);
+    }
+
+    /// @dev It takes out tokens from this agent.
+    /// @param _gatheredAmount is the amount of token that is gathered.
+    /// @notice _gatheredAmount doesn't include the balance which is withdrawan in this agent.
+    function takeOut(uint _gatheredAmount, bytes calldata _signature) external {
+        address account = _msgSender();
+        uint _nonce = nonces[account];
+        bytes memory data = abi.encodePacked(keccak256(abi.encodePacked(account, _gatheredAmount, _nonce)));
+        require(isValidSignature(admin, data, _signature), "Invalid signature");
+
+        uint amount = _gatheredAmount + usdtBalances[account];
+        usdtBalances[account] = 0;
+        USDT.safeTransfer(account, amount);
+
+        nonces[account] = _nonce + 1;
+    }
 }

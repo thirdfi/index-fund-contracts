@@ -159,7 +159,7 @@ describe("STI on Avalanche", async () => {
         await expectRevert(minter.removeToken(1), "Ownable: caller is not the owner");
         await expectRevert(minter.setTokenCompositionTargetPerc([10000]), "Ownable: caller is not the owner");
         await expect(minter.initDepositByAdmin(a1.address, await vault.getAllPoolInUSD(), getUsdtAmount('100'))).to.be.reverted; //With(/AccessControl: account .* is missing role .*/);
-        await expect(minter.mintByAdmin(a1.address)).to.be.reverted;
+        await expect(minter.mintByAdmin(a1.address, 0)).to.be.reverted;
         await expect(minter.burnByAdmin(a1.address, getUsdtAmount('100'))).to.be.reverted;
         await expect(minter.exitWithdrawalByAdmin(a1.address)).to.be.reverted;
 
@@ -438,11 +438,11 @@ describe("STI on Avalanche", async () => {
         var tokens = ret[1];
         await minter.connect(admin).initDepositByAdmin(a1.address, await vault.getAllPoolInUSD(), getUsdtAmount('50000'));
         await vault.connect(admin).depositByAdmin(a1.address, tokens, [getUsdVaule('50000')], 1);
-        await minter.connect(admin).mintByAdmin(a1.address);
+        await minter.connect(admin).mintByAdmin(a1.address, getUsdtAmount('50000'));
         await stVault.connect(admin).invest();
         await minter.connect(admin).initDepositByAdmin(a2.address, await vault.getAllPoolInUSD(), getUsdtAmount('50000'));
         await vault.connect(admin).depositByAdmin(a2.address, tokens, [getUsdVaule('50000')], 2);
-        await minter.connect(admin).mintByAdmin(a2.address);
+        await minter.connect(admin).mintByAdmin(a2.address, getUsdtAmount('50000'));
 
         expect(await vault.getAllPoolInUSD()).closeTo(parseEther('100000'), parseEther('100000').div(50));
 

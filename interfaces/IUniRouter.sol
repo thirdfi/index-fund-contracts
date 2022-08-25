@@ -10,12 +10,28 @@ interface IUniRouter {
         uint deadline
     ) external returns (uint[] memory amounts);
 
+    function swapTokensForExactTokens(
+        uint amountOut,
+        uint amountInMax,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts);
+
     function swapExactETHForTokens(
         uint amountOutMin,
         address[] calldata path,
         address to,
         uint deadline
     ) external payable returns (uint[] memory amounts);
+
+    function swapTokensForExactETH(
+        uint amountOut,
+        uint amountInMax,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external returns (uint[] memory amounts);
 
     function swapExactTokensForETH(
         uint amountIn,
@@ -24,6 +40,13 @@ interface IUniRouter {
         address to,
         uint deadline
     ) external returns (uint[] memory amounts);
+
+    function swapETHForExactTokens(
+        uint amountOut,
+        address[] calldata path,
+        address to,
+        uint deadline
+    ) external payable returns (uint[] memory amounts);
 
     function addLiquidity(
         address tokenA,
@@ -47,4 +70,5 @@ interface IUniRouter {
     ) external returns (uint amountA, uint amountB);
 
     function getAmountsOut(uint amountIn, address[] memory path) external view returns (uint[] memory amounts);
+    function getAmountsIn(uint amountOut, address[] memory path) external view returns (uint[] memory amounts);
 }

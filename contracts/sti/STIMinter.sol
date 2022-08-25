@@ -599,11 +599,12 @@ contract STIMinter is
 
     /// @dev mint STIs according to the deposited USDT
     /// @param _account account to which STIs will be minted
-    function mintByAdmin(address _account) external onlyRole(ADMIN_ROLE) whenNotPaused {
-        (uint pool, uint USDTAmt) = _checkAndExitOperation(_account, OperationType.Deposit);
+    /// @param _USDTAmt the deposited USDT with 6 decimals.
+    function mintByAdmin(address _account, uint _USDTAmt) external onlyRole(ADMIN_ROLE) whenNotPaused {
+        (uint pool,) = _checkAndExitOperation(_account, OperationType.Deposit);
 
         (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
-        uint amtDeposit = USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
+        uint amtDeposit = _USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
 
         uint _totalSupply = STI.totalSupply();
         uint share = (pool == 0 ||_totalSupply == 0)  ? amtDeposit : _totalSupply * amtDeposit / pool;

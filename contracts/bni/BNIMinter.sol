@@ -495,11 +495,12 @@ contract BNIMinter is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUp
 
     /// @dev mint BNIs according to the deposited USDT
     /// @param _account account to which BNIs will be minted
-    function mintByAdmin(address _account) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
-        (uint pool, uint USDTAmt) = _checkAndExitOperation(_account, OperationType.Deposit);
+    /// @param _USDTAmt the deposited USDT with 6 decimals
+    function mintByAdmin(address _account, uint _USDTAmt) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
+        (uint pool,) = _checkAndExitOperation(_account, OperationType.Deposit);
 
         (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
-        uint amtDeposit = USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
+        uint amtDeposit = _USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
 
         uint _totalSupply = BNI.totalSupply();
         uint share = (_totalSupply == 0 || pool == 0)  ? amtDeposit : _totalSupply * amtDeposit / pool;

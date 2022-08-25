@@ -5,25 +5,9 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "./BasicSTIStrategy.sol";
 import "../../bni/constant/AvaxConstant.sol";
+import "../../swap/vendor/IJoeRouter.sol";
 import "../../../interfaces/IStVault.sol";
 import "../../../libs/Const.sol";
-
-interface IJoeRouter {
-    function swapExactAVAXForTokens(
-        uint amountOutMin,
-        address[] calldata path,
-        address to,
-        uint deadline
-    ) external payable returns (uint[] memory amounts);
-
-    function swapExactTokensForAVAX(
-        uint amountIn,
-        uint amountOutMin,
-        address[] calldata path,
-        address to,
-        uint deadline
-    ) external returns (uint[] memory amounts);
-}
 
 contract AvaxSTIStrategy is BasicSTIStrategy {
     using SafeERC20Upgradeable for IERC20Upgradeable;

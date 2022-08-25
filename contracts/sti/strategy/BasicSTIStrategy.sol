@@ -38,8 +38,6 @@ contract BasicSTIStrategy is PausableUpgradeable, OwnableUpgradeable {
     event Withdraw(uint sharePerc, uint USDTAmt);
     event Claim(address claimer, address token, uint tokenAmt, uint USDTAmt);
     event EmergencyWithdraw(uint USDTAmt);
-    event SetTreasuryWallet(address oldTreasuryWallet, address newTreasuryWallet);
-    event SetAdminWallet(address oldAdmin, address newAdmin);
 
     modifier onlyVault {
         require(msg.sender == vault, "Only vault");
@@ -476,9 +474,7 @@ contract BasicSTIStrategy is PausableUpgradeable, OwnableUpgradeable {
     }
 
     function setAdmin(address _admin) external onlyOwner {
-        address oldAdmin = admin;
         admin = _admin;
-        emit SetAdminWallet(oldAdmin, _admin);
     }
 
     function setVault(address _vault) external onlyOwner {

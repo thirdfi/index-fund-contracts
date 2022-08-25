@@ -122,7 +122,7 @@ describe("BNI on Avalanche", async () => {
         await expectRevert(minter.removeToken(1), "Ownable: caller is not the owner");
         await expectRevert(minter.setTokenCompositionTargetPerc([10000]), "Ownable: caller is not the owner");
         await expectRevert(minter.initDepositByAdmin(a1.address, await vault.getAllPoolInUSD(), getUsdtAmount('100')), "Only owner or admin");
-        await expectRevert(minter.mintByAdmin(a1.address), "Only owner or admin");
+        await expectRevert(minter.mintByAdmin(a1.address, 0), "Only owner or admin");
         await expectRevert(minter.burnByAdmin(a1.address, await vault.getAllPoolInUSD(), parseEther('1')), "Only owner or admin");
         await expectRevert(minter.exitWithdrawalByAdmin(a1.address), "Only owner or admin");
 
@@ -233,8 +233,8 @@ describe("BNI on Avalanche", async () => {
         avaxPool = await vault.getAllPoolInUSD();
         var allPool = await minter.getAllPoolInUSD([avaxPool]);
         expect(allPool).closeTo(parseEther('50000'), parseEther('50000').div(100));
-        await minter.connect(admin).mintByAdmin(a1.address);
-        await expectRevert(minter.connect(admin).mintByAdmin(a1.address), "Already finished");
+        await minter.connect(admin).mintByAdmin(a1.address, getUsdtAmount('50000'));
+        await expectRevert(minter.connect(admin).mintByAdmin(a1.address, getUsdtAmount('50000')), "Already finished");
         ret = await minter.getOperation(1);
         expect(ret[4]).equal(true);
 
@@ -304,7 +304,7 @@ describe("BNI on Avalanche", async () => {
         await vault.connect(admin).depositByAdmin(a1.address, tokens, USDTAmts, 1);
         var avaxPool = await vault.getAllPoolInUSD();
         var allPool = await minter.getAllPoolInUSD([avaxPool]);
-        await minter.connect(admin).mintByAdmin(a1.address);
+        await minter.connect(admin).mintByAdmin(a1.address, getUsdtAmount('10000'));
 
         // deposit with a2
         ret = await vault.getEachPoolInUSD();
@@ -347,7 +347,7 @@ describe("BNI on Avalanche", async () => {
         avaxPool = await vault.getAllPoolInUSD();
         var allPool = await minter.getAllPoolInUSD([avaxPool]);
         expect(allPool).closeTo(parseEther('20000'), parseEther('20000').div(100));
-        await minter.connect(admin).mintByAdmin(a2.address);
+        await minter.connect(admin).mintByAdmin(a2.address, getUsdtAmount('10000'));
         expect(await bni.balanceOf(a2.address)).closeTo(parseEther('10000'), parseEther('10000').div(100));
         expect(await minter.getPricePerFullShare([avaxPool])).closeTo(parseEther('1'), parseEther('1').div(100));
 
@@ -392,7 +392,7 @@ describe("BNI on Avalanche", async () => {
         await vault.connect(admin).depositByAdmin(a1.address, tokens, USDTAmts, 1);
         var avaxPool = await vault.getAllPoolInUSD();
         var allPool = await minter.getAllPoolInUSD([avaxPool]);
-        await minter.connect(admin).mintByAdmin(a1.address);
+        await minter.connect(admin).mintByAdmin(a1.address, getUsdtAmount('50000'));
 
         await vault.connect(admin).emergencyWithdraw();
         expect(await usdt.balanceOf(vault.address)).closeTo(getUsdtAmount('50000'), getUsdtAmount('50000').div(20));
@@ -452,7 +452,7 @@ describe("BNI on Avalanche", async () => {
         var avaxPool = await vault.getAllPoolInUSD();
         var allPool = await minter.getAllPoolInUSD([avaxPool]);
         expect(allPool).closeTo(parseEther('50000'), parseEther('50000').div(100));
-        await minter.connect(admin).mintByAdmin(a1.address);
+        await minter.connect(admin).mintByAdmin(a1.address, getUsdtAmount('50000'));
         expect(await bni.balanceOf(a1.address)).closeTo(parseEther('50000'), parseEther('50000').div(100));
         expect(await minter.getPricePerFullShare([avaxPool])).closeTo(parseEther('1'), parseEther('1').div(100));
 
