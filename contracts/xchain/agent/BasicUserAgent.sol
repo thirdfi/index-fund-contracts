@@ -158,24 +158,25 @@ contract BasicUserAgent is
         else if (_token == address(USDC)) usdcBalances[sender] += amount;
     }
 
-    function transfer(
+    function _transfer(
         address _from,
         Const.TokenID _tokenId,
         uint[] memory _amounts,
         uint[] memory _toChainIds,
         address[] memory _toAddresses,
         AdapterType[] memory _adapterTypes,
-        uint length
+        uint _length,
+        bool _skim // It's a flag to calculate fee without execution
     ) internal returns (uint _feeAmt) {
         (uint[] memory mchainAmounts, uint[] memory mchainToChainIds, address[] memory mchainToAddresses,
         uint[] memory cbridgeAmounts, uint[] memory cbridgeToChainIds, address[] memory cbridgeToAddresses)
-            = splitTranfersPerAdapter(_amounts, _toChainIds, _toAddresses, _adapterTypes, length);
+            = splitTranfersPerAdapter(_amounts, _toChainIds, _toAddresses, _adapterTypes, _length);
 
-        if (mchainAmounts.length > 0) {
+        if (_skim == false && mchainAmounts.length > 0) {
             multichainAdapter.transfer(_tokenId, mchainAmounts, mchainToChainIds, mchainToAddresses);
         }
         if (cbridgeAmounts.length > 0) {
-            _feeAmt = transferThroughCBridge(_from, _tokenId, cbridgeAmounts, cbridgeToChainIds, cbridgeToAddresses);
+            _feeAmt = transferThroughCBridge(_from, _tokenId, cbridgeAmounts, cbridgeToChainIds, cbridgeToAddresses, _skim);
         }
     }
 
@@ -184,12 +185,13 @@ contract BasicUserAgent is
         Const.TokenID _tokenId,
         uint[] memory _cbridgeAmounts,
         uint[] memory _cbridgeToChainIds,
-        address[] memory _cbridgeToAddresses
+        address[] memory _cbridgeToAddresses,
+        bool _skim // It's a flag to calculate fee without execution
     ) private returns (uint _feeAmt) {
         uint cbridgeReqCount = _cbridgeAmounts.length;
         _feeAmt = cbridgeAdapter.calcTransferFee() * cbridgeReqCount;
 
-        if (address(this).balance >= _feeAmt) {
+        if (_skim == false || address(this).balance >= _feeAmt) {
             uint cbridgeNonce = ICBridgeAdapter(address(cbridgeAdapter)).nonce();
             cbridgeAdapter.transfer{value: _feeAmt}(_tokenId, _cbridgeAmounts, _cbridgeToChainIds, _cbridgeToAddresses);
             for (uint _nonce = cbridgeNonce; _nonce < (cbridgeNonce + cbridgeReqCount); _nonce ++) {
@@ -245,12 +247,13 @@ contract BasicUserAgent is
         }
     }
 
-    function call(
+    function _call(
         uint _toChainId,
         address _targetContract,
         uint _targetCallValue,
         bytes memory _targetCallData,
-        AdapterType _adapterType
+        AdapterType _adapterType,
+        bool _skim // It's a flag to calculate fee without execution
     ) internal returns (uint _feeAmt) {
         IXChainAdapter adapter;
         if (_adapterType == AdapterType.Multichain) adapter = multichainAdapter;
@@ -258,7 +261,7 @@ contract BasicUserAgent is
         else revert("Invalid adapter type");
 
         _feeAmt = adapter.calcCallFee(_toChainId, _targetContract, _targetCallValue, _targetCallData);
-        if (address(this).balance >= _feeAmt) {
+        if (_skim == false || address(this).balance >= _feeAmt) {
             adapter.call{value: _feeAmt}(_toChainId, _targetContract, _targetCallValue, _targetCallData);
         }
     }
