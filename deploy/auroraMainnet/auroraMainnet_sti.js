@@ -6,4 +6,7 @@ module.exports.dependencies = [
   "auroraMainnet_sti_StNEAR",
   "auroraMainnet_sti_STIStrategy",
   "auroraMainnet_sti_STIVault",
+  "auroraMainnet_xchain",
+  "auroraMainnet_Swap",
+  "auroraMainnet_sti_STIUserAgent",
 ];

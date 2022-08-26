@@ -23,6 +23,6 @@ module.exports = async () => {
 module.exports.tags = ["hardhat_eth_sti"];
 module.exports.dependencies = [
   "hardhat_eth_reset",
+  "ethMainnet_xchain",
   "ethMainnet_sti",
-  "ethMainnet_UserAgent",
 ];

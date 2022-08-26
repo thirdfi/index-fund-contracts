@@ -17,6 +17,6 @@ module.exports = async () => {
 module.exports.tags = ["hardhat_aurora_bni"];
 module.exports.dependencies = [
   "hardhat_aurora_reset",
+  "auroraMainnet_bni",
   "auroraMainnet_bni2",
-  "auroraMainnet_bni_BNIVault",
 ];

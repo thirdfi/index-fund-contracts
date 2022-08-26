@@ -44,6 +44,9 @@ describe("BNI on Polygon", async () => {
       admin = await ethers.getSigner(common.admin);
 
       usdt = new ethers.Contract(network_.Swap.USDT, ERC20_ABI, deployer);
+
+      const userAgentProxy = await ethers.getContract("BNIUserAgent_Proxy");
+      await vault.connect(deployer).initialize2(userAgentProxy.address, network_.biconomy);
     });
 
     describe('Basic', () => {
@@ -52,7 +55,7 @@ describe("BNI on Polygon", async () => {
 
         expect(await vault.owner()).equal(deployer.address);
         expect(await vault.admin()).equal(common.admin);
-        expect(await vault.trustedForwarder()).equal(AddressZero);
+        expect(await vault.trustedForwarder()).equal(network_.biconomy);
         expect(await vault.strategy()).equal(strategy.address);
         expect(await vault.priceOracle()).equal(priceOracle.address);
         expect(await vault.USDT()).equal(network_.Swap.USDT);
@@ -83,8 +86,8 @@ describe("BNI on Polygon", async () => {
 
         await expectRevert(vault.setAdmin(a2.address), "Ownable: caller is not the owner");
         await expectRevert(vault.setBiconomy(a2.address), "Ownable: caller is not the owner");
-        await expectRevert(vault.depositByAdmin(a1.address, [a2.address], [getUsdtAmount('100')], 1), "Only owner or admin");
-        await expectRevert(vault.withdrawPercByAdmin(a1.address, parseEther('0.1'), 1), "Only owner or admin");
+        await expect(vault.depositByAdmin(a1.address, [a2.address], [getUsdtAmount('100')], 1)).to.be.reverted;
+        await expect(vault.withdrawPercByAdmin(a1.address, parseEther('0.1'), 1)).to.be.reverted;
         await expectRevert(vault.rebalance(0, parseEther('0.1'), a2.address), "Only owner or admin");
         await expectRevert(vault.emergencyWithdraw(), "Only owner or admin");
         await expectRevert(vault.reinvest([a2.address], [10000]), "Only owner or admin");

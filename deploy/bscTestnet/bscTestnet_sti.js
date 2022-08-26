@@ -7,4 +7,7 @@ module.exports.dependencies = [
   "bscTestnet_sti_StBNB",
   "bscTestnet_sti_STIStrategy",
   "bscTestnet_sti_STIVault",
+  "bscTestnet_xchain",
+  "bscTestnet_Swap",
+  "bscTestnet_sti_STIUserAgent",
 ];

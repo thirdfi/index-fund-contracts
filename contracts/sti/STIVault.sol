@@ -91,8 +91,8 @@ contract STIVault is
         userAgent = _userAgent;
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
-        _setupRole(ADMIN_ROLE, _admin);
-        _setupRole(ADMIN_ROLE, _userAgent);
+        if (_admin != address(0)) _setupRole(ADMIN_ROLE, _admin);
+        if (_userAgent != address(0)) _setupRole(ADMIN_ROLE, _userAgent);
 
         trustedForwarder = _biconomy;
         strategy = IStrategy(_strategy);
@@ -106,10 +106,9 @@ contract STIVault is
     }
 
     function transferOwnership(address newOwner) public virtual override onlyOwner {
-        address oldOwner = owner();
-        _revokeRole(DEFAULT_ADMIN_ROLE, oldOwner);
+        _revokeRole(DEFAULT_ADMIN_ROLE, owner());
         super.transferOwnership(newOwner);
-        _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
+        if (newOwner != address(0)) _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
     }
 
     /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
@@ -245,15 +244,17 @@ contract STIVault is
     }
 
     function setAdmin(address _admin) external onlyOwner {
-        _revokeRole(ADMIN_ROLE, admin);
+        address oldAdmin = admin;
+        if (oldAdmin != address(0)) _revokeRole(ADMIN_ROLE, oldAdmin);
         admin = _admin;
-        _setupRole(ADMIN_ROLE, _admin);
+        if (_admin != address(0)) _setupRole(ADMIN_ROLE, _admin);
     }
 
     function setUserAgent(address _userAgent) external onlyOwner {
-        _revokeRole(ADMIN_ROLE, userAgent);
+        address oldAgent = userAgent;
+        if (oldAgent != address(0)) _revokeRole(ADMIN_ROLE, oldAgent);
         userAgent = _userAgent;
-        _setupRole(ADMIN_ROLE, _userAgent);
+        if (_userAgent != address(0)) _setupRole(ADMIN_ROLE, _userAgent);
     }
 
     function setBiconomy(address _biconomy) external onlyOwner {

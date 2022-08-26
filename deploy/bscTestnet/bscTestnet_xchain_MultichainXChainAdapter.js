@@ -1,11 +1,18 @@
-const { ethers } = require("hardhat");
+const { ethers, network } = require("hardhat");
+const { bscTestnet: network_ } = require('../../parameters/testnet');
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
   const [deployer] = await ethers.getSigners();
 
-  console.log("Now deploying UserAgent...");
-  const proxy = await deploy("UserAgent", {
+  if (network.config.chainId !== network_.chainId) {
+    console.warn(`MultichainXChainAdapter needs to deploy on the correct network`);
+    console.warn(`  Check if the --network parameter is correct`);
+    console.warn(`  Or check if the process.env.CHAIN_ID=${network_.chainId} if it runs on hardhat`);
+  }
+
+  console.log("Now deploying MultichainXChainAdapter...");
+  const proxy = await deploy("MultichainXChainAdapter", {
     from: deployer.address,
     proxy: {
       proxyContract: "OpenZeppelinTransparentProxy",
@@ -17,7 +24,7 @@ module.exports = async ({ deployments }) => {
       },
     },
   });
-  console.log("  UserAgent_Proxy contract address: ", proxy.address);
+  console.log("  MultichainXChainAdapter_Proxy contract address: ", proxy.address);
 
   // Verify the implementation contract
   try {
@@ -28,9 +35,9 @@ module.exports = async ({ deployments }) => {
 
     await run("verify:verify", {
       address: implAddress,
-      contract: "contracts/xchange/UserAgent.sol:UserAgent",
+      contract: "contracts/xchain/multichain/MultichainXChainAdapter.sol:MultichainXChainAdapter",
     });
   } catch (e) {
   }
 };
-module.exports.tags = ["ethMainnet_UserAgent"];
+module.exports.tags = ["bscTestnet_xchain_MultichainXChainAdapter"];

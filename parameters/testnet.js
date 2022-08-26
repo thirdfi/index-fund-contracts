@@ -9,6 +9,7 @@ module.exports = {
   },
 
   auroraTestnet: {
+    chainId: 1313161555,
     biconomy: AddressZero,
     Bastion: {
       cNEAR: "0x8C14ea853321028a7bb5E4FB0d0147F183d3B677",
@@ -23,9 +24,13 @@ module.exports = {
     Token: {
       stNEAR: "0x2137df2e54abd6bF1c1a8c1739f2EA6A8C15F144",
     },
+    cBridge: {
+      messageBus: AddressZero,
+    },
   },
 
   avaxTestnet: {
+    chainId: 43113,
     biconomy: "0x6271Ca63D30507f2Dcbf99B52787032506D75BBF",
     Aave3: {
       aAvaWBTC: "0x07B2C0b69c70e89C94A20A555Ab376E5a6181eE6",
@@ -46,34 +51,54 @@ module.exports = {
       USDt: "0x9702230A8Ea53601f5cD2dc00fDBc13d4dF4A8c7",
       aAVAXb: "0xBd97c29aa3E83C523C9714edCA8DB8881841a593",
     },
+    cBridge: {
+      messageBus: "0xE9533976C590200E32d95C53f06AE12d292cFc47",
+    },
   },
 
   bscTestnet: {
+    chainId: 97,
     biconomy: "0x61456BF1715C1415730076BB79ae118E806E74d2",
     PancakeSwap: {
       Farm_USDT_USDC_pid: 48,
       Farm_USDT_BUSD_pid: 7,
       Farm_USDC_BUSD_pid: 20,
     },
+    Swap: {
+      router: "0x9Ac64Cc6e4415144C455BD8E4837Fea55603e5c3", // PancakeSwap
+      SWAP_BASE_TOKEN: "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd", // WBNB
+    },
     Token: {
       USDT: "0x1F326a8CA5399418a76eA0efa0403Cbb00790C67",
       WBNB: "0xae13d989daC2f0dEbFf460aC112a837C89BAa7cd",
       aBNBb: "0xaB56897fE4e9f0757e02B54C27E81B9ddd6A30AE",
-    }
+    },
+    cBridge: {
+      messageBus: "0xAd204986D6cB67A5Bc76a3CB8974823F43Cb9AAA",
+    },
   },
 
   ethRinkeby: {
+    chainId: 4,
     biconomy: "0xFD4973FeB2031D4409fB57afEE5dF2051b171104",
+    Swap: {
+      router: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", // Uniswap v2
+      SWAP_BASE_TOKEN: "0xc778417E063141139Fce010982780140Aa0cD5Ab", // WETH
+    },
     Token: {
       MATIC: "0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0",
       stETH: "0xF4242f9d78DB7218Ad72Ee3aE14469DBDE8731eD",
       stMATIC: "0x9ee91F9f426fA633d227f7a9b000E28b9dfd8599",
       USDT: "0x21e48034753E490ff04f2f75f7CAEdF081B320d5",
       WETH: "0xc778417E063141139Fce010982780140Aa0cD5Ab",
-    }
+    },
+    cBridge: {
+      messageBus: AddressZero,
+    },
   },
 
   maticMumbai: {
+    chainId: 80001,
     biconomy: "0x9399BB24DBB5C4b782C70c2969F58716Ebbd6a3b",
     Aave3: {
       aPolWMATIC: "0x89a6AE840b3F8f489418933A220315eeA36d11fF",
@@ -83,6 +108,9 @@ module.exports = {
       SWAP_BASE_TOKEN: "0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889", // WMATIC
       USDT: "0x7e4C234B1d634DB790592d1550816b19E862F744", // "0x3813e82e6f7098b9583FC0F33a962D02018B6803",
       WMATIC: "0x9c3C9283D3e44854697Cd22D3Faa240Cfb032889",
+    },
+    cBridge: {
+      messageBus: "0x7d43AABC515C356145049227CeE54B608342c0ad",
     },
   },
 

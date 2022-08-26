@@ -141,8 +141,8 @@ describe("STI on Aurora", async () => {
 
         await expectRevert(vault.setAdmin(a2.address), "Ownable: caller is not the owner");
         await expectRevert(vault.setBiconomy(a2.address), "Ownable: caller is not the owner");
-        await expectRevert(vault.depositByAdmin(a1.address, [a2.address], [getUsdtAmount('100')], 1), "Only owner or admin");
-        await expectRevert(vault.withdrawPercByAdmin(a1.address, parseEther('0.1'), 1), "Only owner or admin");
+        await expect(vault.depositByAdmin(a1.address, [a2.address], [getUsdtAmount('100')], 1)).to.be.reverted;
+        await expect(vault.withdrawPercByAdmin(a1.address, parseEther('0.1'), 1)).to.be.reverted;
         await expectRevert(vault.emergencyWithdraw(), "Only owner or admin");
         await expectRevert(vault.claimEmergencyWithdrawal(), "Only owner or admin");
         await expectRevert(vault.reinvest([a2.address], [10000]), "Only owner or admin");

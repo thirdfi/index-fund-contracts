@@ -8,4 +8,7 @@ module.exports.dependencies = [
   "ethMainnet_sti_StMATIC",
   "ethMainnet_sti_STIStrategy",
   "ethMainnet_sti_STIVault",
+  "ethMainnet_xchain",
+  "ethMainnet_Swap",
+  "ethMainnet_sti_STIUserAgent",
 ];

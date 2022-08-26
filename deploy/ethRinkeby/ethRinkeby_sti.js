@@ -8,6 +8,7 @@ module.exports.dependencies = [
   "ethRinkeby_sti_StMATIC",
   "ethRinkeby_sti_STIStrategy",
   "ethRinkeby_sti_STIVault",
-  "ethRinkeby_sti_STI",
-  "ethRinkeby_sti_STIMinter",
+  "ethRinkeby_xchain",
+  "ethRinkeby_Swap",
+  "ethRinkeby_sti_STIUserAgent",
 ];

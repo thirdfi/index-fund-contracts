@@ -6,4 +6,9 @@ module.exports.dependencies = [
   "avaxTestnet_sti_StAVAX",
   "avaxTestnet_sti_STIStrategy",
   "avaxTestnet_sti_STIVault",
+  "avaxTestnet_sti_STI",
+  "avaxTestnet_sti_STIMinter",
+  "avaxTestnet_xchain",
+  "avaxTestnet_Swap",
+  "avaxTestnet_sti_STIUserAgent",
 ];

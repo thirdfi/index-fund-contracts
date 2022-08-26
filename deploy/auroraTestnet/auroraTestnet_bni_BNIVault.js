@@ -1,5 +1,6 @@
 const { ethers } = require("hardhat");
 const { common, auroraTestnet: network_ } = require("../../parameters/testnet");
+const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
@@ -10,6 +11,12 @@ module.exports = async ({ deployments }) => {
   const strategy = BNIStrategy.attach(strategyProxy.address);
 
   const priceOracleProxy = await ethers.getContract("AuroraPriceOracleTest_Proxy");
+  var userAgentProxy;
+  try {
+    userAgentProxy = await ethers.getContract("BNIUserAgent_Proxy");
+  } catch(e) {
+    userAgentProxy = AddressZero;
+  }
 
   console.log("Now deploying BNIVault...");
   const proxy = await deploy("BNIVaultTest", {
@@ -24,6 +31,13 @@ module.exports = async ({ deployments }) => {
             network_.Swap.USDT,
           ],
         },
+        onUpgrade: {
+          methodName: "initialize2",
+          args: [
+            userAgentProxy.address,
+            network_.biconomy,
+          ],
+        }
       },
     },
   });

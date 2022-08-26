@@ -8,4 +8,7 @@ module.exports.dependencies = [
   "avaxMainnet_sti_STIVault",
   "avaxMainnet_sti_STI",
   "avaxMainnet_sti_STIMinter",
+  "avaxMainnet_xchain",
+  "avaxMainnet_Swap",
+  "avaxMainnet_sti_STIUserAgent",
 ];

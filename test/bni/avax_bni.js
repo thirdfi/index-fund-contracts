@@ -50,6 +50,10 @@ describe("BNI on Avalanche", async () => {
       admin = await ethers.getSigner(common.admin);
 
       usdt = new ethers.Contract(network_.Swap.USDT, ERC20_ABI, deployer);
+
+      const userAgentProxy = await ethers.getContract("BNIUserAgent_Proxy");
+      await minter.connect(deployer).initialize2(userAgentProxy.address, network_.biconomy);
+      await vault.connect(deployer).initialize2(userAgentProxy.address, network_.biconomy);
     });
 
     describe('Basic', () => {
@@ -63,7 +67,7 @@ describe("BNI on Avalanche", async () => {
 
         expect(await minter.owner()).equal(deployer.address);
         expect(await minter.admin()).equal(common.admin);
-        expect(await minter.trustedForwarder()).equal(AddressZero);
+        expect(await minter.trustedForwarder()).equal(network_.biconomy);
         expect(await minter.BNI()).equal(bni.address);
         expect(await minter.priceOracle()).equal(priceOracle.address);
         expect(await minter.chainIDs(0)).equal(137);
@@ -121,15 +125,15 @@ describe("BNI on Avalanche", async () => {
         await expectRevert(minter.addToken(1, a1.address), "Ownable: caller is not the owner");
         await expectRevert(minter.removeToken(1), "Ownable: caller is not the owner");
         await expectRevert(minter.setTokenCompositionTargetPerc([10000]), "Ownable: caller is not the owner");
-        await expectRevert(minter.initDepositByAdmin(a1.address, await vault.getAllPoolInUSD(), getUsdtAmount('100')), "Only owner or admin");
-        await expectRevert(minter.mintByAdmin(a1.address, 0), "Only owner or admin");
-        await expectRevert(minter.burnByAdmin(a1.address, await vault.getAllPoolInUSD(), parseEther('1')), "Only owner or admin");
-        await expectRevert(minter.exitWithdrawalByAdmin(a1.address), "Only owner or admin");
+        await expect(minter.initDepositByAdmin(a1.address, await vault.getAllPoolInUSD(), getUsdtAmount('100'))).to.be.reverted;
+        await expect(minter.mintByAdmin(a1.address, 0)).to.be.reverted;
+        await expect(minter.burnByAdmin(a1.address, await vault.getAllPoolInUSD(), parseEther('1'))).to.be.reverted;
+        await expect(minter.exitWithdrawalByAdmin(a1.address)).to.be.reverted;
 
         await expectRevert(vault.setAdmin(a2.address), "Ownable: caller is not the owner");
         await expectRevert(vault.setBiconomy(a2.address), "Ownable: caller is not the owner");
-        await expectRevert(vault.depositByAdmin(a1.address, [a2.address], [getUsdtAmount('100')], 1), "Only owner or admin");
-        await expectRevert(vault.withdrawPercByAdmin(a1.address, parseEther('0.1'), 1), "Only owner or admin");
+        await expect(vault.depositByAdmin(a1.address, [a2.address], [getUsdtAmount('100')], 1)).to.be.reverted;
+        await expect(vault.withdrawPercByAdmin(a1.address, parseEther('0.1'), 1)).to.be.reverted;
         await expectRevert(vault.rebalance(0, parseEther('0.1'), a2.address), "Only owner or admin");
         await expectRevert(vault.emergencyWithdraw(), "Only owner or admin");
         await expectRevert(vault.reinvest([a2.address], [10000]), "Only owner or admin");

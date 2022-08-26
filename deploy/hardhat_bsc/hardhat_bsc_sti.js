@@ -23,5 +23,6 @@ module.exports = async () => {
 module.exports.tags = ["hardhat_bsc_sti"];
 module.exports.dependencies = [
   "hardhat_bsc_reset",
+  "bscMainnet_xchain",
   "bscMainnet_sti"
 ];

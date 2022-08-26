@@ -11,7 +11,12 @@ module.exports = async ({ deployments }) => {
   const bni = BNI.attach(bniProxy.address);
 
   const priceOracleProxy = await ethers.getContract("AvaxPriceOracle_Proxy");
-  const userAgentProxy = await ethers.getContract("BNIUserAgent_Proxy");
+  var userAgentProxy;
+  try {
+    userAgentProxy = await ethers.getContract("BNIUserAgent_Proxy");
+  } catch(e) {
+    userAgentProxy = AddressZero;
+  }
 
   console.log("Now deploying BNIMinter...");
   const proxy = await deploy("BNIMinter", {

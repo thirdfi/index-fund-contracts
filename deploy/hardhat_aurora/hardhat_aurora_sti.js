@@ -20,6 +20,7 @@ module.exports = async () => {
 module.exports.tags = ["hardhat_aurora_sti"];
 module.exports.dependencies = [
   "hardhat_aurora_reset",
+  "auroraMainnet_xchain",
   "auroraMainnet_l2_BastionFactory",
   "auroraMainnet_bni_PriceOracle",
   "auroraMainnet_sti",
