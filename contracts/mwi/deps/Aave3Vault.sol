@@ -67,6 +67,7 @@ interface IRewardsController {
 
 contract Aave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable{
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeERC20Upgradeable for IAToken;
 
     IERC20Upgradeable public constant WAVAX = IERC20Upgradeable(0xB31f66AA3C1e785363F0875A1B74E27b85FD66c7);
 
@@ -123,9 +124,9 @@ contract Aave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable, Paus
         treasuryWallet = _treasury;
         admin = _admin;
         
-        token.approve(address(aPool), type(uint).max);
-        aToken.approve(address(aPool), type(uint).max);
-        WAVAX.approve(address(JoeRouter), type(uint).max);
+        token.safeApprove(address(aPool), type(uint).max);
+        aToken.safeApprove(address(aPool), type(uint).max);
+        WAVAX.safeApprove(address(JoeRouter), type(uint).max);
     }
     
     /**

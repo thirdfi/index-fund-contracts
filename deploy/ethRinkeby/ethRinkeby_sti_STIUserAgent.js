@@ -1,5 +1,6 @@
 const { ethers } = require("hardhat");
 const { common } = require('../../parameters/testnet');
+const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
@@ -14,7 +15,7 @@ module.exports = async ({ deployments }) => {
   const swapProxy = await ethers.getContract("EthSwap_Proxy");
   const mchainAdapterProxy = await ethers.getContract("MultichainXChainAdapter_Proxy");
   const cbridgeAdapterProxy = await ethers.getContract("CBridgeXChainAdapter_Proxy");
-  const minterProxy = ethers.constants.AddressZero;
+  const minterProxy = await ethers.getContract("STIMinter_Proxy");
   const vaultProxy = await ethers.getContract("STIVault_Proxy");
 
   console.log("Now deploying STIUserAgent...");
@@ -37,6 +38,13 @@ module.exports = async ({ deployments }) => {
     },
   });
   console.log("  STIUserAgent_Proxy contract address: ", proxy.address);
+
+  const STIMinter = await ethers.getContractFactory("STIMinter");
+  const minter = STIMinter.attach(minterProxy.address);
+  if (await minter.userAgent() === AddressZero) {
+    const tx = await minter.setUserAgent(proxy.address);
+    await tx.wait();
+  }
 
   const STIVault = await ethers.getContractFactory("STIVault");
   const vault = STIVault.attach(vaultProxy.address);

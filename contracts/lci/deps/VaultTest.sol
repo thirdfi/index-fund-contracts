@@ -133,8 +133,8 @@ contract BscVaultTest is Initializable, ERC20Upgradeable, OwnableUpgradeable, Pa
         
         // lpToken.safeApprove(address(MasterChefV2), type(uint).max);
         // CAKE.safeApprove(address(PckRouter), type(uint).max);
-        // token0.approve(address(PckRouter), type(uint).max);
-        // token1.approve(address(PckRouter), type(uint).max);
+        // token0.safeApprove(address(PckRouter), type(uint).max);
+        // token1.safeApprove(address(PckRouter), type(uint).max);
 
         _updateLpRewardApr();
     }

@@ -123,9 +123,9 @@ contract Aave3VaultTest is Initializable, ERC20Upgradeable, OwnableUpgradeable, 
         treasuryWallet = _treasury;
         admin = _admin;
         
-        // token.approve(address(aPool), type(uint).max);
-        // aToken.approve(address(aPool), type(uint).max);
-        // WAVAX.approve(address(JoeRouter), type(uint).max);
+        // token.safeApprove(address(aPool), type(uint).max);
+        // aToken.safeApprove(address(aPool), type(uint).max);
+        // WAVAX.safeApprove(address(JoeRouter), type(uint).max);
     }
     
     /**

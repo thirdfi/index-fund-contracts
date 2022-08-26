@@ -1,5 +1,6 @@
 const { ethers } = require("hardhat");
 const { common } = require('../../parameters');
+const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
@@ -14,7 +15,7 @@ module.exports = async ({ deployments }) => {
   const swapProxy = await ethers.getContract("EthSwap_Proxy");
   const mchainAdapterProxy = await ethers.getContract("MultichainXChainAdapter_Proxy");
   const cbridgeAdapterProxy = await ethers.getContract("CBridgeXChainAdapter_Proxy");
-  const minterProxy = ethers.constants.AddressZero;
+  const minterAddress = AddressZero;
   const vaultProxy = await ethers.getContract("STIVault_Proxy");
 
   console.log("Now deploying STIUserAgent...");
@@ -30,7 +31,7 @@ module.exports = async ({ deployments }) => {
             common.admin,
             swapProxy.address,
             mchainAdapterProxy.address, cbridgeAdapterProxy.address,
-            minterProxy.address, vaultProxy.address,
+            minterAddress, vaultProxy.address,
           ],
         },
       },
@@ -61,7 +62,7 @@ module.exports = async ({ deployments }) => {
             common.admin,
             swapProxy.address,
             mchainAdapterProxy.address, cbridgeAdapterProxy.address,
-            minterProxy.address, vaultProxy.address,
+            minterAddress, vaultProxy.address,
       ],
       contract: "contracts/xchain/agent/STIUserAgent.sol:STIUserAgent",
     });

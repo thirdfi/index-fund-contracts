@@ -12,9 +12,9 @@ module.exports = async ({ deployments }) => {
   console.log("  BNIUserAgentSub contract address: ", subImpl.address);
 
   const swapProxy = await ethers.getContract("AuroraSwap_Proxy");
-  const mchainAdapterProxy = await ethers.getContract("MultichainXChainAdapter_Proxy");
+  const mchainAdapterAddress = ethers.constants.AddressZero;;
   const cbridgeAdapterProxy = await ethers.getContract("CBridgeXChainAdapter_Proxy");
-  const minterProxy = ethers.constants.AddressZero;
+  const minterAddress = ethers.constants.AddressZero;
   const vaultProxy = await ethers.getContract("BNIVault_Proxy");
 
   console.log("Now deploying BNIUserAgent...");
@@ -29,8 +29,8 @@ module.exports = async ({ deployments }) => {
             subImpl.address,
             common.admin,
             swapProxy.address,
-            mchainAdapterProxy.address, cbridgeAdapterProxy.address,
-            minterProxy.address, vaultProxy.address,
+            mchainAdapterAddress, cbridgeAdapterProxy.address,
+            minterAddress, vaultProxy.address,
           ],
         },
       },
@@ -53,8 +53,8 @@ module.exports = async ({ deployments }) => {
         subImpl.address,
             common.admin,
             swapProxy.address,
-            mchainAdapterProxy.address, cbridgeAdapterProxy.address,
-            minterProxy.address, vaultProxy.address,
+            mchainAdapterAddress, cbridgeAdapterProxy.address,
+            minterAddress, vaultProxy.address,
       ],
       contract: "contracts/xchain/agent/BNIUserAgent.sol:BNIUserAgent",
     });

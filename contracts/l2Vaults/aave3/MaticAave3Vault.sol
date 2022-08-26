@@ -45,7 +45,7 @@ contract MaticAave3Vault is BasicAave3Vault {
                 IERC20Upgradeable(reward).safeTransfer(treasuryWallet, fee);
                 amount -= fee;
 
-                // It needs to approve router for reward token
+                // It needs to safeApprove router for reward token
                 if (IERC20Upgradeable(reward).allowance(address(this), address(Router)) < amount) {
                     IERC20Upgradeable(reward).safeApprove(address(Router), type(uint).max);
                 }

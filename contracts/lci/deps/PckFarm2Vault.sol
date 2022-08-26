@@ -128,8 +128,8 @@ contract PckFarm2Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable, P
         
         lpToken.safeApprove(address(MasterChefV2), type(uint).max);
         CAKE.safeApprove(address(PckRouter), type(uint).max);
-        token0.approve(address(PckRouter), type(uint).max);
-        token1.approve(address(PckRouter), type(uint).max);
+        token0.safeApprove(address(PckRouter), type(uint).max);
+        token1.safeApprove(address(PckRouter), type(uint).max);
 
         _updateLpRewardApr();
     }

@@ -41,6 +41,7 @@ interface IRewardsController {
 
 contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable, PausableUpgradeable, ReentrancyGuardUpgradeable{
     using SafeERC20Upgradeable for IERC20Upgradeable;
+    using SafeERC20Upgradeable for IAToken;
 
     uint constant DENOMINATOR = 10000;
     uint public yieldFee;
@@ -94,8 +95,8 @@ contract BasicAave3Vault is Initializable, ERC20Upgradeable, OwnableUpgradeable,
         aPool = IPool(aToken.POOL());
         aRewardsController = IRewardsController(aToken.getIncentivesController());
         
-        token.approve(address(aPool), type(uint).max);
-        aToken.approve(address(aPool), type(uint).max);
+        token.safeApprove(address(aPool), type(uint).max);
+        aToken.safeApprove(address(aPool), type(uint).max);
     }
     
     /**

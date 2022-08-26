@@ -85,7 +85,7 @@ contract BasicCompoundVault is Initializable, ERC20Upgradeable, OwnableUpgradeab
         address[] memory cTokens = new address[](1);
         cTokens[0] = address(_cToken);
         comptroller.enterMarkets(cTokens);
-        token.approve(address(_cToken), type(uint).max);
+        token.safeApprove(address(_cToken), type(uint).max);
     }
     
     /**

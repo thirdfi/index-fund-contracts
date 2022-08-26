@@ -1,5 +1,6 @@
 const { ethers } = require("hardhat");
 const { common, ethMainnet: network_ } = require("../../parameters");
+const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
@@ -20,7 +21,7 @@ module.exports = async ({ deployments }) => {
         init: {
           methodName: "initialize",
           args: [
-            common.admin, network_.biconomy,
+            common.admin, AddressZero, network_.biconomy,
             strategy.address, priceOracleProxy.address,
             network_.Token.USDT,
           ],

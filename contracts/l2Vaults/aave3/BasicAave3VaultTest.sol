@@ -94,8 +94,8 @@ contract BasicAave3VaultTest is Initializable, ERC20Upgradeable, OwnableUpgradea
         aPool = IPool(aToken.POOL());
         aRewardsController = IRewardsController(aToken.getIncentivesController());
         
-        // token.approve(address(aPool), type(uint).max);
-        // aToken.approve(address(aPool), type(uint).max);
+        // token.safeApprove(address(aPool), type(uint).max);
+        // aToken.safeApprove(address(aPool), type(uint).max);
     }
     
     /**

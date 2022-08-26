@@ -1,5 +1,6 @@
 const { ethers } = require("hardhat");
 const { common } = require('../../parameters');
+const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
@@ -12,9 +13,9 @@ module.exports = async ({ deployments }) => {
   console.log("  STIUserAgentSub contract address: ", subImpl.address);
 
   const swapProxy = await ethers.getContract("AuroraSwap_Proxy");
-  const mchainAdapterProxy = await ethers.getContract("MultichainXChainAdapter_Proxy");
+  const mchainAdapterAddress = AddressZero;
   const cbridgeAdapterProxy = await ethers.getContract("CBridgeXChainAdapter_Proxy");
-  const minterProxy = ethers.constants.AddressZero;
+  const minterAddress = AddressZero;
   const vaultProxy = await ethers.getContract("STIVault_Proxy");
 
   console.log("Now deploying STIUserAgent...");
@@ -29,8 +30,8 @@ module.exports = async ({ deployments }) => {
             subImpl.address,
             common.admin,
             swapProxy.address,
-            mchainAdapterProxy.address, cbridgeAdapterProxy.address,
-            minterProxy.address, vaultProxy.address,
+            mchainAdapterAddress, cbridgeAdapterProxy.address,
+            minterAddress, vaultProxy.address,
           ],
         },
       },
@@ -60,8 +61,8 @@ module.exports = async ({ deployments }) => {
         subImpl.address,
             common.admin,
             swapProxy.address,
-            mchainAdapterProxy.address, cbridgeAdapterProxy.address,
-            minterProxy.address, vaultProxy.address,
+            mchainAdapterAddress, cbridgeAdapterProxy.address,
+            minterAddress, vaultProxy.address,
       ],
       contract: "contracts/xchain/agent/STIUserAgent.sol:STIUserAgent",
     });

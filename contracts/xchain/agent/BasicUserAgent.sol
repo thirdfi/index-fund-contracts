@@ -2,6 +2,7 @@
 pragma solidity  0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "../../../libs/BaseRelayRecipient.sol";
 import "../../../libs/Const.sol";
 import "../../../libs/Token.sol";
@@ -11,6 +12,7 @@ import "./BasicUserAgentBase.sol";
 import "./IUserAgent.sol";
 
 contract BasicUserAgent is IUserAgent, BasicUserAgentBase {
+    using SafeERC20Upgradeable for IERC20Upgradeable;
 
     modifier onlyCBridgeAdapter {
         require(msg.sender == address(cbridgeAdapter), "Only cBridge");
@@ -43,25 +45,25 @@ contract BasicUserAgent is IUserAgent, BasicUserAgentBase {
 
     function pause() external virtual onlyOwner whenNotPaused {
         _pause();
-        USDT.approve(address(multichainAdapter), 0);
-        USDC.approve(address(multichainAdapter), 0);
-        USDT.approve(address(cbridgeAdapter), 0);
-        USDC.approve(address(cbridgeAdapter), 0);
+        USDT.safeApprove(address(multichainAdapter), 0);
+        USDC.safeApprove(address(multichainAdapter), 0);
+        USDT.safeApprove(address(cbridgeAdapter), 0);
+        USDC.safeApprove(address(cbridgeAdapter), 0);
     }
 
     function unpause() external virtual onlyOwner whenPaused {
         _unpause();
         if (USDT.allowance(address(this), address(multichainAdapter)) == 0) {
-            USDT.approve(address(multichainAdapter), type(uint).max);
+            USDT.safeApprove(address(multichainAdapter), type(uint).max);
         }
         if (USDC.allowance(address(this), address(multichainAdapter)) == 0) {
-            USDC.approve(address(multichainAdapter), type(uint).max);
+            USDC.safeApprove(address(multichainAdapter), type(uint).max);
         }
         if (USDT.allowance(address(this), address(cbridgeAdapter)) == 0) {
-            USDT.approve(address(cbridgeAdapter), type(uint).max);
+            USDT.safeApprove(address(cbridgeAdapter), type(uint).max);
         }
         if (USDC.allowance(address(this), address(cbridgeAdapter)) == 0) {
-            USDC.approve(address(cbridgeAdapter), type(uint).max);
+            USDC.safeApprove(address(cbridgeAdapter), type(uint).max);
         }
     }
 
@@ -84,16 +86,17 @@ contract BasicUserAgent is IUserAgent, BasicUserAgentBase {
     }
 
     function onChangeAdapter(address oldAdapter, address newAdapter) internal {
-        require(oldAdapter != newAdapter, "Same");
+        if (oldAdapter == newAdapter) return;
+
         if (oldAdapter != address(0)) {
             _revokeRole(ADAPTER_ROLE, oldAdapter);
-            USDT.approve(oldAdapter, 0);
-            USDC.approve(oldAdapter, 0);
+            USDT.safeApprove(oldAdapter, 0);
+            USDC.safeApprove(oldAdapter, 0);
         }
         if (newAdapter != address(0)) {
             _setupRole(ADAPTER_ROLE, newAdapter);
-            USDC.approve(newAdapter, type(uint).max);
-            USDT.approve(newAdapter, type(uint).max);
+            USDC.safeApprove(newAdapter, type(uint).max);
+            USDT.safeApprove(newAdapter, type(uint).max);
         }
     }
 
