@@ -7,6 +7,7 @@ const { common } = require("../../parameters");
 const { sendValue, etherBalance } = require("../../scripts/utils/ethereum");
 
 module.exports = async () => {
+  const [deployer] = await ethers.getSigners();
 
   await network.provider.request({method: "hardhat_impersonateAccount", params: [common.admin]});
 

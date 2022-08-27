@@ -5,6 +5,7 @@ const ERC20_ABI = require("@openzeppelin/contracts-upgradeable/build/contracts/E
 const { common } = require("../../parameters");
 
 module.exports = async () => {
+  const [deployer] = await ethers.getSigners();
 
   await network.provider.request({method: "hardhat_impersonateAccount", params: [common.admin]});
 

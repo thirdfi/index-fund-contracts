@@ -109,25 +109,25 @@ contract STIUserAgentSub is STIUserAgentBase {
     }
 
     /// @dev It calls mintByAdmin of STIMinter.
-    function mint(uint _USDTAmt, bytes calldata _signature) external payable whenNotPaused returns (uint _feeAmt) {
+    function mint(uint _USDT6Amt, bytes calldata _signature) external payable whenNotPaused returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
-        checkSignature(keccak256(abi.encodePacked(account, _nonce, _USDTAmt)), _signature);
+        checkSignature(keccak256(abi.encodePacked(account, _nonce, _USDT6Amt)), _signature);
 
         if (isLPChain) {
-            stiMinter.mintByAdmin(account, _USDTAmt);
+            stiMinter.mintByAdmin(account, _USDT6Amt);
         } else {
             bytes memory _targetCallData = abi.encodeWithSelector(
                 STIUserAgentSub.mintByAdmin.selector,
-                account, _USDTAmt
+                account, _USDT6Amt
             );
             _feeAmt = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData, false);
         }
         nonces[account] = _nonce + 1;
     }
 
-    function mintByAdmin(address _account, uint _USDTAmt) external onlyRole(ADAPTER_ROLE) {
-        stiMinter.mintByAdmin(_account, _USDTAmt);
+    function mintByAdmin(address _account, uint _USDT6Amt) external onlyRole(ADAPTER_ROLE) {
+        stiMinter.mintByAdmin(_account, _USDT6Amt);
     }
 
     /// @dev It calls burnByAdmin of STIMinter.

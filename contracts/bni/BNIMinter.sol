@@ -423,18 +423,18 @@ contract BNIMinter is
     }
 
     /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
-    /// @param _USDTAmt amount of USDT with 6 decimals
-    /// @return _USDTAmts amount of USDT should be deposited to each pools
+    /// @param _USDT6Amt amount of USDT with 6 decimals
+    /// @return _USDT6Amts amount of USDT should be deposited to each pools
     function getDepositTokenComposition(
-        uint[] memory _chainIDs, address[] memory _tokens, uint[] memory _poolInUSDs, uint _USDTAmt
+        uint[] memory _chainIDs, address[] memory _tokens, uint[] memory _poolInUSDs, uint _USDT6Amt
     ) public view returns (
-        uint[] memory, address[] memory, uint[] memory _USDTAmts
+        uint[] memory, address[] memory, uint[] memory _USDT6Amts
     ) {
         (,, uint[] memory pools, uint[] memory perc) = getCurrentTokenCompositionPerc(_chainIDs, _tokens, _poolInUSDs);
         uint poolCnt = perc.length;
         (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
 
-        uint allPool = _USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
+        uint allPool = _USDT6Amt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
         for (uint i = 0; i < poolCnt; i ++) {
             allPool += pools[i];
         }
@@ -450,26 +450,26 @@ contract BNIMinter is
             }
         }
 
-        _USDTAmts = new uint[](poolCnt);
+        _USDT6Amts = new uint[](poolCnt);
         for (uint i = 0; i < poolCnt; i ++) {
-            _USDTAmts[i] = _USDTAmt * allocations[i] / totalAllocation;
+            _USDT6Amts[i] = _USDT6Amt * allocations[i] / totalAllocation;
         }
 
-        return (chainIDs, tokens, _USDTAmts);
+        return (chainIDs, tokens, _USDT6Amts);
     }
-    function getDepositTokenComposition1(uint _USDTAmt) external view returns (
+    function getDepositTokenComposition1(uint _USDT6Amt) external view returns (
         uint[] memory, address[] memory, uint[] memory
     ) {
         revert OffchainLookup(address(this), urls,
             abi.encodeWithSelector(Gateway.getDepositTokenComposition1.selector),
             BNIMinter.getDepositTokenComposition1WithSig.selector,
-            abi.encode(_USDTAmt)
+            abi.encode(_USDT6Amt)
         );
     }
     function getDepositTokenComposition1WithSig(bytes calldata result, bytes calldata extraData) external view returns(
         uint[] memory, address[] memory, uint[] memory
     ) {
-        (uint _USDTAmt) = abi.decode(extraData, (uint));
+        (uint _USDT6Amt) = abi.decode(extraData, (uint));
         (uint[] memory _chainIDs, address[] memory _tokens, uint[] memory _poolInUSDs, bytes memory sig)
             = abi.decode(result, (uint[], address[], uint[], bytes));
 
@@ -479,7 +479,7 @@ contract BNIMinter is
         )).recover(sig);
         require(gatewaySigner == recovered, "Signer is incorrect");
 
-        return getDepositTokenComposition(_chainIDs, _tokens, _poolInUSDs, _USDTAmt);
+        return getDepositTokenComposition(_chainIDs, _tokens, _poolInUSDs, _USDT6Amt);
     }
 
     /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
@@ -529,19 +529,19 @@ contract BNIMinter is
 
     /// @param _account account to which BNIs will be minted
     /// @param _pool total pool in USD
-    /// @param _USDTAmt USDT with 6 decimals to be deposited
-    function initDepositByAdmin(address _account, uint _pool, uint _USDTAmt) external onlyRole(ADMIN_ROLE) whenNotPaused {
-        _checkAndAddOperation(_account, OperationType.Deposit, _pool, _USDTAmt);
+    /// @param _USDT6Amt USDT with 6 decimals to be deposited
+    function initDepositByAdmin(address _account, uint _pool, uint _USDT6Amt) external onlyRole(ADMIN_ROLE) whenNotPaused {
+        _checkAndAddOperation(_account, OperationType.Deposit, _pool, _USDT6Amt);
     }
 
     /// @dev mint BNIs according to the deposited USDT
     /// @param _account account to which BNIs will be minted
-    /// @param _USDTAmt the deposited USDT with 6 decimals
-    function mintByAdmin(address _account, uint _USDTAmt) external onlyRole(ADMIN_ROLE) whenNotPaused {
+    /// @param _USDT6Amt the deposited USDT with 6 decimals
+    function mintByAdmin(address _account, uint _USDT6Amt) external onlyRole(ADMIN_ROLE) whenNotPaused {
         (uint pool,) = _checkAndExitOperation(_account, OperationType.Deposit);
 
         (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
-        uint amtDeposit = _USDTAmt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
+        uint amtDeposit = _USDT6Amt * 1e12 * USDTPriceInUSD / (10 ** USDTPriceDecimals); // USDT's decimals is 6
 
         uint _totalSupply = BNI.totalSupply();
         uint share = (_totalSupply == 0 || pool == 0)  ? amtDeposit : _totalSupply * amtDeposit / pool;

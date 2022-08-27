@@ -52,26 +52,26 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
 
     /// @dev It calls initDepositByAdmin of STIMinter.
     /// @param _pool total pool in USD
-    /// @param _USDTAmt USDT with 6 decimals to be deposited
-    function initDeposit(uint _pool, uint _USDTAmt, bytes calldata _signature) external payable whenNotPaused returns (uint _feeAmt) {
+    /// @param _USDT6Amt USDT with 6 decimals to be deposited
+    function initDeposit(uint _pool, uint _USDT6Amt, bytes calldata _signature) external payable whenNotPaused returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
-        checkSignature(keccak256(abi.encodePacked(account, _nonce, _pool, _USDTAmt)), _signature);
+        checkSignature(keccak256(abi.encodePacked(account, _nonce, _pool, _USDT6Amt)), _signature);
 
         if (isLPChain) {
-            stiMinter.initDepositByAdmin(account, _pool, _USDTAmt);
+            stiMinter.initDepositByAdmin(account, _pool, _USDT6Amt);
         } else {
             bytes memory _targetCallData = abi.encodeWithSelector(
                 STIUserAgent.initDepositByAdmin.selector,
-                account, _pool, _USDTAmt
+                account, _pool, _USDT6Amt
             );
             _feeAmt = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData, false);
         }
         nonces[account] = _nonce + 1;
     }
 
-    function initDepositByAdmin(address _account, uint _pool, uint _USDTAmt) external onlyRole(ADAPTER_ROLE) {
-        stiMinter.initDepositByAdmin(_account, _pool, _USDTAmt);
+    function initDepositByAdmin(address _account, uint _pool, uint _USDT6Amt) external onlyRole(ADAPTER_ROLE) {
+        stiMinter.initDepositByAdmin(_account, _pool, _USDT6Amt);
     }
 
     /// @dev It transfers tokens to user agents
@@ -159,16 +159,16 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
     }
 
     /// @dev It calls mintByAdmin of STIMinter.
-    function mint(uint _USDTAmt, bytes calldata _signature) external payable returns (uint _feeAmt) {
-        _USDTAmt;
+    function mint(uint _USDT6Amt, bytes calldata _signature) external payable returns (uint _feeAmt) {
+        _USDT6Amt;
         _signature;
         _feeAmt;
         delegateAndReturn();
     }
 
-    function mintByAdmin(address _account, uint _USDTAmt) external {
+    function mintByAdmin(address _account, uint _USDT6Amt) external {
         _account;
-        _USDTAmt;
+        _USDT6Amt;
         delegateAndReturn();
     }
 

@@ -39,6 +39,14 @@ module.exports = async ({ deployments }) => {
   });
   console.log("  STIUserAgent_Proxy contract address: ", proxy.address);
 
+  const CBridgeXChainAdapter = await ethers.getContractFactory("CBridgeXChainAdapter");
+  const cbridgeAdapter = CBridgeXChainAdapter.attach(cbridgeAdapterProxy.address);
+  const CLIENT_ROLE = await mchainAdapter.CLIENT_ROLE();
+  if (await cbridgeAdapter.hasRole(CLIENT_ROLE, proxy.address) === false) {
+    const tx = await cbridgeAdapter.grantRole(CLIENT_ROLE, proxy.address);
+    tx.wait();
+  }
+
   const STIVault = await ethers.getContractFactory("STIVault");
   const vault = STIVault.attach(vaultProxy.address);
   if (await vault.userAgent() === AddressZero) {
