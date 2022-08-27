@@ -97,7 +97,7 @@ contract BasicUserAgentBase is
         uint cbridgeReqCount = _cbridgeAmounts.length;
         _feeAmt = cbridgeAdapter.calcTransferFee() * cbridgeReqCount;
 
-        if (_skim == false || address(this).balance >= _feeAmt) {
+        if (_skim == false && address(this).balance >= _feeAmt) {
             uint cbridgeNonce = ICBridgeAdapter(address(cbridgeAdapter)).nonce();
             cbridgeAdapter.transfer{value: _feeAmt}(_tokenId, _cbridgeAmounts, _cbridgeToChainIds, _cbridgeToAddresses);
             for (uint _nonce = cbridgeNonce; _nonce < (cbridgeNonce + cbridgeReqCount); _nonce ++) {
@@ -164,7 +164,7 @@ contract BasicUserAgentBase is
         IXChainAdapter adapter = (callAdapterTypes[_toChainId] == AdapterType.Multichain) ? multichainAdapter : cbridgeAdapter;
 
         _feeAmt = adapter.calcCallFee(_toChainId, _targetContract, _targetCallValue, _targetCallData);
-        if (_skim == false || address(this).balance >= _feeAmt) {
+        if (_skim == false && address(this).balance >= _feeAmt) {
             adapter.call{value: _feeAmt}(_toChainId, _targetContract, _targetCallValue, _targetCallData);
         }
     }

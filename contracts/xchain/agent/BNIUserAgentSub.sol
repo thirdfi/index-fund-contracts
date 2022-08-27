@@ -3,6 +3,7 @@ pragma solidity  0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "../../../interfaces/IERC20UpgradeableExt.sol";
 import "../../../libs/Const.sol";
 import "../../../libs/Token.sol";
 import "../../bni/IBNIMinter.sol";
@@ -12,23 +13,23 @@ import "./BNIUserAgentBase.sol";
 contract BNIUserAgentSub is BNIUserAgentBase {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
-    /// @dev It calls depositByAdmin of BNIVaults.
+    /// @dev It calls depositByAgent of BNIVaults.
     function deposit(
         uint[] memory _toChainIds,
         address[] memory _tokens,
-        uint[] memory _USDTAmts,
+        uint[] memory _USDT6Amts,
         uint _minterNonce,
         bytes calldata _signature
     ) external payable whenNotPaused returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
-        checkSignature(keccak256(abi.encodePacked(account, _nonce, _toChainIds, _tokens, _USDTAmts, _minterNonce)), _signature);
+        checkSignature(keccak256(abi.encodePacked(account, _nonce, _toChainIds, _tokens, _USDT6Amts, _minterNonce)), _signature);
 
         (uint toChainId, address[] memory subTokens, uint[] memory subUSDTAmts, uint newPos)
-            = nextDepositData(_toChainIds, _tokens, _USDTAmts, 0);
+            = nextDepositData(_toChainIds, _tokens, _USDT6Amts, 0);
         while (toChainId != 0) {
             _feeAmt += _deposit(account, toChainId, subTokens, subUSDTAmts, _minterNonce);
-            (toChainId, subTokens, subUSDTAmts, newPos) = nextDepositData(_toChainIds, _tokens, _USDTAmts, newPos);
+            (toChainId, subTokens, subUSDTAmts, newPos) = nextDepositData(_toChainIds, _tokens, _USDT6Amts, newPos);
         }
 
         nonces[account] = _nonce + 1;
@@ -37,7 +38,7 @@ contract BNIUserAgentSub is BNIUserAgentBase {
     function nextDepositData (
         uint[] memory _toChainIds,
         address[] memory _tokens,
-        uint[] memory _USDTAmts,
+        uint[] memory _USDT6Amts,
         uint pos
     ) private pure returns (
         uint _toChainId,
@@ -63,7 +64,7 @@ contract BNIUserAgentSub is BNIUserAgentBase {
             count = 0;
             for (uint i = pos; i < _newPos; i ++) {
                 _subTokens[count] = _tokens[i];
-                _subUSDTAmts[count] = _USDTAmts[i];
+                _subUSDTAmts[count] = _USDT6Amts[i];
                 count ++;
             }
         }
@@ -73,7 +74,7 @@ contract BNIUserAgentSub is BNIUserAgentBase {
         address _account,
         uint _toChainId,
         address[] memory _tokens,
-        uint[] memory _USDTAmts,
+        uint[] memory _USDT6Amts,
         uint _minterNonce
     ) private returns (uint _feeAmt) {
         IBNIVault bniVault = bniVaults[_toChainId];
@@ -82,30 +83,31 @@ contract BNIUserAgentSub is BNIUserAgentBase {
         if (_toChainId == Token.getChainID()) {
             uint balance = usdtBalances[_account];
             uint amountSum;
-            for (uint i = 0; i < _USDTAmts.length; i ++) {
-                amountSum += _USDTAmts[i];
+            for (uint i = 0; i < _USDT6Amts.length; i ++) {
+                amountSum += _USDT6Amts[i];
             }
+            amountSum = amountSum * (10 ** (IERC20UpgradeableExt(address(USDT)).decimals() - 6));
             require(balance >= amountSum, "Insufficient balance");
             usdtBalances[_account] = balance - amountSum;
 
-            bniVault.depositByAdmin(_account, _tokens, _USDTAmts, _minterNonce);
+            bniVault.depositByAgent(_account, _tokens, _USDT6Amts, _minterNonce);
         } else {
             bytes memory _targetCallData = abi.encodeWithSelector(
-                BNIUserAgentSub.depositByAdmin.selector,
-                _account, _tokens, _USDTAmts, _minterNonce
+                BNIUserAgentSub.depositByAgent.selector,
+                _account, _tokens, _USDT6Amts, _minterNonce
             );
             _feeAmt = _call(_toChainId, userAgents[_toChainId], 0, _targetCallData, false);
         }
     }
 
-    function depositByAdmin(
+    function depositByAgent(
         address _account,
         address[] memory _tokens,
-        uint[] memory _USDTAmts,
+        uint[] memory _USDT6Amts,
         uint _minterNonce
     ) external onlyRole(ADAPTER_ROLE) {
         IBNIVault bniVault = bniVaults[Token.getChainID()];
-        bniVault.depositByAdmin(_account, _tokens, _USDTAmts, _minterNonce);
+        bniVault.depositByAgent(_account, _tokens, _USDT6Amts, _minterNonce);
     }
 
     /// @dev It calls mintByAdmin of BNIMinter.
@@ -154,7 +156,7 @@ contract BNIUserAgentSub is BNIUserAgentBase {
         bniMinter.burnByAdmin(_account, _pool, _share);
     }
 
-    /// @dev It calls withdrawPercByAdmin of BNIVaults.
+    /// @dev It calls withdrawPercByAgent of BNIVaults.
     function withdraw(
         uint[] memory _chainIds, uint _sharePerc, uint _minterNonce, bytes calldata _signature
     ) external payable returns (uint _feeAmt) {
@@ -175,22 +177,22 @@ contract BNIUserAgentSub is BNIUserAgentBase {
         require(address(bniVault) != address(0), "Invalid bniVault");
 
         if (_chainId == Token.getChainID()) {
-            bniVault.withdrawPercByAdmin(_account, _sharePerc, _minterNonce);
+            bniVault.withdrawPercByAgent(_account, _sharePerc, _minterNonce);
         } else {
             bytes memory _targetCallData = abi.encodeWithSelector(
-                BNIUserAgentSub.withdrawPercByAdmin.selector,
+                BNIUserAgentSub.withdrawPercByAgent.selector,
                 _account, _sharePerc, _minterNonce
             );
             _feeAmt = _call(_chainId, userAgents[_chainId], 0, _targetCallData, false);
         }
     }
 
-    function withdrawPercByAdmin(
+    function withdrawPercByAgent(
         address _account, uint _sharePerc, uint _minterNonce
     ) external onlyRole(ADAPTER_ROLE) {
         IBNIVault bniVault = bniVaults[Token.getChainID()];
         uint balanceBefore = USDT.balanceOf(address(this));
-        bniVault.withdrawPercByAdmin(_account, _sharePerc, _minterNonce);
+        bniVault.withdrawPercByAgent(_account, _sharePerc, _minterNonce);
         usdtBalances[_account] += (USDT.balanceOf(address(this)) - balanceBefore);
     }
 

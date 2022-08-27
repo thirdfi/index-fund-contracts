@@ -30,7 +30,7 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
         isLPChain = (chainIdOnLP == chainId);
 
         bniMinter = _bniMinter;
-        bniVaults[chainId] = _bniVault;
+        _setBNIVault(chainId, _bniVault);
     }
 
     function transferOwnership(address newOwner) public virtual override(BasicUserAgent, OwnableUpgradeable) onlyOwner {
@@ -46,7 +46,22 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
         for (uint i = 0; i < length; i++) {
             uint chainId = _chainIds[i];
             require(chainId != 0, "Invalid chainID");
-            bniVaults[chainId] = _bniVaults[i];
+            _setBNIVault(chainId, _bniVaults[i]);
+        }
+    }
+
+    function _setBNIVault(uint _chainId, IBNIVault _bniVault) private {
+        address oldVault = address(bniVaults[_chainId]);
+        bniVaults[_chainId] = _bniVault;
+        if (_chainId == Token.getChainID()) {
+            if (oldVault != address(0)) {
+                USDT.safeApprove(oldVault, 0);
+                USDC.safeApprove(oldVault, 0);
+            }
+            if (address(_bniVault) != address(0)) {
+                USDT.safeApprove(address(_bniVault), type(uint).max);
+                USDC.safeApprove(address(_bniVault), type(uint).max);
+            }
         }
     }
 

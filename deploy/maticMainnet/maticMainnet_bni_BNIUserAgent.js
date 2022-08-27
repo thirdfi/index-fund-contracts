@@ -1,5 +1,6 @@
 const { ethers } = require("hardhat");
 const { common } = require('../../parameters');
+const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
@@ -14,7 +15,7 @@ module.exports = async ({ deployments }) => {
   const swapProxy = await ethers.getContract("MaticSwap_Proxy");
   const mchainAdapterProxy = await ethers.getContract("MultichainXChainAdapter_Proxy");
   const cbridgeAdapterProxy = await ethers.getContract("CBridgeXChainAdapter_Proxy");
-  const minterAddress = ethers.constants.AddressZero;
+  const minterAddress = AddressZero;
   const vaultProxy = await ethers.getContract("BNIVault_Proxy");
 
   console.log("Now deploying BNIUserAgent...");
@@ -50,6 +51,13 @@ module.exports = async ({ deployments }) => {
   if (await cbridgeAdapter.hasRole(CLIENT_ROLE, proxy.address) === false) {
     const tx = await cbridgeAdapter.grantRole(CLIENT_ROLE, proxy.address);
     tx.wait();
+  }
+
+  const BNIVault = await ethers.getContractFactory("BNIIVault");
+  const vault = BNIVault.attach(vaultProxy.address);
+  if (await vault.userAgent() === AddressZero) {
+    const tx = await vault.setUserAgent(proxy.address);
+    await tx.wait();
   }
 
   // Verify the implementation contract

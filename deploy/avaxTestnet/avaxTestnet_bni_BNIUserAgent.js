@@ -1,5 +1,6 @@
 const { ethers } = require("hardhat");
 const { common } = require('../../parameters/testnet');
+const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
@@ -50,6 +51,20 @@ module.exports = async ({ deployments }) => {
   if (await cbridgeAdapter.hasRole(CLIENT_ROLE, proxy.address) === false) {
     const tx = await cbridgeAdapter.grantRole(CLIENT_ROLE, proxy.address);
     tx.wait();
+  }
+
+  const BNIMinter = await ethers.getContractFactory("BNIMinter");
+  const minter = BNIMinter.attach(minterProxy.address);
+  if (await minter.userAgent() === AddressZero) {
+    const tx = await minter.setUserAgent(proxy.address);
+    await tx.wait();
+  }
+
+  const BNIVault = await ethers.getContractFactory("BNIVault");
+  const vault = BNIVault.attach(vaultProxy.address);
+  if (await vault.userAgent() === AddressZero) {
+    const tx = await vault.setUserAgent(proxy.address);
+    await tx.wait();
   }
 
   // Verify the implementation contract

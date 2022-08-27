@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
@@ -41,7 +40,6 @@ interface IStrategy {
 
 contract STIVault is
     ISTIVault,
-    AccessControlEnumerableUpgradeable,
     BaseRelayRecipient,
     ReentrancyGuardUpgradeable,
     PausableUpgradeable,
@@ -53,8 +51,6 @@ contract STIVault is
         uint poolInUSD;
         uint ts;
     }
-
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     IERC20UpgradeableExt public USDT;
     uint8 usdtDecimals;
@@ -80,19 +76,19 @@ contract STIVault is
         _;
     }
 
+    modifier onlyAgent {
+        require(msg.sender == address(userAgent), "Only agent");
+        _;
+    }
+
     function initialize(
         address _admin, address _userAgent, address _biconomy,
         address _strategy, address _priceOracle,
         address _USDT
     ) external initializer {
         __Ownable_init();
-        address _owner = owner();
         admin = _admin;
         userAgent = _userAgent;
-
-        _setupRole(DEFAULT_ADMIN_ROLE, _owner);
-        if (_admin != address(0)) _setupRole(ADMIN_ROLE, _admin);
-        if (_userAgent != address(0)) _setupRole(ADMIN_ROLE, _userAgent);
 
         trustedForwarder = _biconomy;
         strategy = IStrategy(_strategy);
@@ -105,26 +101,32 @@ contract STIVault is
         USDT.safeApprove(address(strategy), type(uint).max);
     }
 
-    function transferOwnership(address newOwner) public virtual override onlyOwner {
-        _revokeRole(DEFAULT_ADMIN_ROLE, owner());
-        super.transferOwnership(newOwner);
-        if (newOwner != address(0)) _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
+    /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
+    /// @param _USDT6Amts amounts of USDT should be deposited to each pools. It's 6 decimals
+    function depositByAdmin(
+        address _account, address[] memory _tokens, uint[] memory _USDT6Amts, uint _nonce
+    ) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
+        _deposit(_account, _account, _tokens, _USDT6Amts, _nonce);
     }
 
-    /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
-    /// @param _USDTAmts amounts of USDT should be deposited to each pools. It's 6 decimals
-    function depositByAdmin(
-        address _account, address[] memory _tokens, uint[] memory _USDTAmts, uint _nonce
-    ) external onlyRole(ADMIN_ROLE) nonReentrant whenNotPaused {
+    function depositByAgent(
+        address _account, address[] memory _tokens, uint[] memory _USDT6Amts, uint _nonce
+    ) external onlyAgent nonReentrant whenNotPaused {
+        _deposit(_account, _msgSender(), _tokens, _USDT6Amts, _nonce);
+    }
+
+    function _deposit(
+        address _account, address _from, address[] memory _tokens, uint[] memory _USDT6Amts, uint _nonce
+    ) private {
         require(_account != address(0), "Invalid account");
         uint poolCnt = _tokens.length;
-        require(poolCnt == _USDTAmts.length, "Not match array length");
+        require(poolCnt == _USDT6Amts.length, "Not match array length");
 
         uint k = 10 ** (usdtDecimals - 6);
         uint USDTAmt;
         for (uint i = 0; i < poolCnt; i ++) {
-            _USDTAmts[i] = _USDTAmts[i] * k;
-            USDTAmt += _USDTAmts[i];
+            _USDT6Amts[i] = _USDT6Amts[i] * k;
+            USDTAmt += _USDT6Amts[i];
         }
         require(USDTAmt > 0, "Amounts must > 0");
 
@@ -133,15 +135,27 @@ contract STIVault is
         operationAmounts[_nonce] = getValueInUSD(address(USDT), USDTAmt);
         _snapshotPool(_nonce, getAllPoolInUSD());
 
-        USDT.safeTransferFrom(_account, address(this), USDTAmt);
-        strategy.invest(_tokens, _USDTAmts);
+        USDT.safeTransferFrom(_from, address(this), USDTAmt);
+        strategy.invest(_tokens, _USDT6Amts);
         emit Deposit(_account, USDTAmt, address(USDT));
     }
 
     /// @param _sharePerc percentage of assets which should be withdrawn. It's 18 decimals
     function withdrawPercByAdmin(
         address _account, uint _sharePerc, uint _nonce
-    ) external onlyRole(ADMIN_ROLE) nonReentrant {
+    ) external onlyOwnerOrAdmin nonReentrant {
+        _withdraw(_account, _account, _sharePerc, _nonce);
+    }
+
+    function withdrawPercByAgent(
+        address _account, uint _sharePerc, uint _nonce
+    ) external onlyAgent nonReentrant {
+        _withdraw(_account, _msgSender(), _sharePerc, _nonce);
+    }
+
+    function _withdraw(
+        address _account, address _to, uint _sharePerc, uint _nonce
+    ) private {
         require(_sharePerc > 0, "SharePerc must > 0");
         require(_sharePerc <= 1e18, "Over 100%");
 
@@ -167,7 +181,7 @@ contract STIVault is
         }
 
         if (USDTAmt > 0) {
-            USDT.safeTransfer(_account, USDTAmt);
+            USDT.safeTransfer(_to, USDTAmt);
         }
         emit Withdraw(_account, withdrawAmt, address(USDT), _sharePerc);
     }
@@ -187,17 +201,21 @@ contract STIVault is
     }
 
     function claim() external nonReentrant {
-        _claimAllAndTransfer(msg.sender);
+        _claimAllAndTransfer(msg.sender, msg.sender);
     }
 
-    function claimByAdmin(address _account) external onlyRole(ADMIN_ROLE) nonReentrant {
-        _claimAllAndTransfer(_account);
+    function claimByAdmin(address _account) external onlyOwnerOrAdmin nonReentrant {
+        _claimAllAndTransfer(_account, _account);
     }
 
-    function _claimAllAndTransfer(address _account) internal {
+    function claimByAgent(address _account) external onlyAgent nonReentrant {
+        _claimAllAndTransfer(_account, _msgSender());
+    }
+
+    function _claimAllAndTransfer(address _account, address _to) internal {
         uint USDTAmt = strategy.claim(_account);
         if (USDTAmt > 0) {
-            USDT.safeTransfer(_account, USDTAmt);
+            USDT.safeTransfer(_to, USDTAmt);
         }
     }
 
@@ -244,17 +262,11 @@ contract STIVault is
     }
 
     function setAdmin(address _admin) external onlyOwner {
-        address oldAdmin = admin;
-        if (oldAdmin != address(0)) _revokeRole(ADMIN_ROLE, oldAdmin);
         admin = _admin;
-        if (_admin != address(0)) _setupRole(ADMIN_ROLE, _admin);
     }
 
     function setUserAgent(address _userAgent) external onlyOwner {
-        address oldAgent = userAgent;
-        if (oldAgent != address(0)) _revokeRole(ADMIN_ROLE, oldAgent);
         userAgent = _userAgent;
-        if (_userAgent != address(0)) _setupRole(ADMIN_ROLE, _userAgent);
     }
 
     function setBiconomy(address _biconomy) external onlyOwner {

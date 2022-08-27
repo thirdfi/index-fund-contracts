@@ -1,7 +1,6 @@
  // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
@@ -25,7 +24,13 @@ interface IStrategy {
     function getAPR() external view returns (uint);
 }
 
-contract BNIVaultV1 is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableUpgradeable {
+contract BNIVault is
+    IBNIVault,
+    ReentrancyGuardUpgradeable,
+    PausableUpgradeable,
+    OwnableUpgradeable
+{
+    using SafeERC20Upgradeable for IERC20UpgradeableExt;
 
     struct PoolSnapshot {
         uint poolInUSD;
@@ -51,23 +56,12 @@ contract BNIVaultV1 is ReentrancyGuardUpgradeable, PausableUpgradeable, OwnableU
     mapping(uint => PoolSnapshot) public poolAtNonce;
     mapping(address => uint) public userLastOperationNonce;
     mapping(uint => uint) public operationAmounts; // value in USD scaled by 10^18
-}
-
-contract BNIVault is
-    IBNIVault,
-    AccessControlEnumerableUpgradeable,
-    BNIVaultV1
-{
-    using SafeERC20Upgradeable for IERC20UpgradeableExt;
-
-    bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");
 
     uint public version;
-
     address public userAgent;
 
-    event Deposit(address indexed caller, uint indexed amtDeposit, address indexed tokenDeposit);
-    event Withdraw(address indexed caller, uint indexed amtWithdraw, address indexed tokenWithdraw, uint sharePerc);
+    event Deposit(address indexed account, address from, uint indexed amtDeposit, address indexed tokenDeposit);
+    event Withdraw(address indexed account, address to, uint indexed amtWithdraw, address indexed tokenWithdraw, uint sharePerc);
     event Rebalance(uint indexed pid, uint sharePerc, uint indexed amount, address indexed target);
     event Reinvest(uint indexed amount);
     event CollectProfitAndUpdateWatermark(uint indexed currentWatermark, uint indexed lastWatermark, uint indexed fee);
@@ -76,6 +70,11 @@ contract BNIVault is
     
     modifier onlyOwnerOrAdmin {
         require(msg.sender == owner() || msg.sender == address(admin), "Only owner or admin");
+        _;
+    }
+
+    modifier onlyAgent {
+        require(msg.sender == address(userAgent), "Only agent");
         _;
     }
 
@@ -104,34 +103,36 @@ contract BNIVault is
         require(version < 2, "Already called");
         version = 2;
 
-        _setupRole(DEFAULT_ADMIN_ROLE, owner());
-        if (admin != address(0)) _setupRole(ADMIN_ROLE, admin);
-        if (_userAgent != address(0)) _setupRole(ADMIN_ROLE, _userAgent);
-
         userAgent = _userAgent;
         trustedForwarder = _biconomy;
     }
 
-    function transferOwnership(address newOwner) public virtual override onlyOwner {
-        _revokeRole(DEFAULT_ADMIN_ROLE, owner());
-        super.transferOwnership(newOwner);
-        if (newOwner != address(0)) _setupRole(DEFAULT_ADMIN_ROLE, newOwner);
+    /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
+    /// @param _USDT6Amts amounts of USDT should be deposited to each pools. It's 6 decimals
+    function depositByAdmin(
+        address _account, address[] memory _tokens, uint[] memory _USDT6Amts, uint _nonce
+    ) external onlyOwnerOrAdmin nonReentrant whenNotPaused {
+        _deposit(_account, _account, _tokens, _USDT6Amts, _nonce);
     }
 
-    /// @notice The length of array is based on token count. And the lengths should be same on the arraies.
-    /// @param _USDTAmts amounts of USDT should be deposited to each pools. It's 6 decimals
-    function depositByAdmin(
-        address _account, address[] memory _tokens, uint[] memory _USDTAmts, uint _nonce
-    ) external onlyRole(ADMIN_ROLE) nonReentrant whenNotPaused {
+    function depositByAgent(
+        address _account, address[] memory _tokens, uint[] memory _USDT6Amts, uint _nonce
+    ) external onlyAgent nonReentrant whenNotPaused {
+        _deposit(_account, _msgSender(), _tokens, _USDT6Amts, _nonce);
+    }
+
+    function _deposit(
+        address _account, address _from, address[] memory _tokens, uint[] memory _USDT6Amts, uint _nonce
+    ) private {
         require(_account != address(0), "Invalid account");
         uint poolCnt = _tokens.length;
-        require(poolCnt == _USDTAmts.length, "Not match array length");
+        require(poolCnt == _USDT6Amts.length, "Not match array length");
 
         uint k = 10 ** (usdtDecimals - 6);
         uint USDTAmt;
         for (uint i = 0; i < poolCnt; i ++) {
-            _USDTAmts[i] = _USDTAmts[i] * k;
-            USDTAmt += _USDTAmts[i];
+            _USDT6Amts[i] = _USDT6Amts[i] * k;
+            USDTAmt += _USDT6Amts[i];
         }
         require(0 < USDTAmt, "Amounts must > 0");
 
@@ -140,25 +141,37 @@ contract BNIVault is
         operationAmounts[_nonce] = getValueInUSD(address(USDT), USDTAmt);
         _snapshotPool(_nonce, getAllPoolInUSD());
 
-        USDT.safeTransferFrom(_account, address(this), USDTAmt);
+        USDT.safeTransferFrom(_from, address(this), USDTAmt);
 
         (uint USDTPriceInUSD, uint8 USDTPriceDecimals) = getUSDTPriceInUSD();
         uint amtDeposit = USDTAmt * (10 ** (18-usdtDecimals)) * USDTPriceInUSD / (10 ** USDTPriceDecimals);
 
         if (watermark > 0) _collectProfitAndUpdateWatermark();
-        (uint newUSDTAmt, uint[] memory newUSDTAmts) = _transferOutFees(USDTAmt, _USDTAmts);
+        (uint newUSDTAmt, uint[] memory newUSDTAmts) = _transferOutFees(USDTAmt, _USDT6Amts);
         if (newUSDTAmt > 0) {
             strategy.invest(_tokens, newUSDTAmts);
         }
         adjustWatermark(amtDeposit, true);
 
-        emit Deposit(_account, USDTAmt, address(USDT));
+        emit Deposit(_account, _from, USDTAmt, address(USDT));
     }
 
     /// @param _sharePerc percentage of assets which should be withdrawn. It's 18 decimals
     function withdrawPercByAdmin(
         address _account, uint _sharePerc, uint _nonce
-    ) external onlyRole(ADMIN_ROLE) nonReentrant {
+    ) external onlyOwnerOrAdmin nonReentrant {
+        _withdraw(_account, _account, _sharePerc, _nonce);
+    }
+
+    function withdrawPercByAgent(
+        address _account, uint _sharePerc, uint _nonce
+    ) external onlyAgent nonReentrant {
+        _withdraw(_account, _msgSender(), _sharePerc, _nonce);
+    }
+
+    function _withdraw(
+        address _account, address _to, uint _sharePerc, uint _nonce
+    ) private {
         require(_sharePerc > 0, "SharePerc must > 0");
         require(_sharePerc <= 1e18, "Over 100%");
 
@@ -180,8 +193,8 @@ contract BNIVault is
         } else {
             USDTAmt = USDT.balanceOf(address(this)) * sharePerc / 1e18;
         }
-        USDT.safeTransfer(_account, USDTAmt);
-        emit Withdraw(_account, withdrawAmt, address(USDT), _sharePerc);
+        USDT.safeTransfer(_to, USDTAmt);
+        emit Withdraw(_account, _to, withdrawAmt, address(USDT), _sharePerc);
     }
 
     function _snapshotPool(uint _nonce, uint _pool) internal {
@@ -322,17 +335,11 @@ contract BNIVault is
     }
 
     function setAdmin(address _admin) external onlyOwner {
-        address oldAdmin = admin;
-        if (oldAdmin != address(0)) _revokeRole(ADMIN_ROLE, oldAdmin);
         admin = _admin;
-        if (_admin != address(0)) _setupRole(ADMIN_ROLE, _admin);
     }
 
     function setUserAgent(address _userAgent) external onlyOwner {
-        address oldAgent = userAgent;
-        if (oldAgent != address(0)) _revokeRole(ADMIN_ROLE, oldAgent);
         userAgent = _userAgent;
-        if (_userAgent != address(0)) _setupRole(ADMIN_ROLE, _userAgent);
     }
 
     function setBiconomy(address _biconomy) external onlyOwner {

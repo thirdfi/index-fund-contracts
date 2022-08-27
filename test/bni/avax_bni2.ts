@@ -10,16 +10,11 @@ const param = require("../../parameters");
 const { avaxMainnet: network_ } = require("../../parameters");
 
 function getUsdt6Amount(amount) {
+  // The decimals is always 6.
   return BigNumber.from(amount).mul(BigNumber.from(10).pow(6))
 }
-
-function getAuroraUsdtAmount(amount) {
-  return BigNumber.from(amount).mul(BigNumber.from(10).pow(6))
-}
-function getAvaxUsdtAmount(amount) {
-  return BigNumber.from(amount).mul(BigNumber.from(10).pow(6))
-}
-function getMaticUsdtAmount(amount) {
+function getUsdtAmount(amount) {
+  // The decimals can be changed. For ex it's 18 on BSC
   return BigNumber.from(amount).mul(BigNumber.from(10).pow(6))
 }
 
@@ -28,10 +23,10 @@ const Multichain = 1;
 
 describe("BNI non-custodial on Avalanche", async () => {
 
-  let userAgent, minter, vault, usdt;
-  let minterArtifact, vaultArtifact, userAgentArtifact;
+  let userAgent, minter, vault, usdt, mchainAdapter, cbridgeAdapter;
+  let minterArtifact, vaultArtifact, userAgentArtifact, xchainAdapterArtifact;
   let deployer, admin, a1, accounts;
-  var ret, data, dataHash, signature, nonce, pool, usdt6Amt;
+  var ret, data, dataHash, signature, nonce, pool, usdt6Amt, fee;
 
   before(async () => {
     [deployer, admin, a1, ...accounts] = await ethers.getSigners();
@@ -39,6 +34,7 @@ describe("BNI non-custodial on Avalanche", async () => {
     minterArtifact = await deployments.getArtifact("BNIMinter");
     vaultArtifact = await deployments.getArtifact("BNIVault");
     userAgentArtifact = await deployments.getArtifact("BNIUserAgent");
+    xchainAdapterArtifact = await deployments.getArtifact("BasicXChainAdapter");
   });
 
   beforeEach(async () => {
@@ -50,6 +46,10 @@ describe("BNI non-custodial on Avalanche", async () => {
     minter = new ethers.Contract(minterProxy.address, minterArtifact.abi, a1);
     const vaultProxy = await ethers.getContract("BNIVault_Proxy");
     vault = new ethers.Contract(vaultProxy.address, vaultArtifact.abi, a1);
+    const mchainAdapterProxy = await ethers.getContract("MultichainXChainAdapter_Proxy");
+    mchainAdapter = new ethers.Contract(mchainAdapterProxy.address, xchainAdapterArtifact.abi, a1);
+    const cbridgeAdapterProxy = await ethers.getContract("CBridgeXChainAdapter_Proxy");
+    cbridgeAdapter = new ethers.Contract(cbridgeAdapterProxy.address, xchainAdapterArtifact.abi, a1);
 
     await minter.connect(deployer).initialize2(userAgentProxy.address, AddressZero);
     await vault.connect(deployer).initialize2(userAgentProxy.address, AddressZero);
@@ -71,9 +71,9 @@ describe("BNI non-custodial on Avalanche", async () => {
         param.maticMainnet.chainId,
       ];
       const amounts = [
-        getAuroraUsdtAmount('10000'),
-        getAvaxUsdtAmount('10000'),
-        getMaticUsdtAmount('10000'),
+        getUsdtAmount('10000'),
+        getUsdtAmount('10000'),
+        getUsdtAmount('10000'),
       ];
       const adapterTypes = [
         CBridge,
@@ -95,16 +95,49 @@ describe("BNI non-custodial on Avalanche", async () => {
 
   describe('Test with EOA', () => {
     beforeEach(async () => {
-      await userAgent.connect(deployer).setUserAgents([
-        param.auroraMainnet.chainId, param.maticMainnet.chainId
-      ],[
-        accounts[0].address, accounts[1].address // It uses any addresses for test
+      await mchainAdapter.connect(deployer).setPeers([
+        param.avaxMainnet.chainId,
+        param.bscMainnet.chainId,
+        param.ethMainnet.chainId,
+        param.maticMainnet.chainId
+      ],[ // It uses any addresses for test
+        accounts[0].address,
+        accounts[0].address,
+        accounts[0].address,
+        accounts[0].address
+      ]);
+      await cbridgeAdapter.connect(deployer).setPeers([
+        param.auroraMainnet.chainId,
+        param.avaxMainnet.chainId,
+        param.bscMainnet.chainId,
+        param.ethMainnet.chainId,
+        param.maticMainnet.chainId
+      ],[ // It uses any addresses for test
+        accounts[0].address,
+        accounts[0].address,
+        accounts[0].address,
+        accounts[0].address,
+        accounts[0].address
       ])
+      await userAgent.connect(deployer).setUserAgents([
+        param.auroraMainnet.chainId,
+        param.maticMainnet.chainId
+      ],[ // It uses any addresses for test
+        accounts[0].address,
+        accounts[0].address
+      ]);
+      await userAgent.connect(deployer).setBNIVaults([
+        param.auroraMainnet.chainId,
+        param.maticMainnet.chainId
+      ],[ // It uses any addresses for test
+        accounts[0].address,
+        accounts[0].address
+      ]);
     });
 
     it("Deposit", async () => {
-      await usdt.transfer(a1.address, getAvaxUsdtAmount('30000'));
-      await usdt.connect(a1).approve(userAgent.address, getAvaxUsdtAmount('30000'));
+      await usdt.transfer(a1.address, getUsdtAmount('30000'));
+      await usdt.connect(a1).approve(userAgent.address, getUsdtAmount('30000'));
 
       // Init a deposit flow
       usdt6Amt = getUsdt6Amount('30000');
@@ -130,17 +163,17 @@ describe("BNI non-custodial on Avalanche", async () => {
       expect(ret[4]).equal(false);
 
       // Transfer USDT tokens to user agents on target networks
-      const toChainIds = [
+      var toChainIds = [
         param.auroraMainnet.chainId,
         param.avaxMainnet.chainId,
         param.maticMainnet.chainId,
       ];
-      const amounts = [
-        getAuroraUsdtAmount('10000'),
-        getAvaxUsdtAmount('10000'),
-        getMaticUsdtAmount('10000'),
+      var amounts = [
+        getUsdtAmount('10000'),
+        getUsdtAmount('10000'),
+        getUsdtAmount('10000'),
       ];
-      const adapterTypes = [
+      var adapterTypes = [
         CBridge,
         Multichain,
         Multichain,
@@ -154,8 +187,54 @@ describe("BNI non-custodial on Avalanche", async () => {
       dataHash = await userAgent.getMessageHashForSafe(data);
       signature = await admin.signMessage(ethers.utils.arrayify(dataHash));
       await expect(userAgent.transfer(amounts, toChainIds, adapterTypes, await a1.signMessage(ethers.utils.arrayify(dataHash)))).to.be.revertedWith('Invalid signature');
-      await userAgent.transfer(amounts, toChainIds, adapterTypes, signature);
+      fee = await userAgent.callStatic.transfer(amounts, toChainIds, adapterTypes, signature);
+      await userAgent.transfer(amounts, toChainIds, adapterTypes, signature, {value: fee});
+      expect(await userAgent.nonces(a1.address)).equal(2); // It should be increased
       expect(await usdt.balanceOf(a1.address)).equal(0);
+      expect(await usdt.balanceOf(userAgent.address)).equal(getUsdtAmount('10000'));
+      expect(await userAgent.usdtBalances(a1.address)).equal(getUsdtAmount('10000'));
+
+      // Deposit the cross-chain swapped USDTs into vautls
+      var tokens = [
+        param.auroraMainnet.Swap.WNEAR,
+        param.avaxMainnet.Swap.WAVAX,
+        param.maticMainnet.Swap.WMATIC,
+      ];
+      amounts = [
+        getUsdt6Amount('9000'),
+        getUsdt6Amount('10000'),
+        getUsdt6Amount('9000'),
+      ];
+      var minterNonce = await minter.userLastOperationNonce(a1.address);
+
+      nonce = await userAgent.nonces(a1.address);
+      data = ethers.utils.solidityKeccak256(
+        ['address', 'uint', 'uint[]', 'address[]', 'uint[]', 'uint'],
+        [a1.address, nonce, toChainIds, tokens, amounts, minterNonce]
+      );
+      dataHash = await userAgent.getMessageHashForSafe(data);
+      signature = await admin.signMessage(ethers.utils.arrayify(dataHash));
+      await expect(userAgent.deposit(toChainIds, tokens, amounts, minterNonce, await a1.signMessage(ethers.utils.arrayify(dataHash)))).to.be.revertedWith('Invalid signature');
+      fee = await userAgent.callStatic.deposit(toChainIds, tokens, amounts, minterNonce, signature);
+      await userAgent.deposit(toChainIds, tokens, amounts, minterNonce, signature, {value: fee});
+      expect(await userAgent.nonces(a1.address)).equal(3); // It should be increased
+      expect(await usdt.balanceOf(userAgent.address)).equal(0);
+
+      // mint
+      usdt6Amt = getUsdt6Amount('28000');
+      nonce = await userAgent.nonces(a1.address);
+      data = ethers.utils.solidityKeccak256(
+        ['address', 'uint', 'uint'],
+        [a1.address, nonce, usdt6Amt]
+      );
+      dataHash = await userAgent.getMessageHashForSafe(data);
+      signature = await admin.signMessage(ethers.utils.arrayify(dataHash));
+      await expect(userAgent.mint(usdt6Amt, await a1.signMessage(ethers.utils.arrayify(dataHash)))).to.be.revertedWith('Invalid signature');
+      await userAgent.mint(usdt6Amt, signature);
+
+      expect(await userAgent.nonces(a1.address)).equal(4); // It should be increased
+      ret = await minter.getOperation(1);
+      expect(ret[4]).equal(true);
     });
   });
 

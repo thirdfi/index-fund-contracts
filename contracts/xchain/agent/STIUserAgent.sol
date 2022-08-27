@@ -30,7 +30,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         isLPChain = (chainIdOnLP == chainId);
 
         stiMinter = _stiMinter;
-        stiVaults[chainId] = _stiVault;
+        _setSTIVault(chainId, _stiVault);
     }
 
     function transferOwnership(address newOwner) public virtual override(BasicUserAgent, OwnableUpgradeable) onlyOwner {
@@ -46,7 +46,22 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         for (uint i = 0; i < length; i++) {
             uint chainId = _chainIds[i];
             require(chainId != 0, "Invalid chainID");
-            stiVaults[chainId] = _stiVaults[i];
+            _setSTIVault(chainId, _stiVaults[i]);
+        }
+    }
+
+    function _setSTIVault(uint _chainId, ISTIVault _stiVault) private {
+        address oldVault = address(stiVaults[_chainId]);
+        stiVaults[_chainId] = _stiVault;
+        if (_chainId == Token.getChainID()) {
+            if (oldVault != address(0)) {
+                USDT.safeApprove(oldVault, 0);
+                USDC.safeApprove(oldVault, 0);
+            }
+            if (address(_stiVault) != address(0)) {
+                USDT.safeApprove(address(_stiVault), type(uint).max);
+                USDC.safeApprove(address(_stiVault), type(uint).max);
+            }
         }
     }
 
