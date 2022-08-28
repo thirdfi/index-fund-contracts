@@ -126,7 +126,7 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
                 amountOn += amount;
             } else {
                 if (_lengthOut != i) {
-                    _toChainIds[_lengthOut] = amount;
+                    _amounts[_lengthOut] = amount;
                     _toChainIds[_lengthOut] = toChainId;
                     _adapterTypes[_lengthOut] = _adapterTypes[i];
 
