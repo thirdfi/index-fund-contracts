@@ -2,6 +2,7 @@ const { expect } = require("chai");
 const { ethers, deployments } = require("hardhat");
 import Safe, { SafeFactory, SafeAccountConfig } from '@gnosis.pm/safe-core-sdk'
 import EthersAdapter from '@gnosis.pm/safe-ethers-lib'
+import { parseEther } from 'ethers/lib/utils';
 const { BigNumber } = ethers;
 const AddressZero = ethers.constants.AddressZero;
 
@@ -26,7 +27,7 @@ describe("BNI non-custodial on Avalanche", async () => {
   let userAgent, minter, vault, usdt, mchainAdapter, cbridgeAdapter;
   let minterArtifact, vaultArtifact, userAgentArtifact, xchainAdapterArtifact;
   let deployer, admin, a1, accounts;
-  var ret, data, dataHash, signature, nonce, pool, usdt6Amt, fee;
+  var ret, data, dataHash, signature, nonce, pool, usdt6Amt, shares, fee;
 
   before(async () => {
     [deployer, admin, a1, ...accounts] = await ethers.getSigners();
@@ -88,7 +89,6 @@ describe("BNI non-custodial on Avalanche", async () => {
       );
       dataHash = await userAgent.getMessageHashForSafe(data);
       signature = await admin.signMessage(ethers.utils.arrayify(dataHash));
-      await userAgent.connect(deployer).setAdmin(admin.address);
       await expect(userAgent.transfer(amounts, toChainIds, adapterTypes, signature)).to.be.revertedWith("Invalid user agent");
     });
   });
@@ -135,7 +135,7 @@ describe("BNI non-custodial on Avalanche", async () => {
       ]);
     });
 
-    it("Deposit", async () => {
+    it("Deposit/Withdraw", async () => {
       await usdt.transfer(a1.address, getUsdtAmount('30000'));
       await usdt.connect(a1).approve(userAgent.address, getUsdtAmount('30000'));
 
@@ -235,60 +235,159 @@ describe("BNI non-custodial on Avalanche", async () => {
       expect(await userAgent.nonces(a1.address)).equal(4); // It should be increased
       ret = await minter.getOperation(1);
       expect(ret[4]).equal(true);
+
+      // Burn BNIs
+      pool = await vault.getAllPoolInUSD();
+      shares = parseEther('1');
+      nonce = await userAgent.nonces(a1.address);
+      data = ethers.utils.solidityKeccak256(
+        ['address', 'uint', 'uint', 'uint'],
+        [a1.address, nonce, pool, shares]
+      );
+      dataHash = await userAgent.getMessageHashForSafe(data);
+      signature = await admin.signMessage(ethers.utils.arrayify(dataHash));
+      await expect(userAgent.burn(pool, shares, await a1.signMessage(ethers.utils.arrayify(dataHash)))).to.be.revertedWith('Invalid signature');
+      await userAgent.burn(pool, shares, signature);
+
+      expect(await userAgent.nonces(a1.address)).equal(5); // It should be increased
+      expect(await minter.getNonce()).equal(2);
+      expect(await minter.userLastOperationNonce(a1.address)).equal(2);
+      ret = await minter.getOperation(2);
+      expect(ret[0]).equal(a1.address);
+      expect(ret[1]).equal(2);
+      expect(ret[2]).equal(pool);
+      expect(ret[3]).equal(shares);
+      expect(ret[4]).equal(false);
+
+      // Withdraw from vaults
+      minterNonce = await minter.userLastOperationNonce(a1.address);
+      nonce = await userAgent.nonces(a1.address);
+      data = ethers.utils.solidityKeccak256(
+        ['address', 'uint', 'uint[]', 'uint', 'uint'],
+        [a1.address, nonce, toChainIds, shares, minterNonce]
+      );
+      dataHash = await userAgent.getMessageHashForSafe(data);
+      signature = await admin.signMessage(ethers.utils.arrayify(dataHash));
+      await expect(userAgent.withdraw(toChainIds, shares, minterNonce, await a1.signMessage(ethers.utils.arrayify(dataHash)))).to.be.revertedWith('Invalid signature');
+      fee = await userAgent.callStatic.withdraw(toChainIds, shares, minterNonce, signature);
+      await userAgent.withdraw(toChainIds, shares, minterNonce, signature, {value: fee});
+      expect(await usdt.balanceOf(userAgent.address)).closeTo(getUsdtAmount('10000'), getUsdtAmount('10000').div(20));
+      expect(await userAgent.usdtBalances(a1.address)).closeTo(getUsdtAmount('10000'), getUsdtAmount('10000').div(20));
+
+      // Gather the withdrawn assets to the current user agent
+      nonce = await userAgent.nonces(a1.address);
+      data = ethers.utils.solidityKeccak256(
+        ['address', 'uint', 'uint[]', 'uint8[]'],
+        [a1.address, nonce, toChainIds, adapterTypes]
+      );
+      dataHash = await userAgent.getMessageHashForSafe(data);
+      signature = await admin.signMessage(ethers.utils.arrayify(dataHash));
+      await expect(userAgent.gather(toChainIds, adapterTypes, await a1.signMessage(ethers.utils.arrayify(dataHash)))).to.be.revertedWith('Invalid signature');
+      fee = await userAgent.callStatic.gather(toChainIds, adapterTypes, signature);
+      await userAgent.gather(toChainIds, adapterTypes, signature, {value: fee});
+
+      // Exit the withdrawal flow
+      var gatheredAmount = getUsdtAmount('0');
+      nonce = await userAgent.nonces(a1.address);
+      data = ethers.utils.solidityKeccak256(
+        ['address', 'uint', 'uint'],
+        [a1.address, nonce, gatheredAmount]
+      );
+      dataHash = await userAgent.getMessageHashForSafe(data);
+      signature = await admin.signMessage(ethers.utils.arrayify(dataHash));
+      await expect(userAgent.exitWithdrawal(gatheredAmount, await a1.signMessage(ethers.utils.arrayify(dataHash)))).to.be.revertedWith('Invalid signature');
+      await userAgent.exitWithdrawal(gatheredAmount, signature);
+      expect(await usdt.balanceOf(userAgent.address)).equal(0);
+      expect(await userAgent.usdtBalances(a1.address)).equal(0);
+      expect(await usdt.balanceOf(a1.address)).closeTo(getUsdtAmount('10000'), getUsdtAmount('10000').div(20));
     });
   });
 
-  // describe("Test with GnosisSafe", async () => {
-  //   let safeSdk: Safe;
-  //   let safeAddress;
+  describe("Test with GnosisSafe", async () => {
+    let safeSdk: Safe;
+    let safeAddress;
 
-  //   beforeEach(async () => {
-  //     const ethAdapter = new EthersAdapter({
-  //       ethers,
-  //       signer: deployer
-  //     })
-  //     const safeFactory = await SafeFactory.create({ ethAdapter })
-  //     const owners = [accounts[0].address, accounts[1].address, accounts[2].address];
-  //     const threshold = 2;
-  //     const safeAccountConfig: SafeAccountConfig = {
-  //       owners,
-  //       threshold,
-  //     };
-  //     safeSdk = await safeFactory.deploySafe({ safeAccountConfig })
-  //     safeAddress = safeSdk.getAddress();
-  //   });
+    beforeEach(async () => {
+      const ethAdapter = new EthersAdapter({
+        ethers,
+        signer: deployer
+      })
+      const safeFactory = await SafeFactory.create({ ethAdapter })
+      const owners = [accounts[0].address, accounts[1].address, accounts[2].address];
+      const threshold = 2;
+      const safeAccountConfig: SafeAccountConfig = {
+        owners,
+        threshold,
+      };
+      safeSdk = await safeFactory.deploySafe({ safeAccountConfig })
+      safeAddress = safeSdk.getAddress();
+      await userAgent.connect(deployer).setAdmin(safeAddress);
 
-  //   it('The data should be verified correctly', async () => {
-  //     const data = Buffer.from("TEST MESSAGE");
-  //     const dataHash = await userAgent.getMessageHashForSafe(data);
-  //     const signature1 = await accounts[0].signMessage(ethers.utils.arrayify(dataHash));
-  //     const signature2 = await accounts[1].signMessage(ethers.utils.arrayify(dataHash));
-  //     const signatures = signature1.concat(signature2.slice(2));
-  //     expect(await userAgent.isValidSignature(safeAddress, data, signatures)).equal(true);
-  //   });
+      await mchainAdapter.connect(deployer).setPeers([
+        param.avaxMainnet.chainId,
+        param.bscMainnet.chainId,
+        param.ethMainnet.chainId,
+        param.maticMainnet.chainId
+      ],[ // It uses any addresses for test
+        accounts[0].address,
+        accounts[0].address,
+        accounts[0].address,
+        accounts[0].address
+      ]);
+      await cbridgeAdapter.connect(deployer).setPeers([
+        param.auroraMainnet.chainId,
+        param.avaxMainnet.chainId,
+        param.bscMainnet.chainId,
+        param.ethMainnet.chainId,
+        param.maticMainnet.chainId
+      ],[ // It uses any addresses for test
+        accounts[0].address,
+        accounts[0].address,
+        accounts[0].address,
+        accounts[0].address,
+        accounts[0].address
+      ])
+      await userAgent.connect(deployer).setUserAgents([
+        param.auroraMainnet.chainId,
+        param.maticMainnet.chainId
+      ],[ // It uses any addresses for test
+        accounts[0].address,
+        accounts[0].address
+      ]);
+      await userAgent.connect(deployer).setBNIVaults([
+        param.auroraMainnet.chainId,
+        param.maticMainnet.chainId
+      ],[ // It uses any addresses for test
+        accounts[0].address,
+        accounts[0].address
+      ]);
+    });
 
-  //   it('Should be failed with incorrect signature', async () => {
-  //     const data = Buffer.from("TEST MESSAGE");
-  //     const dataHash = await userAgent.getMessageHashForSafe(data);
-  //     const signature1 = await accounts[0].signMessage(ethers.utils.arrayify(dataHash));
-  //     const signature2 = await a1.signMessage(ethers.utils.arrayify(dataHash));
-  //     const signatures = signature1.concat(signature2.slice(2));
-  //     expect(await userAgent.isValidSignature(safeAddress, data, signature1)).equal(false);
-  //     expect(await userAgent.isValidSignature(safeAddress, data, signatures)).equal(false);
-  //   });
+    it("Deposit/Withdraw", async () => {
+      // Init a deposit flow
+      usdt6Amt = getUsdt6Amount('30000');
+      pool = await vault.getAllPoolInUSD();
+      nonce = await userAgent.nonces(a1.address);
+      data = ethers.utils.solidityKeccak256(
+        ['address', 'uint', 'uint', 'uint'],
+        [a1.address, nonce, pool, usdt6Amt]
+      );
+      dataHash = await userAgent.getMessageHashForSafe(data);
+      const signature1 = await accounts[0].signMessage(ethers.utils.arrayify(dataHash));
+      const signature2 = await accounts[1].signMessage(ethers.utils.arrayify(dataHash));
+      const signatures = signature1.concat(signature2.slice(2));
+      await userAgent.initDeposit(pool, usdt6Amt, signatures);
 
-  //   it('The function should be called correctly', async () => {
-  //     const nonce = await userAgent.nonces(safeAddress);
-  //     const data = ethers.utils.solidityKeccak256(
-  //       ['uint', 'uint'],
-  //       [123, nonce]
-  //     );
-  //     const dataHash = await userAgent.getMessageHashForSafe(data);
-  //     const signature1 = await accounts[0].signMessage(ethers.utils.arrayify(dataHash));
-  //     const signature2 = await accounts[1].signMessage(ethers.utils.arrayify(dataHash));
-  //     const signatures = signature1.concat(signature2.slice(2));
-  //     expect(await userAgent.isValidFunctionCall(safeAddress, 123, nonce, signatures)).equal(true);
-  //   });
-  // });
+      expect(await userAgent.nonces(a1.address)).equal(1); // It should be increased
+      expect(await minter.getNonce()).equal(1);
+      expect(await minter.userLastOperationNonce(a1.address)).equal(1);
+      ret = await minter.getOperation(1);
+      expect(ret[0]).equal(a1.address);
+      expect(ret[1]).equal(1);
+      expect(ret[2]).equal(pool);
+      expect(ret[3]).equal(getUsdt6Amount('30000'));
+      expect(ret[4]).equal(false);
+    });
+  });
 
 });

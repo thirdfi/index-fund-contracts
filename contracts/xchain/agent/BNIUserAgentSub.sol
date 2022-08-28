@@ -177,7 +177,7 @@ contract BNIUserAgentSub is BNIUserAgentBase {
         require(address(bniVault) != address(0), "Invalid bniVault");
 
         if (_chainId == Token.getChainID()) {
-            bniVault.withdrawPercByAgent(_account, _sharePerc, _minterNonce);
+            _withdrawFromVault(bniVault, _account, _sharePerc, _minterNonce);
         } else {
             bytes memory _targetCallData = abi.encodeWithSelector(
                 BNIUserAgentSub.withdrawPercByAgent.selector,
@@ -190,9 +190,14 @@ contract BNIUserAgentSub is BNIUserAgentBase {
     function withdrawPercByAgent(
         address _account, uint _sharePerc, uint _minterNonce
     ) external onlyRole(ADAPTER_ROLE) {
-        IBNIVault bniVault = bniVaults[Token.getChainID()];
+        _withdrawFromVault(bniVaults[Token.getChainID()], _account, _sharePerc, _minterNonce);
+    }
+
+    function _withdrawFromVault(
+        IBNIVault _bniVault, address _account, uint _sharePerc, uint _minterNonce
+    ) private {
         uint balanceBefore = USDT.balanceOf(address(this));
-        bniVault.withdrawPercByAgent(_account, _sharePerc, _minterNonce);
+        _bniVault.withdrawPercByAgent(_account, _sharePerc, _minterNonce);
         usdtBalances[_account] += (USDT.balanceOf(address(this)) - balanceBefore);
     }
 

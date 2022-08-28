@@ -177,7 +177,7 @@ contract STIUserAgentSub is STIUserAgentBase {
         require(address(stiVault) != address(0), "Invalid stiVault");
 
         if (_chainId == Token.getChainID()) {
-            stiVault.withdrawPercByAgent(_account, _sharePerc, _minterNonce);
+            _withdrawFromVault(stiVault, _account, _sharePerc, _minterNonce);
         } else {
             bytes memory _targetCallData = abi.encodeWithSelector(
                 STIUserAgentSub.withdrawPercByAgent.selector,
@@ -190,9 +190,14 @@ contract STIUserAgentSub is STIUserAgentBase {
     function withdrawPercByAgent(
         address _account, uint _sharePerc, uint _minterNonce
     ) external onlyRole(ADAPTER_ROLE) {
-        ISTIVault stiVault = stiVaults[Token.getChainID()];
+        _withdrawFromVault(stiVaults[Token.getChainID()], _account, _sharePerc, _minterNonce);
+    }
+
+    function _withdrawFromVault(
+        ISTIVault _stiVault, address _account, uint _sharePerc, uint _minterNonce
+    ) private {
         uint balanceBefore = USDT.balanceOf(address(this));
-        stiVault.withdrawPercByAgent(_account, _sharePerc, _minterNonce);
+        _stiVault.withdrawPercByAgent(_account, _sharePerc, _minterNonce);
         usdtBalances[_account] += (USDT.balanceOf(address(this)) - balanceBefore);
     }
 
