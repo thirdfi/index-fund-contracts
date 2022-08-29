@@ -41,7 +41,7 @@ module.exports = async ({ deployments }) => {
 
   const CBridgeXChainAdapterTest = await ethers.getContractFactory("CBridgeXChainAdapterTest");
   const cbridgeAdapter = CBridgeXChainAdapterTest.attach(cbridgeAdapterProxy.address);
-  const CLIENT_ROLE = await mchainAdapter.CLIENT_ROLE();
+  const CLIENT_ROLE = await cbridgeAdapter.CLIENT_ROLE();
   if (await cbridgeAdapter.hasRole(CLIENT_ROLE, proxy.address) === false) {
     const tx = await cbridgeAdapter.grantRole(CLIENT_ROLE, proxy.address);
     tx.wait();

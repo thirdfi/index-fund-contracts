@@ -117,19 +117,27 @@ npx hardhat deploy --network ethMainnet --tags ethMainnet_sti
 
 | Network     | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Aurora      |  | [0xF7140458031150894d04d9fA3b2E5305deecD617](https://testnet.aurorascan.dev/address/0xF7140458031150894d04d9fA3b2E5305deecD617)
 | Avalanche   |  | [0x062AC41C6973c5e7C56b387FCF9d89Cfe13cAE14](https://testnet.snowtrace.io/address/0x062AC41C6973c5e7C56b387FCF9d89Cfe13cAE14)
+| BSC         |  | [0x079F09010b29E85E79F9e904166df57AE243b41C](https://testnet.bscscan.com/address/0x079F09010b29E85E79F9e904166df57AE243b41C)
+| Ethereum    |  | [0x181448cB4B9bE640673696493216276b6743F589](https://rinkeby.etherscan.io/address/0x181448cb4b9be640673696493216276b6743f589)
 
 #### XChainAdapter on cBridge
 
 | Network     | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Aurora      |  | [0x2D8d132fe8Ac9F979E40a23caCB42C9c69b6c252](https://testnet.aurorascan.dev/address/0x2D8d132fe8Ac9F979E40a23caCB42C9c69b6c252)
 | Avalanche   |  | [0xe96a94AdA89d50A90DA6a1A4BD84d7A0277055e7](https://testnet.snowtrace.io/address/0xe96a94AdA89d50A90DA6a1A4BD84d7A0277055e7)
+| BSC         |  | [0xECF8bE649F83737d2952Eb1f3Bb1102ed36F6b1C](https://testnet.bscscan.com/address/0xECF8bE649F83737d2952Eb1f3Bb1102ed36F6b1C)
+| Ethereum    |  | [0x1F19bAF99C103b3afC9f9734566f57F7eEE6B47c](https://rinkeby.etherscan.io/address/0x1f19baf99c103b3afc9f9734566f57f7eee6b47c)
 
 #### XChainAdapter on Multichain
 
 | Network     | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | Avalanche   |  | [0x2Cb3455B63a04B84c4161d3E683f2bF574a39340](https://testnet.snowtrace.io/address/0x2Cb3455B63a04B84c4161d3E683f2bF574a39340)
+| BSC         |  | [0x8f4C0598A3a72142fEe00DB35f963BD9db62de2D](https://testnet.bscscan.com/address/0x8f4c0598a3a72142fee00db35f963bd9db62de2d)
+| Ethereum    |  | [0x9D59b72964A7Fdb4AEa066101663FdFF710DdC05](https://rinkeby.etherscan.io/address/0x9d59b72964a7fdb4aea066101663fdff710ddc05)
 
 
 ### Products
@@ -180,10 +188,13 @@ npx hardhat deploy --network ethMainnet --tags ethMainnet_sti
 
 | Products                  | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| STI  on Avalanche         |  | [0x4F7958BaD34D30618C045163fdf740503B1d7770](https://rinkeby.etherscan.io/address/0x4f7958bad34d30618c045163fdf740503b1d7770)
-| STIMinter on Avalanche    |  | [0x1921FDabe06a17A2d49646D99F2F8cc62EBf8c6e](https://rinkeby.etherscan.io/address/0x1921FDabe06a17A2d49646D99F2F8cc62EBf8c6e)
+| STI on Avalanche          |  | [0x4F7958BaD34D30618C045163fdf740503B1d7770](https://rinkeby.etherscan.io/address/0x4f7958bad34d30618c045163fdf740503b1d7770)
+| STIMinter on Avalanche    |  | [0xA9a2e9aeF861b5d43578f517F2103940A5011387](https://rinkeby.etherscan.io/address/0xA9a2e9aeF861b5d43578f517F2103940A5011387)
 | STIVault on Aurora        |  | [0x846AB2a040ff470dfb513038e78844014e4686FF](https://testnet.aurorascan.dev/address/0x846AB2a040ff470dfb513038e78844014e4686FF)
 | STIVault on Avalanche     |  | [0x1edfd9120254B82441fEfbCf2D4fB9ccbCfa07c0](https://testnet.snowtrace.io/address/0x1edfd9120254B82441fEfbCf2D4fB9ccbCfa07c0)
 | STIVault on BSC           |  | [0xdc9638F1664932a67F9632Fd224b9FE06E5F91F6](https://testnet.bscscan.com/address/0xdc9638F1664932a67F9632Fd224b9FE06E5F91F6)
-| STIVault on Polygon       |  | [0xee018FA7839BaCb0064562730A6673A20E430a9d](https://rinkeby.etherscan.io/address/0xee018fa7839bacb0064562730a6673a20e430a9d)
+| STIVault on Ethereum      |  | [0xee018FA7839BaCb0064562730A6673A20E430a9d](https://rinkeby.etherscan.io/address/0xee018fa7839bacb0064562730a6673a20e430a9d)
+| STIUserAgent on Aurora    |  | [0xbBBe66F9C0aC9B7790296f0BEd27047f377BDC01](https://testnet.aurorascan.dev/address/0xbbbe66f9c0ac9b7790296f0bed27047f377bdc01)
 | STIUserAgent on Avalanche |  | [0xb9Af9Fd316e9cF7Bd5FC1561F9dED28Fb9560031](https://testnet.snowtrace.io/address/0xb9Af9Fd316e9cF7Bd5FC1561F9dED28Fb9560031)
+| STIUserAgent on BSC       |  | [0x9Ba0B916144fC36595c4A9941464E39d24806b8a](https://testnet.bscscan.com/address/0x9ba0b916144fc36595c4a9941464e39d24806b8a)
+| STIUserAgent on Ethereum  |  | [0x2D1d9A1E12626Ba50664faeDf2DD267ef110541c](https://rinkeby.etherscan.io/address/0x2d1d9a1e12626ba50664faedf2dd267ef110541c)

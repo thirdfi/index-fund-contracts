@@ -15,7 +15,7 @@ module.exports = async ({ deployments }) => {
   const swapProxy = await ethers.getContract("AvaxSwapTest_Proxy");
   const mchainAdapterProxy = await ethers.getContract("MultichainXChainAdapterTest_Proxy");
   const cbridgeAdapterProxy = await ethers.getContract("CBridgeXChainAdapterTest_Proxy");
-  const minterProxy = await ethers.getContract("BNIMinter_Proxy");
+  const minterProxy = await ethers.getContract("BNIMinterTest_Proxy");
   const vaultProxy = await ethers.getContract("BNIVault_Proxy");
 
   console.log("Now deploying BNIUserAgentTest...");
@@ -53,8 +53,8 @@ module.exports = async ({ deployments }) => {
     tx.wait();
   }
 
-  const BNIMinter = await ethers.getContractFactory("BNIMinter");
-  const minter = BNIMinter.attach(minterProxy.address);
+  const BNIMinterTest = await ethers.getContractFactory("BNIMinterTest");
+  const minter = BNIMinterTest.attach(minterProxy.address);
   if (await minter.userAgent() === AddressZero) {
     const tx = await minter.setUserAgent(proxy.address);
     await tx.wait();

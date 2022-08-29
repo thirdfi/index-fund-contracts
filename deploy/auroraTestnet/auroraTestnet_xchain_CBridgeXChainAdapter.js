@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { auroraTestnet: network_ } = require('../../parameters');
+const { auroraTestnet: network_ } = require('../../parameters/testnet');
 
 module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
