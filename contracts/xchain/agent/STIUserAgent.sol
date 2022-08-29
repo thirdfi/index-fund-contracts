@@ -21,7 +21,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         ISwap _swap,
         IXChainAdapter _multichainAdapter, IXChainAdapter _cbridgeAdapter,
         ISTIMinter _stiMinter, ISTIVault _stiVault
-    ) external initializer {
+    ) external virtual initializer {
         super.initialize(_admin, _swap, _multichainAdapter, _cbridgeAdapter);
 
         subImpl = _subImpl;
@@ -50,7 +50,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         }
     }
 
-    function _setSTIVault(uint _chainId, ISTIVault _stiVault) private {
+    function _setSTIVault(uint _chainId, ISTIVault _stiVault) internal {
         address oldVault = address(stiVaults[_chainId]);
         stiVaults[_chainId] = _stiVault;
         if (_chainId == Token.getChainID()) {
@@ -68,7 +68,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
     /// @dev It calls initDepositByAdmin of STIMinter.
     /// @param _pool total pool in USD
     /// @param _USDT6Amt USDT with 6 decimals to be deposited
-    function initDeposit(uint _pool, uint _USDT6Amt, bytes calldata _signature) external payable whenNotPaused returns (uint _feeAmt) {
+    function initDeposit(uint _pool, uint _USDT6Amt, bytes calldata _signature) external payable virtual whenNotPaused returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _pool, _USDT6Amt)), _signature);
@@ -95,7 +95,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         uint[] memory _toChainIds,
         AdapterType[] memory _adapterTypes,
         bytes calldata _signature
-    ) external payable whenNotPaused returns (uint _feeAmt) {
+    ) external payable virtual whenNotPaused returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _amounts, _toChainIds, _adapterTypes)), _signature);
@@ -112,7 +112,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         uint[] memory _amounts,
         uint[] memory _toChainIds,
         AdapterType[] memory _adapterTypes
-    ) private returns (address[] memory _toAddresses, uint _lengthOut) {
+    ) internal returns (address[] memory _toAddresses, uint _lengthOut) {
         uint length = _amounts.length;
         _toAddresses = new address[](length);
         uint chainId = Token.getChainID();
@@ -150,7 +150,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         uint[] memory _USDTAmts,
         uint _minterNonce,
         bytes calldata _signature
-    ) external payable returns (uint _feeAmt) {
+    ) external payable virtual returns (uint _feeAmt) {
         _toChainIds;
         _tokens;
         _USDTAmts;
@@ -160,7 +160,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         delegateAndReturn();
     }
 
-    function depositByAdmin(
+    function depositByAgent(
         address _account,
         address[] memory _tokens,
         uint[] memory _USDTAmts,
@@ -174,7 +174,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
     }
 
     /// @dev It calls mintByAdmin of STIMinter.
-    function mint(uint _USDT6Amt, bytes calldata _signature) external payable returns (uint _feeAmt) {
+    function mint(uint _USDT6Amt, bytes calldata _signature) external payable virtual returns (uint _feeAmt) {
         _USDT6Amt;
         _signature;
         _feeAmt;
@@ -190,7 +190,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
     /// @dev It calls burnByAdmin of STIMinter.
     /// @param _pool total pool in USD
     /// @param _share amount of shares
-    function burn(uint _pool, uint _share, bytes calldata _signature) external payable returns (uint _feeAmt) {
+    function burn(uint _pool, uint _share, bytes calldata _signature) external payable virtual returns (uint _feeAmt) {
         _pool;
         _share;
         _signature;
@@ -217,9 +217,9 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         delegateAndReturn();
     }
 
-    function withdrawPercByAdmin(
+    function withdrawPercByAgent(
         address _account, uint _sharePerc, uint _minterNonce
-    ) external {
+    ) external virtual {
         _account;
         _sharePerc;
         _minterNonce;
@@ -231,7 +231,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         uint[] memory _fromChainIds,
         AdapterType[] memory _adapterTypes,
         bytes calldata _signature
-    ) external payable returns (uint _feeAmt) {
+    ) external payable virtual returns (uint _feeAmt) {
         _fromChainIds;
         _adapterTypes;
         _signature;
@@ -273,7 +273,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         delegateAndReturn();
     }
 
-    function claimByAdmin(address _account) external {
+    function claimByAgent(address _account) external {
         _account;
         delegateAndReturn();
     }

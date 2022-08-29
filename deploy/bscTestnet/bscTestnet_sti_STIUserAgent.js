@@ -6,20 +6,20 @@ module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
   const [deployer] = await ethers.getSigners();
 
-  console.log("Now deploying STIUserAgentSub ...");
-  const subImpl = await deploy("STIUserAgentSub", {
+  console.log("Now deploying STIUserAgentSubTest ...");
+  const subImpl = await deploy("STIUserAgentSubTest", {
     from: deployer.address,
   });
-  console.log("  STIUserAgentSub contract address: ", subImpl.address);
+  console.log("  STIUserAgentSubTest contract address: ", subImpl.address);
 
-  const swapProxy = await ethers.getContract("BscSwap_Proxy");
-  const mchainAdapterProxy = await ethers.getContract("MultichainXChainAdapter_Proxy");
-  const cbridgeAdapterProxy = await ethers.getContract("CBridgeXChainAdapter_Proxy");
+  const swapProxy = await ethers.getContract("BscSwapTest_Proxy");
+  const mchainAdapterProxy = await ethers.getContract("MultichainXChainAdapterTest_Proxy");
+  const cbridgeAdapterProxy = await ethers.getContract("CBridgeXChainAdapterTest_Proxy");
   const minterAddress = AddressZero;
   const vaultProxy = await ethers.getContract("STIVault_Proxy");
 
-  console.log("Now deploying STIUserAgent...");
-  const proxy = await deploy("STIUserAgent", {
+  console.log("Now deploying STIUserAgentTest...");
+  const proxy = await deploy("STIUserAgentTest", {
     from: deployer.address,
     proxy: {
       proxyContract: "OpenZeppelinTransparentProxy",
@@ -37,17 +37,17 @@ module.exports = async ({ deployments }) => {
       },
     },
   });
-  console.log("  STIUserAgent_Proxy contract address: ", proxy.address);
+  console.log("  STIUserAgentTest_Proxy contract address: ", proxy.address);
 
-  const MultichainXChainAdapter = await ethers.getContractFactory("MultichainXChainAdapter");
-  const mchainAdapter = MultichainXChainAdapter.attach(mchainAdapterProxy.address);
+  const MultichainXChainAdapterTest = await ethers.getContractFactory("MultichainXChainAdapterTest");
+  const mchainAdapter = MultichainXChainAdapterTest.attach(mchainAdapterProxy.address);
   const CLIENT_ROLE = await mchainAdapter.CLIENT_ROLE();
   if (await mchainAdapter.hasRole(CLIENT_ROLE, proxy.address) === false) {
     const tx = await mchainAdapter.grantRole(CLIENT_ROLE, proxy.address);
     tx.wait();
   }
-  const CBridgeXChainAdapter = await ethers.getContractFactory("CBridgeXChainAdapter");
-  const cbridgeAdapter = CBridgeXChainAdapter.attach(cbridgeAdapterProxy.address);
+  const CBridgeXChainAdapterTest = await ethers.getContractFactory("CBridgeXChainAdapterTest");
+  const cbridgeAdapter = CBridgeXChainAdapterTest.attach(cbridgeAdapterProxy.address);
   if (await cbridgeAdapter.hasRole(CLIENT_ROLE, proxy.address) === false) {
     const tx = await cbridgeAdapter.grantRole(CLIENT_ROLE, proxy.address);
     tx.wait();
@@ -64,21 +64,19 @@ module.exports = async ({ deployments }) => {
   try {
     await run("verify:verify", {
       address: subImpl.address,
-      contract: "contracts/xchain/agent/STIUserAgentSub.sol:STIUserAgentSub",
+      contract: "contracts/xchain/agent/STIUserAgentSubTest.sol:STIUserAgentSubTest",
     });
   } catch(e) {
   }
   try {
+    const implSlot = "0x360894a13ba1a3210667c828492db98dca3e2076cc3735a920a3ca505d382bbc"; // bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1)
+
+    let implAddress = await ethers.provider.getStorageAt(proxy.address, implSlot);
+    implAddress = implAddress.replace("0x000000000000000000000000", "0x");
+    
     await run("verify:verify", {
-      address: proxy.address,
-      constructorArguments: [
-        subImpl.address,
-            common.admin,
-            swapProxy.address,
-            mchainAdapterProxy.address, cbridgeAdapterProxy.address,
-            minterAddress, vaultProxy.address,
-      ],
-      contract: "contracts/xchain/agent/STIUserAgent.sol:STIUserAgent",
+      address: implAddress,
+      contract: "contracts/xchain/agent/STIUserAgentTest.sol:STIUserAgentTest",
     });
   } catch(e) {
   }

@@ -76,7 +76,7 @@ contract STIUserAgentSub is STIUserAgentBase {
         address[] memory _tokens,
         uint[] memory _USDT6Amts,
         uint _minterNonce
-    ) private returns (uint _feeAmt) {
+    ) internal virtual returns (uint _feeAmt) {
         ISTIVault stiVault = stiVaults[_toChainId];
         require(address(stiVault) != address(0), "Invalid stiVault");
 
@@ -111,7 +111,7 @@ contract STIUserAgentSub is STIUserAgentBase {
     }
 
     /// @dev It calls mintByAdmin of STIMinter.
-    function mint(uint _USDT6Amt, bytes calldata _signature) external payable whenNotPaused returns (uint _feeAmt) {
+    function mint(uint _USDT6Amt, bytes calldata _signature) external payable virtual whenNotPaused returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _USDT6Amt)), _signature);
@@ -135,7 +135,7 @@ contract STIUserAgentSub is STIUserAgentBase {
     /// @dev It calls burnByAdmin of STIMinter.
     /// @param _pool total pool in USD
     /// @param _share amount of shares
-    function burn(uint _pool, uint _share, bytes calldata _signature) external payable returns (uint _feeAmt) {
+    function burn(uint _pool, uint _share, bytes calldata _signature) external payable virtual returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _pool, _share)), _signature);
@@ -172,7 +172,7 @@ contract STIUserAgentSub is STIUserAgentBase {
 
     function _withdraw(
         address _account, uint _chainId, uint _sharePerc, uint _minterNonce
-    ) private returns (uint _feeAmt) {
+    ) internal virtual returns (uint _feeAmt) {
         ISTIVault stiVault = stiVaults[_chainId];
         require(address(stiVault) != address(0), "Invalid stiVault");
 
@@ -195,7 +195,7 @@ contract STIUserAgentSub is STIUserAgentBase {
 
     function _withdrawFromVault(
         ISTIVault _stiVault, address _account, uint _sharePerc, uint _minterNonce
-    ) private {
+    ) internal {
         uint balanceBefore = USDT.balanceOf(address(this));
         _stiVault.withdrawPercByAgent(_account, _sharePerc, _minterNonce);
         usdtBalances[_account] += (USDT.balanceOf(address(this)) - balanceBefore);
@@ -206,7 +206,7 @@ contract STIUserAgentSub is STIUserAgentBase {
         uint[] memory _fromChainIds,
         AdapterType[] memory _adapterTypes,
         bytes calldata _signature
-    ) external payable returns (uint _feeAmt) {
+    ) external payable virtual returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _fromChainIds, _adapterTypes)), _signature);
@@ -263,7 +263,7 @@ contract STIUserAgentSub is STIUserAgentBase {
     /// @dev It calls exitWithdrawalByAdmin of STIMinter.
     /// @param _gatheredAmount is the amount of token that is gathered.
     /// @notice _gatheredAmount doesn't include the balance which is withdrawan in this agent.
-    function exitWithdrawal(uint _gatheredAmount, bytes calldata _signature) external payable returns (uint _feeAmt) {
+    function exitWithdrawal(uint _gatheredAmount, bytes calldata _signature) external payable virtual returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _gatheredAmount)), _signature);
@@ -292,7 +292,7 @@ contract STIUserAgentSub is STIUserAgentBase {
     /// @dev It calls claimByAgent of STIVaults.
     function claim(
         uint[] memory _chainIds, bytes calldata _signature
-    ) external payable returns (uint _feeAmt) {
+    ) external payable virtual returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _chainIds)), _signature);

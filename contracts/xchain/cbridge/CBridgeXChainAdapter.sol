@@ -57,7 +57,7 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
     event Receive(uint indexed fromChainId, uint nonce, address indexed token, uint indexed amount, address to);
     event Refund(uint nonce, address from, address indexed token, uint indexed amount, uint indexed toChainId, address to);
 
-    function initialize1(address _messageBus) external initializer {
+    function initialize1(address _messageBus) external virtual initializer {
         super.initialize();
         messageBus = _messageBus;
         USDC = IERC20Upgradeable(Token.getTokenAddress(Const.TokenID.USDC));

@@ -100,7 +100,10 @@ npx hardhat deploy --network ethMainnet --tags ethMainnet_sti
 | aPolWMATIC on Polygon         | [0x6d80113e533a2C0fe82EaBD35f1875DcEA89Ea97](https://polygonscan.com/address/0x6d80113e533a2C0fe82EaBD35f1875DcEA89Ea97) |
 | WMATIC on Polygon             | [0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270](https://polygonscan.com/address/0x0d500B1d8E8eF31E21C99d1Db9A6444d3ADf1270) |
 
-### Price Oracle
+
+### Auxiliary Contracts
+
+#### Price Oracle
 
 | Network     | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -109,6 +112,24 @@ npx hardhat deploy --network ethMainnet --tags ethMainnet_sti
 | BSC         |  | [0x7e78D5CaB721Cc7340C9EF97511f846Dfac4594e](https://testnet.bscscan.com/address/0x7e78d5cab721cc7340c9ef97511f846dfac4594e)
 | Ethereum    |  | [0x61BA70b534c1B828c7Df157e5Af6Cb45CD416ADa](https://rinkeby.etherscan.io/address/0x61ba70b534c1b828c7df157e5af6cb45cd416ada)
 | Polygon     | [0x2EDd4b5513e0A9C96921D9e1e9234Fe28cB5519C](https://polygonscan.com/address/0x2edd4b5513e0a9c96921d9e1e9234fe28cb5519c) | [0x927189BDb499ACC18bF025BC34e2fc28539B8b20](https://mumbai.polygonscan.com/address/0x927189BDb499ACC18bF025BC34e2fc28539B8b20)
+
+#### Swapper
+
+| Network     | Mainnet                                                                                                               | Testnet                                                                                                               |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Avalanche   |  | [0x062AC41C6973c5e7C56b387FCF9d89Cfe13cAE14](https://testnet.snowtrace.io/address/0x062AC41C6973c5e7C56b387FCF9d89Cfe13cAE14)
+
+#### XChainAdapter on cBridge
+
+| Network     | Mainnet                                                                                                               | Testnet                                                                                                               |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Avalanche   |  | [0xe96a94AdA89d50A90DA6a1A4BD84d7A0277055e7](https://testnet.snowtrace.io/address/0xe96a94AdA89d50A90DA6a1A4BD84d7A0277055e7)
+
+#### XChainAdapter on Multichain
+
+| Network     | Mainnet                                                                                                               | Testnet                                                                                                               |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Avalanche   |  | [0x2Cb3455B63a04B84c4161d3E683f2bF574a39340](https://testnet.snowtrace.io/address/0x2Cb3455B63a04B84c4161d3E683f2bF574a39340)
 
 
 ### Products
@@ -133,40 +154,36 @@ npx hardhat deploy --network ethMainnet --tags ethMainnet_sti
 | stiStMATIC on Ethereum        |  | [0xD50460917B22BAc87aB640e429237b908E4BD7f4](https://rinkeby.etherscan.io/address/0xD50460917B22BAc87aB640e429237b908E4BD7f4)
 | bniL2WMATIC on Polygon        | [0x52235Cf0D2861414EC8363FBbdAe2D8521B23D79](https://polygonscan.com/address/0x52235Cf0D2861414EC8363FBbdAe2D8521B23D79) |
 
-#### Aurora Products
+#### LCI
 
-| Products    | Mainnet                                                                                                               | Testnet                                                                                                               |
+| Products          | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| BNIVault    | [0x72eB6E3f163E8CFD1Ebdd7B2f4ffB60b6e420448](https://aurorascan.dev/address/0x72eB6E3f163E8CFD1Ebdd7B2f4ffB60b6e420448) | [0x25276F97f70c2E3bC907f6B5A955a76248ae9945](https://testnet.aurorascan.dev/address/0x25276f97f70c2e3bc907f6b5a955a76248ae9945)
-| STIVault    |  | [0x846AB2a040ff470dfb513038e78844014e4686FF](https://testnet.aurorascan.dev/address/0x846AB2a040ff470dfb513038e78844014e4686FF)
+| LCI on BSC        | [0x8FD52c2156a0475e35E0FEf37Fa396611062c9b6](https://bscscan.com/address/0x8FD52c2156a0475e35E0FEf37Fa396611062c9b6) | [0x69380cc2169046f8A3B2c03D58Fe206475aAe3CB](https://testnet.bscscan.com/address/0x69380cc2169046f8a3b2c03d58fe206475aae3cb)
 
-#### Avalanche Products
+#### MWI
 
-| Products    | Mainnet                                                                                                               | Testnet                                                                                                               |
+| Products          | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| MWI         | [0x5aCBd5b82edDae114EC0703c86d163bD0107367c](https://snowtrace.io/address/0x5aCBd5b82edDae114EC0703c86d163bD0107367c) | [0x48Ef64b90c7c04AE5353Bdaab075242D8B325170](https://testnet.snowtrace.io/address/0x48ef64b90c7c04ae5353bdaab075242d8b325170)
-| BNI         | [0x52942c46F355aC354CFdeF72fd96b41eE10D7C72](https://snowtrace.io/address/0x52942c46F355aC354CFdeF72fd96b41eE10D7C72) | [0x25Ce8a40cfe13B890769FD4CC640e16Ce034E73e](https://testnet.snowtrace.io/address/0x25Ce8a40cfe13B890769FD4CC640e16Ce034E73e)
-| BNIMinter   | [0xCbAB0d4c9B040e94cA392f0C3c65D136C17ee290](https://snowtrace.io/address/0xCbAB0d4c9B040e94cA392f0C3c65D136C17ee290) | [0x4f8Ebe88aC0978c0696D6f61ca994CA73903ec96](https://testnet.snowtrace.io/address/0x4f8Ebe88aC0978c0696D6f61ca994CA73903ec96)
-| BNIVault    | [0xe76367024ca3AEeC875A03BB395f54D7c6A82eb0](https://snowtrace.io/address/0xe76367024ca3AEeC875A03BB395f54D7c6A82eb0) | [0x0cB5F3b91161D870A35b6d2671A73a6A5bB7F847](https://testnet.snowtrace.io/address/0x0cB5F3b91161D870A35b6d2671A73a6A5bB7F847)
-| STI         |  | [0x4F7958BaD34D30618C045163fdf740503B1d7770](https://rinkeby.etherscan.io/address/0x4f7958bad34d30618c045163fdf740503b1d7770)
-| STIMinter   |  | [0x1921FDabe06a17A2d49646D99F2F8cc62EBf8c6e](https://rinkeby.etherscan.io/address/0x1921FDabe06a17A2d49646D99F2F8cc62EBf8c6e)
-| STIVault    |  | [0x1edfd9120254B82441fEfbCf2D4fB9ccbCfa07c0](https://testnet.snowtrace.io/address/0x1edfd9120254B82441fEfbCf2D4fB9ccbCfa07c0)
+| MWI on Avalanche  | [0x5aCBd5b82edDae114EC0703c86d163bD0107367c](https://snowtrace.io/address/0x5aCBd5b82edDae114EC0703c86d163bD0107367c) | [0x48Ef64b90c7c04AE5353Bdaab075242D8B325170](https://testnet.snowtrace.io/address/0x48ef64b90c7c04ae5353bdaab075242d8b325170)
 
-#### BSC Products
+#### BNI
 
-| Products    | Mainnet                                                                                                               | Testnet                                                                                                               |
+| Products               | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| LCI         | [0x8FD52c2156a0475e35E0FEf37Fa396611062c9b6](https://bscscan.com/address/0x8FD52c2156a0475e35E0FEf37Fa396611062c9b6) | [0x69380cc2169046f8A3B2c03D58Fe206475aAe3CB](https://testnet.bscscan.com/address/0x69380cc2169046f8a3b2c03d58fe206475aae3cb)
-| STIVault    |  | [0xdc9638F1664932a67F9632Fd224b9FE06E5F91F6](https://testnet.bscscan.com/address/0xdc9638F1664932a67F9632Fd224b9FE06E5F91F6)
+| BNI on Avalanche       | [0x52942c46F355aC354CFdeF72fd96b41eE10D7C72](https://snowtrace.io/address/0x52942c46F355aC354CFdeF72fd96b41eE10D7C72) | [0x25Ce8a40cfe13B890769FD4CC640e16Ce034E73e](https://testnet.snowtrace.io/address/0x25Ce8a40cfe13B890769FD4CC640e16Ce034E73e)
+| BNIMinter on Avalanche | [0xCbAB0d4c9B040e94cA392f0C3c65D136C17ee290](https://snowtrace.io/address/0xCbAB0d4c9B040e94cA392f0C3c65D136C17ee290) | [0x4f8Ebe88aC0978c0696D6f61ca994CA73903ec96](https://testnet.snowtrace.io/address/0x4f8Ebe88aC0978c0696D6f61ca994CA73903ec96)
+| BNIVault on Aurora     | [0x72eB6E3f163E8CFD1Ebdd7B2f4ffB60b6e420448](https://aurorascan.dev/address/0x72eB6E3f163E8CFD1Ebdd7B2f4ffB60b6e420448) | [0x25276F97f70c2E3bC907f6B5A955a76248ae9945](https://testnet.aurorascan.dev/address/0x25276f97f70c2e3bc907f6b5a955a76248ae9945)
+| BNIVault on Avalanche  | [0xe76367024ca3AEeC875A03BB395f54D7c6A82eb0](https://snowtrace.io/address/0xe76367024ca3AEeC875A03BB395f54D7c6A82eb0) | [0x0cB5F3b91161D870A35b6d2671A73a6A5bB7F847](https://testnet.snowtrace.io/address/0x0cB5F3b91161D870A35b6d2671A73a6A5bB7F847)
+| BNIVault on Polygon    | [0xF9258759bADb75a9eAb16933ADd056c9F4E489b6](https://polygonscan.com/address/0xF9258759bADb75a9eAb16933ADd056c9F4E489b6) | [0xE276b8197D61D1b5da0d50E0B6c7B41937da29C3](https://mumbai.polygonscan.com/address/0xe276b8197d61d1b5da0d50e0b6c7b41937da29c3)
 
-#### Ethereum Products
+#### STI
 
-| Products    | Mainnet                                                                                                               | Testnet                                                                                                               |
+| Products                  | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| STIVault    |  | [0xee018FA7839BaCb0064562730A6673A20E430a9d](https://rinkeby.etherscan.io/address/0xee018fa7839bacb0064562730a6673a20e430a9d)
-
-#### Polygon Products
-
-| Products    | Mainnet                                                                                                               | Testnet                                                                                                               |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| BNIVault    | [0xF9258759bADb75a9eAb16933ADd056c9F4E489b6](https://polygonscan.com/address/0xF9258759bADb75a9eAb16933ADd056c9F4E489b6) | [0xE276b8197D61D1b5da0d50E0B6c7B41937da29C3](https://mumbai.polygonscan.com/address/0xe276b8197d61d1b5da0d50e0b6c7b41937da29c3)
+| STI  on Avalanche         |  | [0x4F7958BaD34D30618C045163fdf740503B1d7770](https://rinkeby.etherscan.io/address/0x4f7958bad34d30618c045163fdf740503b1d7770)
+| STIMinter on Avalanche    |  | [0x1921FDabe06a17A2d49646D99F2F8cc62EBf8c6e](https://rinkeby.etherscan.io/address/0x1921FDabe06a17A2d49646D99F2F8cc62EBf8c6e)
+| STIVault on Aurora        |  | [0x846AB2a040ff470dfb513038e78844014e4686FF](https://testnet.aurorascan.dev/address/0x846AB2a040ff470dfb513038e78844014e4686FF)
+| STIVault on Avalanche     |  | [0x1edfd9120254B82441fEfbCf2D4fB9ccbCfa07c0](https://testnet.snowtrace.io/address/0x1edfd9120254B82441fEfbCf2D4fB9ccbCfa07c0)
+| STIVault on BSC           |  | [0xdc9638F1664932a67F9632Fd224b9FE06E5F91F6](https://testnet.bscscan.com/address/0xdc9638F1664932a67F9632Fd224b9FE06E5F91F6)
+| STIVault on Polygon       |  | [0xee018FA7839BaCb0064562730A6673A20E430a9d](https://rinkeby.etherscan.io/address/0xee018fa7839bacb0064562730a6673a20e430a9d)
+| STIUserAgent on Avalanche |  | [0xb9Af9Fd316e9cF7Bd5FC1561F9dED28Fb9560031](https://testnet.snowtrace.io/address/0xb9Af9Fd316e9cF7Bd5FC1561F9dED28Fb9560031)

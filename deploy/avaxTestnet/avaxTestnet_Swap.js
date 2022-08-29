@@ -5,8 +5,8 @@ module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
   const [deployer] = await ethers.getSigners();
 
-  console.log("Now deploying AvaxSwap...");
-  const proxy = await deploy("AvaxSwap", {
+  console.log("Now deploying AvaxSwapTest...");
+  const proxy = await deploy("AvaxSwapTest", {
     from: deployer.address,
     proxy: {
       proxyContract: "OpenZeppelinTransparentProxy",
@@ -20,7 +20,7 @@ module.exports = async ({ deployments }) => {
       },
     },
   });
-  console.log("  AvaxSwap_Proxy contract address: ", proxy.address);
+  console.log("  AvaxSwapTest_Proxy contract address: ", proxy.address);
 
   // Verify the implementation contract
   try {
@@ -31,7 +31,7 @@ module.exports = async ({ deployments }) => {
 
     await run("verify:verify", {
       address: implAddress,
-      contract: "contracts/swap/AvaxSwap.sol:AvaxSwap",
+      contract: "contracts/swap/AvaxSwapTest.sol:AvaxSwapTest",
     });
   } catch (e) {
   }

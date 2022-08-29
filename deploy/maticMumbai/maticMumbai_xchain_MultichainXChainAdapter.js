@@ -6,13 +6,13 @@ module.exports = async ({ deployments }) => {
   const [deployer] = await ethers.getSigners();
 
   if (network.config.chainId !== network_.chainId) {
-    console.warn(`MultichainXChainAdapter needs to deploy on the correct network`);
+    console.warn(`MultichainXChainAdapterTest needs to deploy on the correct network`);
     console.warn(`  Check if the --network parameter is correct`);
     console.warn(`  Or check if the process.env.CHAIN_ID=${network_.chainId} if it runs on hardhat`);
   }
 
-  console.log("Now deploying MultichainXChainAdapter...");
-  const proxy = await deploy("MultichainXChainAdapter", {
+  console.log("Now deploying MultichainXChainAdapterTest...");
+  const proxy = await deploy("MultichainXChainAdapterTest", {
     from: deployer.address,
     proxy: {
       proxyContract: "OpenZeppelinTransparentProxy",
@@ -24,7 +24,7 @@ module.exports = async ({ deployments }) => {
       },
     },
   });
-  console.log("  MultichainXChainAdapter_Proxy contract address: ", proxy.address);
+  console.log("  MultichainXChainAdapterTest_Proxy contract address: ", proxy.address);
 
   // Verify the implementation contract
   try {
@@ -35,7 +35,7 @@ module.exports = async ({ deployments }) => {
 
     await run("verify:verify", {
       address: implAddress,
-      contract: "contracts/xchain/multichain/MultichainXChainAdapter.sol:MultichainXChainAdapter",
+      contract: "contracts/xchain/multichain/MultichainXChainAdapterTest.sol:MultichainXChainAdapterTest",
     });
   } catch (e) {
   }

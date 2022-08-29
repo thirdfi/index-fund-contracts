@@ -2,10 +2,15 @@
 pragma solidity 0.8.9;
 
 import "../contracts/bni/constant/AuroraConstant.sol";
+import "../contracts/bni/constant/AuroraConstantTest.sol";
 import "../contracts/bni/constant/AvaxConstant.sol";
+import "../contracts/bni/constant/AvaxConstantTest.sol";
 import "../contracts/bni/constant/BscConstant.sol";
+import "../contracts/bni/constant/BscConstantTest.sol";
 import "../contracts/bni/constant/EthConstant.sol";
+import "../contracts/bni/constant/EthConstantTest.sol";
 import "../contracts/bni/constant/MaticConstant.sol";
+import "../contracts/bni/constant/MaticConstantTest.sol";
 import "./Const.sol";
 
 library Token {
@@ -53,6 +58,27 @@ library Token {
         } else if (chainId == MaticConstant.CHAINID) {
             if (_tokenId == Const.TokenID.USDC) return MaticConstant.USDC;
             else if (_tokenId == Const.TokenID.USDT) return MaticConstant.USDT;
+        }
+        return address(0);
+    }
+
+    function getTestTokenAddress(Const.TokenID _tokenId) internal view returns (address) {
+        uint chainId = getChainID();
+        if (chainId == AuroraConstantTest.CHAINID) {
+            if (_tokenId == Const.TokenID.USDC) return AuroraConstantTest.USDC;
+            else if (_tokenId == Const.TokenID.USDT) return AuroraConstantTest.USDT;
+        } else if (chainId == AvaxConstantTest.CHAINID) {
+            if (_tokenId == Const.TokenID.USDC) return AvaxConstantTest.USDC;
+            else if (_tokenId == Const.TokenID.USDT) return AvaxConstantTest.USDT;
+        } else if (chainId == BscConstantTest.CHAINID) {
+            if (_tokenId == Const.TokenID.USDC) return BscConstantTest.USDC;
+            else if (_tokenId == Const.TokenID.USDT) return BscConstantTest.USDT;
+        } else if (chainId == EthConstantTest.CHAINID) {
+            if (_tokenId == Const.TokenID.USDC) return EthConstantTest.USDC;
+            else if (_tokenId == Const.TokenID.USDT) return EthConstantTest.USDT;
+        } else if (chainId == MaticConstantTest.CHAINID) {
+            if (_tokenId == Const.TokenID.USDC) return MaticConstantTest.USDC;
+            else if (_tokenId == Const.TokenID.USDT) return MaticConstantTest.USDT;
         }
         return address(0);
     }

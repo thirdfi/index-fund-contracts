@@ -21,7 +21,7 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
         ISwap _swap,
         IXChainAdapter _multichainAdapter, IXChainAdapter _cbridgeAdapter,
         IBNIMinter _bniMinter, IBNIVault _bniVault
-    ) external initializer {
+    ) external virtual initializer {
         super.initialize(_admin, _swap, _multichainAdapter, _cbridgeAdapter);
 
         subImpl = _subImpl;
@@ -50,7 +50,7 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
         }
     }
 
-    function _setBNIVault(uint _chainId, IBNIVault _bniVault) private {
+    function _setBNIVault(uint _chainId, IBNIVault _bniVault) internal {
         address oldVault = address(bniVaults[_chainId]);
         bniVaults[_chainId] = _bniVault;
         if (_chainId == Token.getChainID()) {
@@ -68,7 +68,7 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
     /// @dev It calls initDepositByAdmin of BNIMinter.
     /// @param _pool total pool in USD
     /// @param _USDT6Amt USDT with 6 decimals to be deposited
-    function initDeposit(uint _pool, uint _USDT6Amt, bytes calldata _signature) external payable whenNotPaused returns (uint _feeAmt) {
+    function initDeposit(uint _pool, uint _USDT6Amt, bytes calldata _signature) external payable virtual whenNotPaused returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _pool, _USDT6Amt)), _signature);
@@ -95,7 +95,7 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
         uint[] memory _toChainIds,
         AdapterType[] memory _adapterTypes,
         bytes calldata _signature
-    ) external payable whenNotPaused returns (uint _feeAmt) {
+    ) external payable virtual whenNotPaused returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _amounts, _toChainIds, _adapterTypes)), _signature);
@@ -112,7 +112,7 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
         uint[] memory _amounts,
         uint[] memory _toChainIds,
         AdapterType[] memory _adapterTypes
-    ) private returns (address[] memory _toAddresses, uint _lengthOut) {
+    ) internal returns (address[] memory _toAddresses, uint _lengthOut) {
         uint length = _amounts.length;
         _toAddresses = new address[](length);
         uint chainId = Token.getChainID();
@@ -160,7 +160,7 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
         delegateAndReturn();
     }
 
-    function depositByAdmin(
+    function depositByAgent(
         address _account,
         address[] memory _tokens,
         uint[] memory _USDTAmts,
@@ -217,7 +217,7 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
         delegateAndReturn();
     }
 
-    function withdrawPercByAdmin(
+    function withdrawPercByAgent(
         address _account, uint _sharePerc, uint _minterNonce
     ) external {
         _account;

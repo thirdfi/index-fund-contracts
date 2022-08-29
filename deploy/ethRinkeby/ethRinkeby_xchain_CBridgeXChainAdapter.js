@@ -5,8 +5,8 @@ module.exports = async ({ deployments }) => {
   const { deploy } = deployments;
   const [deployer] = await ethers.getSigners();
 
-  console.log("Now deploying CBridgeXChainAdapter...");
-  const proxy = await deploy("CBridgeXChainAdapter", {
+  console.log("Now deploying CBridgeXChainAdapterTest...");
+  const proxy = await deploy("CBridgeXChainAdapterTest", {
     from: deployer.address,
     proxy: {
       proxyContract: "OpenZeppelinTransparentProxy",
@@ -20,7 +20,7 @@ module.exports = async ({ deployments }) => {
       },
     },
   });
-  console.log("  CBridgeXChainAdapter_Proxy contract address: ", proxy.address);
+  console.log("  CBridgeXChainAdapterTest_Proxy contract address: ", proxy.address);
 
   // Verify the implementation contract
   try {
@@ -31,7 +31,7 @@ module.exports = async ({ deployments }) => {
 
     await run("verify:verify", {
       address: implAddress,
-      contract: "contracts/xchain/cbridge/CBridgeXChainAdapter.sol:CBridgeXChainAdapter",
+      contract: "contracts/xchain/cbridge/CBridgeXChainAdapterTest.sol:CBridgeXChainAdapterTest",
     });
   } catch (e) {
   }

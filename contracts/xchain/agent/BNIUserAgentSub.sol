@@ -76,7 +76,7 @@ contract BNIUserAgentSub is BNIUserAgentBase {
         address[] memory _tokens,
         uint[] memory _USDT6Amts,
         uint _minterNonce
-    ) private returns (uint _feeAmt) {
+    ) internal virtual returns (uint _feeAmt) {
         IBNIVault bniVault = bniVaults[_toChainId];
         require(address(bniVault) != address(0), "Invalid bniVault");
 
@@ -111,7 +111,7 @@ contract BNIUserAgentSub is BNIUserAgentBase {
     }
 
     /// @dev It calls mintByAdmin of BNIMinter.
-    function mint(uint _USDT6Amt, bytes calldata _signature) external payable whenNotPaused returns (uint _feeAmt) {
+    function mint(uint _USDT6Amt, bytes calldata _signature) external payable virtual whenNotPaused returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _USDT6Amt)), _signature);
@@ -135,7 +135,7 @@ contract BNIUserAgentSub is BNIUserAgentBase {
     /// @dev It calls burnByAdmin of BNIMinter.
     /// @param _pool total pool in USD
     /// @param _share amount of shares
-    function burn(uint _pool, uint _share, bytes calldata _signature) external payable returns (uint _feeAmt) {
+    function burn(uint _pool, uint _share, bytes calldata _signature) external payable virtual returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _pool, _share)), _signature);
@@ -172,7 +172,7 @@ contract BNIUserAgentSub is BNIUserAgentBase {
 
     function _withdraw(
         address _account, uint _chainId, uint _sharePerc, uint _minterNonce
-    ) private returns (uint _feeAmt) {
+    ) internal virtual returns (uint _feeAmt) {
         IBNIVault bniVault = bniVaults[_chainId];
         require(address(bniVault) != address(0), "Invalid bniVault");
 
@@ -195,7 +195,7 @@ contract BNIUserAgentSub is BNIUserAgentBase {
 
     function _withdrawFromVault(
         IBNIVault _bniVault, address _account, uint _sharePerc, uint _minterNonce
-    ) private {
+    ) internal {
         uint balanceBefore = USDT.balanceOf(address(this));
         _bniVault.withdrawPercByAgent(_account, _sharePerc, _minterNonce);
         usdtBalances[_account] += (USDT.balanceOf(address(this)) - balanceBefore);
@@ -206,7 +206,7 @@ contract BNIUserAgentSub is BNIUserAgentBase {
         uint[] memory _fromChainIds,
         AdapterType[] memory _adapterTypes,
         bytes calldata _signature
-    ) external payable returns (uint _feeAmt) {
+    ) external payable virtual returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _fromChainIds, _adapterTypes)), _signature);
@@ -263,7 +263,7 @@ contract BNIUserAgentSub is BNIUserAgentBase {
     /// @dev It calls exitWithdrawalByAdmin of BNIMinter.
     /// @param _gatheredAmount is the amount of token that is gathered.
     /// @notice _gatheredAmount doesn't include the balance which is withdrawan in this agent.
-    function exitWithdrawal(uint _gatheredAmount, bytes calldata _signature) external payable returns (uint _feeAmt) {
+    function exitWithdrawal(uint _gatheredAmount, bytes calldata _signature) external payable virtual returns (uint _feeAmt) {
         address account = _msgSender();
         uint _nonce = nonces[account];
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _gatheredAmount)), _signature);

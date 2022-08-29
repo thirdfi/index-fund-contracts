@@ -107,7 +107,7 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
         address _targetContract,
         uint _targetCallValue,
         bytes memory _targetCallData
-    ) external payable override onlyRole(CLIENT_ROLE) {
+    ) external payable virtual override onlyRole(CLIENT_ROLE) {
         address peer = peers[_toChainId];
         require(peer != address(0), "No peer");
 
@@ -120,7 +120,7 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
         address _targetContract,
         uint _targetCallValue,
         bytes memory _targetCallData
-    ) public view override returns (uint) {
+    ) public view virtual override returns (uint) {
         bytes memory message = abi.encode(_targetContract, _targetCallValue, _targetCallData);
         return anycallRouter.calcSrcFees("", _toChainId, message.length);
     }
