@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { common } = require('../../parameters/testnet');
+const { common, avaxTestnet: network_ } = require('../../parameters/testnet');
 const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
@@ -16,7 +16,7 @@ module.exports = async ({ deployments }) => {
   const mchainAdapterProxy = await ethers.getContract("MultichainXChainAdapterTest_Proxy");
   const cbridgeAdapterProxy = await ethers.getContract("CBridgeXChainAdapterTest_Proxy");
   const minterProxy = await ethers.getContract("BNIMinterTest_Proxy");
-  const vaultProxy = await ethers.getContract("BNIVault_Proxy");
+  const vaultProxy = await ethers.getContract("BNIVaultTest_Proxy");
 
   console.log("Now deploying BNIUserAgentTest...");
   const proxy = await deploy("BNIUserAgentTest", {
@@ -53,18 +53,21 @@ module.exports = async ({ deployments }) => {
     tx.wait();
   }
 
-  const BNIMinterTest = await ethers.getContractFactory("BNIMinterTest");
-  const minter = BNIMinterTest.attach(minterProxy.address);
-  if (await minter.userAgent() === AddressZero) {
-    const tx = await minter.setUserAgent(proxy.address);
-    await tx.wait();
-  }
+  try {
+    const BNIMinterTest = await ethers.getContractFactory("BNIMinterTest");
+    const minter = BNIMinterTest.attach(minterProxy.address);
+    if (await minter.userAgent() === AddressZero) {
+      const tx = await minter.initialize2(proxy.address, network_.biconomy);
+      await tx.wait();
+    }
 
-  const BNIVault = await ethers.getContractFactory("BNIVault");
-  const vault = BNIVault.attach(vaultProxy.address);
-  if (await vault.userAgent() === AddressZero) {
-    const tx = await vault.setUserAgent(proxy.address);
-    await tx.wait();
+    const BNIVaultTest = await ethers.getContractFactory("BNIVaultTest");
+    const vault = BNIVaultTest.attach(vaultProxy.address);
+    if (await vault.userAgent() === AddressZero) {
+      const tx = await vault.initialize2(proxy.address, network_.biconomy);
+      await tx.wait();
+    }
+  } catch(e) {
   }
 
   // Verify the implementation contract

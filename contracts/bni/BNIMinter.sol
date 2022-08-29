@@ -61,7 +61,6 @@ contract BNIMinterV1 is
     struct Operation {
         address account;
         OperationType operation;
-        uint pool; // total pool in USD
         uint amount; // amount of USDT or shares
         bool done;
     }
@@ -123,8 +122,8 @@ contract BNIMinterV1 is
 
 contract BNIMinter is
     IBNIMinter,
-    AccessControlEnumerableUpgradeable,
-    BNIMinterV1
+    BNIMinterV1,
+    AccessControlEnumerableUpgradeable
 {
     using ECDSAUpgradeable for bytes32;
 
@@ -133,6 +132,7 @@ contract BNIMinter is
     uint public version;
 
     address public userAgent;
+    uint[] public poolsAtNonce; // The array of total pool in USD. The nonce start from 1.
 
     event AddToken(uint indexed chainID, address indexed token, uint indexed tid);
     event RemoveToken(uint indexed chainID, address indexed token, uint indexed tid, uint targetPerc);
@@ -507,10 +507,10 @@ contract BNIMinter is
         operations.push(Operation({
             account: _account,
             operation: _operation,
-            pool: _pool,
             amount: _amount,
             done: false
         }));
+        poolsAtNonce.push(_pool);
         nonce = getNonce();
         userLastOperationNonce[_account] = nonce;
         emit NewOperation(_account, _operation, _amount, nonce);
@@ -524,7 +524,7 @@ contract BNIMinter is
         require(op.operation == _operation && op.done == false, "Already finished");
 
         operations[nonce - 1].done = true;
-        return (op.pool, op.amount);
+        return (poolsAtNonce[nonce-1], op.amount);
     }
 
     /// @param _account account to which BNIs will be minted

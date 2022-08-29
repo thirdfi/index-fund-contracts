@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { common } = require('../../parameters');
+const { common, avaxMainnet: network_ } = require('../../parameters');
 const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
@@ -56,15 +56,25 @@ module.exports = async ({ deployments }) => {
   const BNIMinter = await ethers.getContractFactory("BNIMinter");
   const minter = BNIMinter.attach(minterProxy.address);
   if (await minter.userAgent() === AddressZero) {
-    const tx = await minter.setUserAgent(proxy.address);
+    const tx = await minter.initialize2(proxy.address, network_.biconomy);
     await tx.wait();
   }
 
-  const BNIVault = await ethers.getContractFactory("BNIVault");
-  const vault = BNIVault.attach(vaultProxy.address);
-  if (await vault.userAgent() === AddressZero) {
-    const tx = await vault.setUserAgent(proxy.address);
-    await tx.wait();
+  try {
+    const BNIMinter = await ethers.getContractFactory("BNIMinter");
+    const minter = BNIMinter.attach(minterProxy.address);
+    if (await minter.userAgent() === AddressZero) {
+      const tx = await minter.initialize2(proxy.address, network_.biconomy);
+      await tx.wait();
+    }
+
+    const BNIVault = await ethers.getContractFactory("BNIVault");
+    const vault = BNIVault.attach(vaultProxy.address);
+    if (await vault.userAgent() === AddressZero) {
+      const tx = await vault.initialize2(proxy.address, network_.biconomy);
+      await tx.wait();
+    }
+  } catch(e) {
   }
 
   // Verify the implementation contract

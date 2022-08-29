@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { common } = require('../../parameters');
+const { common, auroraMainnet: network_ } = require('../../parameters');
 const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
@@ -47,11 +47,14 @@ module.exports = async ({ deployments }) => {
     tx.wait();
   }
 
-  const BNIVault = await ethers.getContractFactory("BNIIVault");
-  const vault = BNIVault.attach(vaultProxy.address);
-  if (await vault.userAgent() === AddressZero) {
-    const tx = await vault.setUserAgent(proxy.address);
-    await tx.wait();
+  try {
+    const BNIVault = await ethers.getContractFactory("BNIVault");
+    const vault = BNIVault.attach(vaultProxy.address);
+    if (await vault.userAgent() === AddressZero) {
+      const tx = await vault.initialize2(proxy.address, network_.biconomy);
+      await tx.wait();
+    }
+  } catch(e) {
   }
 
   // Verify the implementation contract

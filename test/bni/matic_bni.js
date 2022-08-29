@@ -44,9 +44,6 @@ describe("BNI on Polygon", async () => {
       admin = await ethers.getSigner(common.admin);
 
       usdt = new ethers.Contract(network_.Swap.USDT, ERC20_ABI, deployer);
-
-      const userAgentProxy = await ethers.getContract("BNIUserAgent_Proxy");
-      await vault.connect(deployer).initialize2(userAgentProxy.address, network_.biconomy);
     });
 
     describe('Basic', () => {

@@ -4,7 +4,6 @@ import Safe, { SafeFactory, SafeAccountConfig } from '@gnosis.pm/safe-core-sdk'
 import EthersAdapter from '@gnosis.pm/safe-ethers-lib'
 import { parseEther } from 'ethers/lib/utils';
 const { BigNumber } = ethers;
-const AddressZero = ethers.constants.AddressZero;
 
 const ERC20_ABI = require("@openzeppelin/contracts-upgradeable/build/contracts/ERC20Upgradeable.json").abi;
 const param = require("../../parameters");
@@ -52,8 +51,6 @@ describe("BNI non-custodial on Avalanche", async () => {
     const cbridgeAdapterProxy = await ethers.getContract("CBridgeXChainAdapter_Proxy");
     cbridgeAdapter = new ethers.Contract(cbridgeAdapterProxy.address, xchainAdapterArtifact.abi, a1);
 
-    await minter.connect(deployer).initialize2(userAgentProxy.address, AddressZero);
-    await vault.connect(deployer).initialize2(userAgentProxy.address, AddressZero);
     await userAgent.connect(deployer).setAdmin(admin.address);
 
     usdt = new ethers.Contract(network_.Swap.USDT, ERC20_ABI, deployer);
@@ -158,9 +155,9 @@ describe("BNI non-custodial on Avalanche", async () => {
       ret = await minter.getOperation(1);
       expect(ret[0]).equal(a1.address);
       expect(ret[1]).equal(1);
-      expect(ret[2]).equal(pool);
-      expect(ret[3]).equal(getUsdt6Amount('30000'));
-      expect(ret[4]).equal(false);
+      expect(ret[2]).equal(getUsdt6Amount('30000'));
+      expect(ret[3]).equal(false);
+      expect(await minter.poolsAtNonce(0)).equal(pool);
 
       // Transfer USDT tokens to user agents on target networks
       var toChainIds = [
@@ -234,7 +231,7 @@ describe("BNI non-custodial on Avalanche", async () => {
 
       expect(await userAgent.nonces(a1.address)).equal(4); // It should be increased
       ret = await minter.getOperation(1);
-      expect(ret[4]).equal(true);
+      expect(ret[3]).equal(true);
 
       // Burn BNIs
       pool = await vault.getAllPoolInUSD();
@@ -255,9 +252,9 @@ describe("BNI non-custodial on Avalanche", async () => {
       ret = await minter.getOperation(2);
       expect(ret[0]).equal(a1.address);
       expect(ret[1]).equal(2);
-      expect(ret[2]).equal(pool);
-      expect(ret[3]).equal(shares);
-      expect(ret[4]).equal(false);
+      expect(ret[2]).equal(shares);
+      expect(ret[3]).equal(false);
+      expect(await minter.poolsAtNonce(1)).equal(pool);
 
       // Withdraw from vaults
       minterNonce = await minter.userLastOperationNonce(a1.address);
@@ -384,9 +381,9 @@ describe("BNI non-custodial on Avalanche", async () => {
       ret = await minter.getOperation(1);
       expect(ret[0]).equal(a1.address);
       expect(ret[1]).equal(1);
-      expect(ret[2]).equal(pool);
-      expect(ret[3]).equal(getUsdt6Amount('30000'));
-      expect(ret[4]).equal(false);
+      expect(ret[2]).equal(getUsdt6Amount('30000'));
+      expect(ret[3]).equal(false);
+      expect(await minter.poolsAtNonce(0)).equal(pool);
     });
   });
 

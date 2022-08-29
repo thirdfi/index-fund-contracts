@@ -11,12 +11,6 @@ module.exports = async ({ deployments }) => {
   const strategy = BNIStrategy.attach(strategyProxy.address);
 
   const priceOracleProxy = await ethers.getContract("AuroraPriceOracle_Proxy");
-  var userAgentProxy;
-  try {
-    userAgentProxy = await ethers.getContract("BNIUserAgent_Proxy");
-  } catch(e) {
-    userAgentProxy = AddressZero;
-  }
 
   console.log("Now deploying BNIVault...");
   const proxy = await deploy("BNIVault", {
@@ -32,13 +26,6 @@ module.exports = async ({ deployments }) => {
             network_.Swap.USDT,
           ],
         },
-        onUpgrade: {
-          methodName: "initialize2",
-          args: [
-            userAgentProxy.address,
-            network_.biconomy,
-          ],
-        }
       },
     },
   });
