@@ -39,6 +39,18 @@ module.exports = async ({ deployments }) => {
   });
   console.log("  BNIUserAgentTest_Proxy contract address: ", proxy.address);
 
+  const BNIUserAgentTest = await ethers.getContractFactory("BNIUserAgentTest");
+  const userAgent = BNIUserAgentTest.attach(proxy.address);
+  if (await userAgent.subImpl() != subImpl.address) {
+    // It needs to update subImpl address because the subImpl contract is redeployed.
+    try {
+      const tx = await userAgent.setSubImpl(subImpl.address);
+      tx.wait();
+    } catch(e) {
+      console.error(`===> Check ether the deployer is the owner of the userAgent contract.`)
+    }
+  }
+
   const MultichainXChainAdapterTest = await ethers.getContractFactory("MultichainXChainAdapterTest");
   const mchainAdapter = MultichainXChainAdapterTest.attach(mchainAdapterProxy.address);
   const CLIENT_ROLE = await mchainAdapter.CLIENT_ROLE();

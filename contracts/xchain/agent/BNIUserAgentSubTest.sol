@@ -40,34 +40,6 @@ contract BNIUserAgentSubTest is BNIUserAgentSub {
         }
     }
 
-    function mint(uint _USDT6Amt, bytes calldata _signature) external payable override whenNotPaused returns (uint _feeAmt) {
-        address account = _msgSender();
-        uint _nonce = nonces[account];
-        checkSignature(keccak256(abi.encodePacked(account, _nonce, _USDT6Amt)), _signature);
-
-        if (isLPChain) {
-            bniMinter.mintByAdmin(account, _USDT6Amt);
-        } else {
-            // NOTE: cBridge is not supported on Rinkeby
-            _feeAmt = 0; 
-        }
-        nonces[account] = _nonce + 1;
-    }
-
-    function burn(uint _pool, uint _share, bytes calldata _signature) external payable override returns (uint _feeAmt) {
-        address account = _msgSender();
-        uint _nonce = nonces[account];
-        checkSignature(keccak256(abi.encodePacked(account, _nonce, _pool, _share)), _signature);
-
-        if (isLPChain) {
-            bniMinter.burnByAdmin(account, _pool, _share);
-        } else {
-            // NOTE: cBridge is not supported on Rinkeby
-            _feeAmt = 0;
-        }
-        nonces[account] = _nonce + 1;
-    }
-
     function _withdraw(
         address _account, uint _chainId, uint _sharePerc, uint _minterNonce
     ) internal override returns (uint _feeAmt) {
@@ -93,25 +65,6 @@ contract BNIUserAgentSubTest is BNIUserAgentSub {
 
         // NOTE: cBridge doesn't support liquidity on testnets
         _feeAmt = 0;
-        nonces[account] = _nonce + 1;
-    }
-
-    function exitWithdrawal(uint _gatheredAmount, bytes calldata _signature) external payable override returns (uint _feeAmt) {
-        address account = _msgSender();
-        uint _nonce = nonces[account];
-        checkSignature(keccak256(abi.encodePacked(account, _nonce, _gatheredAmount)), _signature);
-
-        if (isLPChain) {
-            bniMinter.exitWithdrawalByAdmin(account);
-        } else {
-            // NOTE: cBridge is not supported on Rinkeby
-            _feeAmt = 0;
-        }
-
-        uint amount = _gatheredAmount + usdtBalances[account];
-        usdtBalances[account] = 0;
-        USDT.safeTransfer(account, amount);
-
         nonces[account] = _nonce + 1;
     }
 

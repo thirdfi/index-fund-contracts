@@ -40,20 +40,6 @@ contract BNIUserAgentTest is BNIUserAgent {
         _setBNIVault(chainId, _bniVault);
     }
 
-    function initDeposit(uint _pool, uint _USDT6Amt, bytes calldata _signature) external payable override whenNotPaused returns (uint _feeAmt) {
-        address account = _msgSender();
-        uint _nonce = nonces[account];
-        checkSignature(keccak256(abi.encodePacked(account, _nonce, _pool, _USDT6Amt)), _signature);
-
-        if (isLPChain) {
-            bniMinter.initDepositByAdmin(account, _pool, _USDT6Amt);
-        } else {
-            // NOTE: cBridge is not supported on Rinkeby 
-            _feeAmt = 0;
-        }
-        nonces[account] = _nonce + 1;
-    }
-
     function transfer(
         uint[] memory _amounts,
         uint[] memory _toChainIds,
