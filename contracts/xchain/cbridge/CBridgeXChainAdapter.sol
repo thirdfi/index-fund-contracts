@@ -48,7 +48,7 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
 
     IERC20Upgradeable public USDC;
     IERC20Upgradeable public USDT;
-    uint public nonce;
+    uint public nonce; // It starts from 0.
     // Map of transfer entries (nonce => TransferEntry)
     mapping(uint => TransferEntry) public transfers;
     FallbackEntry[] public fallbacks;

@@ -16,6 +16,4 @@ contract BNIUserAgentBase is BasicUserAgentBase {
 
     // Address of sub-implementation contract
     address public subImpl;
-
-    event Transfer(uint fromChainId, address token, uint indexed amount, uint indexed toChainId, address indexed account);
 }

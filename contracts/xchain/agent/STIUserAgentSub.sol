@@ -255,7 +255,6 @@ contract STIUserAgentSub is STIUserAgentBase {
                 usdtBalances[_account] = 0;
 
                 _transfer(_account, Const.TokenID.USDT, amounts, toChainIds, toAddresses, adapterTypes, 1, false);
-                emit Transfer(Token.getChainID(), address(USDT), balance, _toChainId, _account);
             }
         }
     }
