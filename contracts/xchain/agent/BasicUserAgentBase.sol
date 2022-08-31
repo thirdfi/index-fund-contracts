@@ -77,7 +77,7 @@ contract BasicUserAgentBase is
 
     function _transfer(
         address _from,
-        Const.TokenID _tokenId,
+        address _token,
         uint[] memory _amounts,
         uint[] memory _toChainIds,
         address[] memory _toAddresses,
@@ -90,32 +90,32 @@ contract BasicUserAgentBase is
             = splitTranfersPerAdapter(_amounts, _toChainIds, _toAddresses, _adapterTypes, _length);
 
         if (_skim == false && mchainAmounts.length > 0) {
-            transferThroughMultichain(_from, _tokenId, mchainAmounts, mchainToChainIds, mchainToAddresses);
+            transferThroughMultichain(_from, _token, mchainAmounts, mchainToChainIds, mchainToAddresses);
         }
         if (cbridgeAmounts.length > 0) {
-            _feeAmt = transferThroughCBridge(_from, _tokenId, cbridgeAmounts, cbridgeToChainIds, cbridgeToAddresses, _skim);
+            _feeAmt = transferThroughCBridge(_from, _token, cbridgeAmounts, cbridgeToChainIds, cbridgeToAddresses, _skim);
         }
     }
 
     function transferThroughMultichain (
         address _from,
-        Const.TokenID _tokenId,
+        address _token,
         uint[] memory _mchainAmounts,
         uint[] memory _mchainToChainIds,
         address[] memory _mchainToAddresses
     ) private {
         uint mchainReqCount = _mchainAmounts.length;
-        multichainAdapter.transfer(_tokenId, _mchainAmounts, _mchainToChainIds, _mchainToAddresses);
+        multichainAdapter.transfer(_token, _mchainAmounts, _mchainToChainIds, _mchainToAddresses);
 
         uint chainId = Token.getChainID();
         for (uint i = 0; i < mchainReqCount; i ++) {
-            emit Transfer(_from, address(USDT), _mchainAmounts[i], chainId, _mchainToChainIds[i], _mchainToAddresses[i], AdapterType.Multichain, 0);
+            emit Transfer(_from, _token, _mchainAmounts[i], chainId, _mchainToChainIds[i], _mchainToAddresses[i], AdapterType.Multichain, 0);
         }
     }
 
     function transferThroughCBridge (
         address _from,
-        Const.TokenID _tokenId,
+        address _token,
         uint[] memory _cbridgeAmounts,
         uint[] memory _cbridgeToChainIds,
         address[] memory _cbridgeToAddresses,
@@ -126,13 +126,13 @@ contract BasicUserAgentBase is
 
         if (_skim == false && address(this).balance >= _feeAmt) {
             uint cbridgeNonce = ICBridgeAdapter(address(cbridgeAdapter)).nonce();
-            cbridgeAdapter.transfer{value: _feeAmt}(_tokenId, _cbridgeAmounts, _cbridgeToChainIds, _cbridgeToAddresses);
+            cbridgeAdapter.transfer{value: _feeAmt}(_token, _cbridgeAmounts, _cbridgeToChainIds, _cbridgeToAddresses);
 
             uint chainId = Token.getChainID();
             for (uint i = 0; i < cbridgeReqCount; i ++) {
                 uint nonce = cbridgeNonce + i;
                 cbridgeSenders[nonce] = _from;
-                emit Transfer(_from, address(USDT), _cbridgeAmounts[i], chainId, _cbridgeToChainIds[i], _cbridgeToAddresses[i], AdapterType.CBridge, nonce);
+                emit Transfer(_from, _token, _cbridgeAmounts[i], chainId, _cbridgeToChainIds[i], _cbridgeToAddresses[i], AdapterType.CBridge, nonce);
             }
         }
     }

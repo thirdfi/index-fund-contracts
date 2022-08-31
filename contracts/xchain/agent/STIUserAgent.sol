@@ -96,7 +96,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
 
         (address[] memory toAddresses, uint lengthOut) = transferIn(account, _amounts, _toChainIds, _adapterTypes);
         if (lengthOut > 0) {
-            _feeAmt = _transfer(account, Const.TokenID.USDT, _amounts, _toChainIds, toAddresses, _adapterTypes, lengthOut, false);
+            _feeAmt = _transfer(account, address(USDT), _amounts, _toChainIds, toAddresses, _adapterTypes, lengthOut, false);
         }
         nonces[account] = _nonce + 1;
     }

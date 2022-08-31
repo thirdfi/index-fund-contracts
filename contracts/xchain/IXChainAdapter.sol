@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.9;
 
-import "../../libs/Const.sol";
-
 interface IXChainAdapter {
 
     function transfer(
-        Const.TokenID _tokenId,
+        address _token,
         uint[] memory _amounts,
         uint[] memory _toChainIds,
         address[] memory _toAddresses

@@ -16,8 +16,8 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
     IAnycallV6Proxy constant anycallRouter = IAnycallV6Proxy(0xC10Ef9F491C9B59f936957026020C321651ac078);
     uint constant FLAG_PAY_FEE_ON_SRC = 0x1 << 1;
 
-    // Map of anyswap entries (tokenId => chainId => entry)
-    mapping(Const.TokenID => mapping(uint => AnyswapMap.Entry)) public anyswapMap;
+    // Map of anyswap entries (address => chainId => entry)
+    mapping(address => mapping(uint => AnyswapMap.Entry)) public anyswapMap;
 
     IAnycallExecutor public anycallExecutor;
 
@@ -27,23 +27,27 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
         super.initialize();
 
         AnyswapMap.initMap(anyswapMap);
-        
+
         uint chainId = Token.getChainID();
-        AnyswapMap.Entry memory entry;
-        entry = anyswapMap[Const.TokenID.USDT][chainId];
-        IERC20Upgradeable(entry.underlying).safeApprove(entry.router, type(uint).max);
-        entry = anyswapMap[Const.TokenID.USDC][chainId];
-        IERC20Upgradeable(entry.underlying).safeApprove(entry.router, type(uint).max);
+        address USDT = Token.getTokenAddress(Const.TokenID.USDT);
+        IERC20Upgradeable(USDT).safeApprove(anyswapMap[USDT][chainId].router, type(uint).max);
+        address USDC = Token.getTokenAddress(Const.TokenID.USDC);
+        IERC20Upgradeable(USDC).safeApprove(anyswapMap[USDC][chainId].router, type(uint).max);
 
         anycallExecutor = IAnycallExecutor(anycallRouter.executor());
     }
 
     function setAnyswapEntry(
-        Const.TokenID _tokenId, uint _chainId,
+        address _token, uint _chainId,
         address _router, address _unterlying, address _anyToken,
         uint8 _underlyingDecimals, uint8 _anyTokenDecimals, uint _minimumSwap
     ) external onlyOwner {
-        anyswapMap[_tokenId][_chainId] = AnyswapMap.Entry({
+        address oldRouter = anyswapMap[_token][_chainId].router;
+        if (oldRouter != address(0)) {
+            IERC20Upgradeable(_token).safeApprove(oldRouter, 0);
+        }
+
+        anyswapMap[_token][_chainId] = AnyswapMap.Entry({
             router: _router,
             underlying: _unterlying,
             anyToken: _anyToken,
@@ -67,7 +71,7 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
     }
 
     function transfer(
-        Const.TokenID _tokenId,
+        address _token,
         uint[] memory _amounts,
         uint[] memory _toChainIds,
         address[] memory _toAddresses
@@ -81,22 +85,22 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
         for (uint i = 0; i < count; i++) {
             amount += _amounts[i];
         }
-        IERC20Upgradeable(anyswapMap[_tokenId][chainId].underlying).safeTransferFrom(from, address(this), amount);
+        IERC20Upgradeable(anyswapMap[_token][chainId].underlying).safeTransferFrom(from, address(this), amount);
 
         for (uint i = 0; i < count; i++) {
-            _transfer(_tokenId, _amounts[i], chainId, _toChainIds[i], _toAddresses[i]);
+            _transfer(_token, _amounts[i], chainId, _toChainIds[i], _toAddresses[i]);
         }
     }
 
     function _transfer(
-        Const.TokenID _tokenId,
+        address _token,
         uint _amount,
         uint _chainId,
         uint _toChainId,
         address _to
     ) internal {
-        AnyswapMap.Entry memory entry = anyswapMap[_tokenId][_chainId];
-        require(_amount >= (anyswapMap[_tokenId][_toChainId].minimumSwap * (10 ** entry.underlyingDecimals)), "Too small amount");
+        AnyswapMap.Entry memory entry = anyswapMap[_token][_chainId];
+        require(_amount >= (anyswapMap[_token][_toChainId].minimumSwap * (10 ** entry.underlyingDecimals)), "Too small amount");
 
         IAnyswapV6Router(entry.router).anySwapOutUnderlying(entry.anyToken, _to, _amount, _toChainId);
         emit Transfer(msg.sender, entry.underlying, _amount, _toChainId, _to);

@@ -36,7 +36,7 @@ contract BasicXChainAdapter is IXChainAdapter,
     }
 
     function transfer(
-        Const.TokenID, // _tokenId
+        address, // _token
         uint[] memory, // _amounts
         uint[] memory, // _toChainIds
         address[] memory // _toAddresses

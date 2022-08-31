@@ -12,9 +12,9 @@ module.exports = {
     chainId: 1313161555,
     Securo: {
       mchainAdapter: AddressZero,
-      cbridgeAdapter: "0x2D8d132fe8Ac9F979E40a23caCB42C9c69b6c252",
-      bniUserAgent: "0x1edfd9120254B82441fEfbCf2D4fB9ccbCfa07c0",
-      stiUserAgent: "0xbBBe66F9C0aC9B7790296f0BEd27047f377BDC01",
+      cbridgeAdapter: "0x80e3f0Ad3ad51E1fA8C16Dc342e0F42719d89701",
+      bniUserAgent: "0x80F12065529BDa4EC37698cC986e07fD75898FE1",
+      stiUserAgent: "0xb0b82A15ccF136466956ec28999C2268087112BC",
     },
     biconomy: AddressZero,
     Bastion: {
@@ -38,10 +38,10 @@ module.exports = {
   avaxTestnet: {
     chainId: 43113,
     Securo: {
-      mchainAdapter: "0x2Cb3455B63a04B84c4161d3E683f2bF574a39340",
-      cbridgeAdapter: "0xe96a94AdA89d50A90DA6a1A4BD84d7A0277055e7",
-      bniUserAgent: "0x86377B4726eC01c8378c2d8fB5BA95E8B866a0bf",
-      stiUserAgent: "0xb9Af9Fd316e9cF7Bd5FC1561F9dED28Fb9560031",
+      mchainAdapter: "0x3D2e5d32955400Fdf8eA27bc2aaA740Fabdd9782",
+      cbridgeAdapter: "0x1D41629e505ec6D5fDa6D539a002065E4831cb41",
+      bniUserAgent: "0xBCde88c528A67cD62f82D1f6C714e4e58934F717",
+      stiUserAgent: "0xEDe5E6CF90E5c1BFFDdCdAF8E8662c4a7b920735",
     },
     biconomy: "0x6271Ca63D30507f2Dcbf99B52787032506D75BBF",
     Aave3: {
@@ -71,10 +71,10 @@ module.exports = {
   bscTestnet: {
     chainId: 97,
     Securo: {
-      mchainAdapter: "0x8f4C0598A3a72142fEe00DB35f963BD9db62de2D",
-      cbridgeAdapter: "0xECF8bE649F83737d2952Eb1f3Bb1102ed36F6b1C",
+      mchainAdapter: "0xc50beA8CFA9D343ae1d02B9f4ABe29992e1f579f",
+      cbridgeAdapter: "0x43F26Eab9405966B77d49B9731746E3be1A8Db80",
       bniUserAgent: AddressZero,
-      stiUserAgent: "0x9Ba0B916144fC36595c4A9941464E39d24806b8a",
+      stiUserAgent: "0x55dE8c1C54bE0A36E4F326E6403b81e76343734F",
     },
     biconomy: "0x61456BF1715C1415730076BB79ae118E806E74d2",
     PancakeSwap: {
@@ -99,10 +99,10 @@ module.exports = {
   ethRinkeby: {
     chainId: 4,
     Securo: {
-      mchainAdapter: "0x9D59b72964A7Fdb4AEa066101663FdFF710DdC05",
-      cbridgeAdapter: "0x1F19bAF99C103b3afC9f9734566f57F7eEE6B47c",
+      mchainAdapter: "0x3e619F046b182b37a584baf66E22df54E8678995",
+      cbridgeAdapter: "0xC30E7c233550188FE8FAC4d4166B74680BD5D202",
       bniUserAgent: AddressZero,
-      stiUserAgent: "0x2D1d9A1E12626Ba50664faeDf2DD267ef110541c",
+      stiUserAgent: "0xdc6F9D07Dad775FE1D45D9a24F9d9158CC33750F",
     },
     biconomy: "0xFD4973FeB2031D4409fB57afEE5dF2051b171104",
     Swap: {
@@ -124,9 +124,9 @@ module.exports = {
   maticMumbai: {
     chainId: 80001,
     Securo: {
-      mchainAdapter: "0x09BE4DF001Af1944214A1BF2883E7EbDc79d174a",
-      cbridgeAdapter: "0x82FaC35fFB3eBcEe89FEcE6Cb7b9763dc504Af31",
-      bniUserAgent: "0x846AB2a040ff470dfb513038e78844014e4686FF",
+      mchainAdapter: "0x82085b1F065A3cE4B34192C73AE98fC60c7c92DE",
+      cbridgeAdapter: "0xCcECA5C4A3355F8e7a0B7d2a7251eec012Be7c58",
+      bniUserAgent: "0x441cd7576f8C915bc08C8E046054F8D0dE17a80f",
       stiUserAgent: AddressZero,
     },
     biconomy: "0x9399BB24DBB5C4b782C70c2969F58716Ebbd6a3b",

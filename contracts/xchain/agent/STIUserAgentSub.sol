@@ -240,14 +240,14 @@ contract STIUserAgentSub is STIUserAgentBase {
             AdapterType[] memory adapterTypes = new AdapterType[](1);
             adapterTypes[0] = _adapterType;
 
-            uint feeAmt = _transfer(_account, Const.TokenID.USDT, amounts, toChainIds, toAddresses, adapterTypes, 1, true);
+            uint feeAmt = _transfer(_account, address(USDT), amounts, toChainIds, toAddresses, adapterTypes, 1, true);
             uint tokensForFee = swap.getAmountsInForETH(address(USDT), feeAmt);
             if (balance > tokensForFee) {
                 uint spentTokenAmount = swap.swapTokensForExactETH(address(USDT), tokensForFee, feeAmt);
                 amounts[0] = balance - spentTokenAmount;
                 usdtBalances[_account] = 0;
 
-                _transfer(_account, Const.TokenID.USDT, amounts, toChainIds, toAddresses, adapterTypes, 1, false);
+                _transfer(_account, address(USDT), amounts, toChainIds, toAddresses, adapterTypes, 1, false);
             }
         }
     }

@@ -6,8 +6,6 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeab
 import "@openzeppelin/contracts-upgradeable/utils/AddressUpgradeable.sol";
 import "sgn-v2-contracts/contracts/message/interfaces/IMessageBus.sol";
 import "sgn-v2-contracts/contracts/message/libraries/MsgDataTypes.sol";
-import "../../../libs/Const.sol";
-import "../../../libs/Token.sol";
 import "../BasicXChainAdapter.sol";
 import "../agent/IUserAgent.sol";
 import "./MessageReceiverApp.sol";
@@ -44,10 +42,7 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
         bool handled;
     }
 
-    uint32 constant MAX_SLIPPAGE = 50000; // 5%
-
-    IERC20Upgradeable public USDC;
-    IERC20Upgradeable public USDT;
+    uint32 public maxSlippage;
     uint public nonce; // It starts from 0.
     // Map of transfer entries (nonce => TransferEntry)
     mapping(uint => TransferEntry) public transfers;
@@ -60,12 +55,16 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
     function initialize1(address _messageBus) external virtual initializer {
         super.initialize();
         messageBus = _messageBus;
-        USDC = IERC20Upgradeable(Token.getTokenAddress(Const.TokenID.USDC));
-        USDT = IERC20Upgradeable(Token.getTokenAddress(Const.TokenID.USDT));
+        maxSlippage = 5_0000; // 5%
     }
 
     function transferOwnership(address newOwner) public virtual override(BasicXChainAdapter, OwnableUpgradeable) onlyOwner {
         BasicXChainAdapter.transferOwnership(newOwner);
+    }
+
+    function setMaxSlippage(uint32 _maxSlippage) external onlyOwner {
+        require(_maxSlippage <= 100_0000, "Invalid maxSlippage");
+        maxSlippage = _maxSlippage;
     }
 
     // ============== functions on source chain ==============
@@ -155,7 +154,7 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
     }
 
     function transfer(
-        Const.TokenID _tokenId,
+        address _token,
         uint[] memory _amounts,
         uint[] memory _toChainIds,
         address[] memory _toAddresses
@@ -169,19 +168,10 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
         for (uint i = 0; i < count; i++) {
             amount += _amounts[i];
         }
-
-        IERC20Upgradeable token;
-        if (_tokenId == Const.TokenID.USDT) {
-            token = USDT;
-        } else if (_tokenId == Const.TokenID.USDC) {
-            token = USDC;
-        } else {
-            return;
-        }
-        token.safeTransferFrom(from, address(this), amount);
+        IERC20Upgradeable(_token).safeTransferFrom(from, address(this), amount);
 
         for (uint i = 0; i < count; i++) {
-            _transfer(from, address(token), _amounts[i], _toChainIds[i], _toAddresses[i], fee);
+            _transfer(from, _token, _amounts[i], _toChainIds[i], _toAddresses[i], fee);
         }
     }
 
@@ -215,7 +205,7 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
             _amount,
             uint64(_toChainId),
             uint64(_nonce),
-            MAX_SLIPPAGE,
+            maxSlippage,
             message,
             MsgDataTypes.BridgeSendType.Liquidity,
             _fee
