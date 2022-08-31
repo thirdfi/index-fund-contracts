@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { common, maticMumbai: network_ } = require("../../parameters/testnet");
+const { common, ftmTestnet: network_ } = require("../../parameters/testnet");
 const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
@@ -10,7 +10,7 @@ module.exports = async ({ deployments }) => {
   const BNIStrategy = await ethers.getContractFactory("BNIStrategyTest");
   const strategy = BNIStrategy.attach(strategyProxy.address);
 
-  const priceOracleProxy = await ethers.getContract("MaticPriceOracleTest_Proxy");
+  const priceOracleProxy = await ethers.getContract("FtmPriceOracleTest_Proxy");
 
   console.log("Now deploying BNIVault...");
   const proxy = await deploy("BNIVaultTest", {
@@ -23,7 +23,7 @@ module.exports = async ({ deployments }) => {
           args: [
             common.treasury, common.admin,
             strategy.address, priceOracleProxy.address,
-            network_.Swap.USDT,
+            network_.Token.USDT,
           ],
         },
       },
@@ -50,4 +50,4 @@ module.exports = async ({ deployments }) => {
   } catch (e) {
   }
 };
-module.exports.tags = ["maticMumbai_bni_BNIVault"];
+module.exports.tags = ["ftmTestnet_bni_BNIVault"];

@@ -121,6 +121,28 @@ module.exports = {
     },
   },
 
+  ftmTestnet: {
+    chainId: 4002,
+    Securo: {
+      mchainAdapter: "0xf094A03A57fa2abD566d45FC44d6F3122D308D0B",
+      cbridgeAdapter: "0xe78fE82C79E3E0F3D8AF5fecD6719eCf47f80B1D",
+      bniUserAgent: AddressZero,
+      stiUserAgent: AddressZero,
+    },
+    biconomy: "0x69FB8Dca8067A5D38703b9e8b39cf2D51473E4b4",
+    Swap: {
+      router: "0xa6AD18C2aC47803E193F75c3677b14BF19B94883", // SpookySwap
+      SWAP_BASE_TOKEN: "0xf1277d1Ed8AD466beddF92ef448A132661956621", // WFTM
+    },
+    Token: {
+      USDT: "0xb02068AE04Bf5d184EFDe3583e09f2185a30da0e",
+      WFTM: "0xf1277d1Ed8AD466beddF92ef448A132661956621",
+    },
+    cBridge: {
+      messageBus: "0xb92d6933A024bcca9A21669a480C236Cbc973110",
+    },
+  },
+
   maticMumbai: {
     chainId: 80001,
     Securo: {

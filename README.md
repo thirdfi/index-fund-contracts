@@ -30,7 +30,7 @@ npx hardhat deploy --network avaxMainnet --tags avaxMainnet_bni
 npx hardhat deploy --network maticMainnet --tags maticMainnet_bni
 ```
 
-After update values of bniUserAgent in parameters/index.js, execute the below commands.
+After update addresses of bniUserAgent in parameters/index.js, execute the below commands.
 ```text
 npx hardhat run --network auroraMainnet ./scripts/deploy/config_BNIUserAgent.js
 npx hardhat run --network avaxMainnet ./scripts/deploy/config_BNIUserAgent.js
@@ -55,7 +55,7 @@ npx hardhat deploy --network bscMainnet --tags bscMainnet_sti
 npx hardhat deploy --network ethMainnet --tags ethMainnet_sti
 ```
 
-After update values of stiUserAgent in parameters/index.js, execute the below commands.
+After update addresses of stiUserAgent in parameters/index.js, execute the below commands.
 ```text
 npx hardhat run --network auroraMainnet ./scripts/deploy/config_STIUserAgent.js
 npx hardhat run --network avaxMainnet ./scripts/deploy/config_STIUserAgent.js
@@ -134,6 +134,7 @@ npx hardhat run --network maticMainnet ./scripts/deploy/config_xchain.js
 | Avalanche   | [0xb9b31A45bEe57cF30b68a49899021FfCF1930b68](https://snowtrace.io/address/0xb9b31A45bEe57cF30b68a49899021FfCF1930b68) | [0xF7140458031150894d04d9fA3b2E5305deecD617](https://testnet.snowtrace.io/address/0xF7140458031150894d04d9fA3b2E5305deecD617)
 | BSC         |  | [0x7e78D5CaB721Cc7340C9EF97511f846Dfac4594e](https://testnet.bscscan.com/address/0x7e78d5cab721cc7340c9ef97511f846dfac4594e)
 | Ethereum    |  | [0x61BA70b534c1B828c7Df157e5Af6Cb45CD416ADa](https://rinkeby.etherscan.io/address/0x61ba70b534c1b828c7df157e5af6cb45cd416ada)
+| Fantom      |  | [0xBc2B15aAD17E66B5F4443a8f2ec208fC04B42925](https://testnet.ftmscan.com/address/0xbc2b15aad17e66b5f4443a8f2ec208fc04b42925)
 | Polygon     | [0x2EDd4b5513e0A9C96921D9e1e9234Fe28cB5519C](https://polygonscan.com/address/0x2edd4b5513e0a9c96921d9e1e9234fe28cb5519c) | [0x927189BDb499ACC18bF025BC34e2fc28539B8b20](https://mumbai.polygonscan.com/address/0x927189BDb499ACC18bF025BC34e2fc28539B8b20)
 
 #### Swapper
@@ -144,6 +145,7 @@ npx hardhat run --network maticMainnet ./scripts/deploy/config_xchain.js
 | Avalanche   |  | [0x062AC41C6973c5e7C56b387FCF9d89Cfe13cAE14](https://testnet.snowtrace.io/address/0x062AC41C6973c5e7C56b387FCF9d89Cfe13cAE14)
 | BSC         |  | [0x079F09010b29E85E79F9e904166df57AE243b41C](https://testnet.bscscan.com/address/0x079F09010b29E85E79F9e904166df57AE243b41C)
 | Ethereum    |  | [0x181448cB4B9bE640673696493216276b6743F589](https://rinkeby.etherscan.io/address/0x181448cb4b9be640673696493216276b6743f589)
+| Fantom      |  | [0x22689A772B7716C0b0Ab6bF7Aa74da20A5A2191e](https://testnet.ftmscan.com/address/0x22689a772b7716c0b0ab6bf7aa74da20a5a2191e)
 | Polygon     |  | [0x539446c1f94ac057B1Db27EdF21D899662Fe1022](https://mumbai.polygonscan.com/address/0x539446c1f94ac057B1Db27EdF21D899662Fe1022)
 
 #### XChainAdapter on cBridge
@@ -154,6 +156,7 @@ npx hardhat run --network maticMainnet ./scripts/deploy/config_xchain.js
 | Avalanche   |  | [0x1D41629e505ec6D5fDa6D539a002065E4831cb41](https://testnet.snowtrace.io/address/0x1D41629e505ec6D5fDa6D539a002065E4831cb41)
 | BSC         |  | [0x43F26Eab9405966B77d49B9731746E3be1A8Db80](https://testnet.bscscan.com/address/0x43F26Eab9405966B77d49B9731746E3be1A8Db80)
 | Ethereum    |  | [0xC30E7c233550188FE8FAC4d4166B74680BD5D202](https://rinkeby.etherscan.io/address/0xC30E7c233550188FE8FAC4d4166B74680BD5D202)
+| Fantom      |  | [0xe78fE82C79E3E0F3D8AF5fecD6719eCf47f80B1D](https://testnet.ftmscan.com/address/0xe78fe82c79e3e0f3d8af5fecd6719ecf47f80b1d)
 | Polygon     |  | [0xCcECA5C4A3355F8e7a0B7d2a7251eec012Be7c58](https://mumbai.polygonscan.com/address/0xCcECA5C4A3355F8e7a0B7d2a7251eec012Be7c58)
 
 #### XChainAdapter on Multichain
@@ -163,6 +166,7 @@ npx hardhat run --network maticMainnet ./scripts/deploy/config_xchain.js
 | Avalanche   |  | [0x3D2e5d32955400Fdf8eA27bc2aaA740Fabdd9782](https://testnet.snowtrace.io/address/0x3D2e5d32955400Fdf8eA27bc2aaA740Fabdd9782)
 | BSC         |  | [0xc50beA8CFA9D343ae1d02B9f4ABe29992e1f579f](https://testnet.bscscan.com/address/0xc50beA8CFA9D343ae1d02B9f4ABe29992e1f579f)
 | Ethereum    |  | [0x3e619F046b182b37a584baf66E22df54E8678995](https://rinkeby.etherscan.io/address/0x3e619F046b182b37a584baf66E22df54E8678995)
+| Fantom      |  | [0xf094A03A57fa2abD566d45FC44d6F3122D308D0B](https://testnet.ftmscan.com/address/0xf094a03a57fa2abd566d45fc44d6f3122d308d0b)
 | Polygon     |  | [0x82085b1F065A3cE4B34192C73AE98fC60c7c92DE](https://mumbai.polygonscan.com/address/0x82085b1F065A3cE4B34192C73AE98fC60c7c92DE)
 
 

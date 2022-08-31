@@ -82,6 +82,10 @@ const config: HardhatUserConfig = {
       ...sharedNetworkConfig,
       url: `https://rinkeby.infura.io/v3/${process.env.INFURA_API_KEY}`,
     },
+    ftmTestnet: {
+      ...sharedNetworkConfig,
+      url: `https://rpc.testnet.fantom.network`,
+    },
     maticMainnet: {
       ...sharedNetworkConfig,
       url: `https://polygon-mainnet.g.alchemy.com/v2/${process.env.ALCHEMY_POLYGON_MAINNET_API_KEY}`,
@@ -103,6 +107,8 @@ const config: HardhatUserConfig = {
       bscTestnet: process.env.BSCSCAN_API_KEY || "",
       mainnet: process.env.ETHERSCAN_API_KEY || "",
       rinkeby: process.env.ETHERSCAN_API_KEY || "",
+      opera: process.env.FANTOMSCAN_API_KEY || "",
+      ftmTestnet: process.env.FANTOMSCAN_API_KEY || "",
       polygon: process.env.POLYGONSCAN_API_KEY || "",
       polygonMumbai: process.env.POLYGONSCAN_API_KEY || "",
     }

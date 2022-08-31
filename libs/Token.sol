@@ -9,6 +9,7 @@ import "../contracts/bni/constant/BscConstant.sol";
 import "../contracts/bni/constant/BscConstantTest.sol";
 import "../contracts/bni/constant/EthConstant.sol";
 import "../contracts/bni/constant/EthConstantTest.sol";
+import "../contracts/bni/constant/FtmConstantTest.sol";
 import "../contracts/bni/constant/MaticConstant.sol";
 import "../contracts/bni/constant/MaticConstantTest.sol";
 import "./Const.sol";
@@ -76,6 +77,9 @@ library Token {
         } else if (chainId == EthConstantTest.CHAINID) {
             if (_tokenId == Const.TokenID.USDC) return EthConstantTest.USDC;
             else if (_tokenId == Const.TokenID.USDT) return EthConstantTest.USDT;
+        } else if (chainId == FtmConstantTest.CHAINID) {
+            if (_tokenId == Const.TokenID.USDC) return FtmConstantTest.USDC;
+            else if (_tokenId == Const.TokenID.USDT) return FtmConstantTest.USDT;
         } else if (chainId == MaticConstantTest.CHAINID) {
             if (_tokenId == Const.TokenID.USDC) return MaticConstantTest.USDC;
             else if (_tokenId == Const.TokenID.USDT) return MaticConstantTest.USDT;

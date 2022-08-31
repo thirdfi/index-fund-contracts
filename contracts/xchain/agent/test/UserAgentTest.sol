@@ -15,6 +15,7 @@ import "../../../bni/constant/AuroraConstantTest.sol";
 import "../../../bni/constant/AvaxConstantTest.sol";
 import "../../../bni/constant/BscConstantTest.sol";
 import "../../../bni/constant/EthConstantTest.sol";
+import "../../../bni/constant/FtmConstantTest.sol";
 import "../../../bni/constant/MaticConstantTest.sol";
 
 contract UserAgentTest is BNIUserAgentBase, BasicUserAgent {
@@ -31,6 +32,7 @@ contract UserAgentTest is BNIUserAgentBase, BasicUserAgent {
         _setupRole(DEFAULT_ADMIN_ROLE, owner());
         __GnosisSafe_init();
 
+        USDC = IERC20Upgradeable(Token.getTestTokenAddress(Const.TokenID.USDC));
         USDT = IERC20Upgradeable(getTestTokenAddress());
 
         admin = _admin;
@@ -57,6 +59,8 @@ contract UserAgentTest is BNIUserAgentBase, BasicUserAgent {
             return 0x7d43AABC515C356145049227CeE54B608342c0ad; // It' used in cBridge
         } else if (chainId == EthConstantTest.CHAINID) {
             return EthConstantTest.USDT;
+        } else if (chainId == FtmConstantTest.CHAINID) {
+            return 0x7d43AABC515C356145049227CeE54B608342c0ad; // It's used in cBridge.
         } else if (chainId == MaticConstantTest.CHAINID) {
             return MaticConstantTest.USDT;
         }
