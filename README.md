@@ -30,6 +30,7 @@ npx hardhat deploy --network avaxMainnet --tags avaxMainnet_bni
 npx hardhat deploy --network maticMainnet --tags maticMainnet_bni
 ```
 
+After update bniUserAgent in parameters/index.js, execute the below commands.
 ```text
 npx hardhat run --network auroraMainnet ./scripts/deploy/config_BNIUserAgent.js
 npx hardhat run --network avaxMainnet ./scripts/deploy/config_BNIUserAgent.js
@@ -54,6 +55,7 @@ npx hardhat deploy --network bscMainnet --tags bscMainnet_sti
 npx hardhat deploy --network ethMainnet --tags ethMainnet_sti
 ```
 
+After update stiUserAgent in parameters/index.js, execute the below commands.
 ```text
 npx hardhat run --network auroraMainnet ./scripts/deploy/config_STIUserAgent.js
 npx hardhat run --network avaxMainnet ./scripts/deploy/config_STIUserAgent.js
