@@ -30,7 +30,7 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
         isLPChain = (chainIdOnLP == chainId);
 
         bniMinter = _bniMinter;
-        _setBNIVault(chainId, _bniVault);
+        setBNIVault(_bniVault);
     }
 
     function transferOwnership(address newOwner) public virtual override(BasicUserAgent, OwnableUpgradeable) onlyOwner {
@@ -41,27 +41,21 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
         bniMinter = _bniMinter;
     }
 
-    function setBNIVaults(uint[] memory _chainIds, IBNIVault[] memory _bniVaults) external onlyOwner {
-        uint length = _chainIds.length;
-        for (uint i = 0; i < length; i++) {
-            uint chainId = _chainIds[i];
-            require(chainId != 0, "Invalid chainID");
-            _setBNIVault(chainId, _bniVaults[i]);
-        }
-    }
+    function setBNIVault(IBNIVault _bniVault) public onlyOwner {
+        require(address(_bniVault) != address(0), "Invalid vault");
 
-    function _setBNIVault(uint _chainId, IBNIVault _bniVault) internal {
-        address oldVault = address(bniVaults[_chainId]);
-        bniVaults[_chainId] = _bniVault;
-        if (_chainId == Token.getChainID()) {
-            if (oldVault != address(0)) {
-                USDT.safeApprove(oldVault, 0);
-                USDC.safeApprove(oldVault, 0);
-            }
-            if (address(_bniVault) != address(0)) {
-                USDT.safeApprove(address(_bniVault), type(uint).max);
-                USDC.safeApprove(address(_bniVault), type(uint).max);
-            }
+        address oldVault = address(bniVault);
+        if (oldVault != address(0)) {
+            USDT.safeApprove(oldVault, 0);
+            USDC.safeApprove(oldVault, 0);
+        }
+
+        bniVault = _bniVault;
+        if (USDT.allowance(address(this), address(_bniVault)) == 0) {
+            USDT.safeApprove(address(_bniVault), type(uint).max);
+        }
+        if (USDC.allowance(address(this), address(_bniVault)) == 0) {
+            USDC.safeApprove(address(_bniVault), type(uint).max);
         }
     }
 
@@ -122,7 +116,6 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
             uint amount = _amounts[i];
             uint toChainId = _toChainIds[i];
             if (toChainId == chainId) {
-                require(address(bniVaults[chainId]) != address(0), "Invalid bniVault");
                 amountOn += amount;
             } else {
                 if (_lengthOut != i) {

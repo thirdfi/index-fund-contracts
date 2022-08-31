@@ -123,13 +123,6 @@ describe("BNI non-custodial on Avalanche", async () => {
         accounts[0].address,
         accounts[0].address
       ]);
-      await userAgent.connect(deployer).setBNIVaults([
-        param.auroraMainnet.chainId,
-        param.maticMainnet.chainId
-      ],[ // It uses any addresses for test
-        accounts[0].address,
-        accounts[0].address
-      ]);
     });
 
     it("Deposit/Withdraw", async () => {
@@ -345,13 +338,6 @@ describe("BNI non-custodial on Avalanche", async () => {
         accounts[0].address
       ])
       await userAgent.connect(deployer).setUserAgents([
-        param.auroraMainnet.chainId,
-        param.maticMainnet.chainId
-      ],[ // It uses any addresses for test
-        accounts[0].address,
-        accounts[0].address
-      ]);
-      await userAgent.connect(deployer).setBNIVaults([
         param.auroraMainnet.chainId,
         param.maticMainnet.chainId
       ],[ // It uses any addresses for test

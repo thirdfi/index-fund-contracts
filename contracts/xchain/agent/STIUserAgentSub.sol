@@ -77,9 +77,6 @@ contract STIUserAgentSub is STIUserAgentBase {
         uint[] memory _USDT6Amts,
         uint _minterNonce
     ) internal virtual returns (uint _feeAmt) {
-        ISTIVault stiVault = stiVaults[_toChainId];
-        require(address(stiVault) != address(0), "Invalid stiVault");
-
         if (_toChainId == Token.getChainID()) {
             uint balance = usdtBalances[_account];
             uint amountSum;
@@ -106,7 +103,6 @@ contract STIUserAgentSub is STIUserAgentBase {
         uint[] memory _USDT6Amts,
         uint _minterNonce
     ) external onlyRole(ADAPTER_ROLE) {
-        ISTIVault stiVault = stiVaults[Token.getChainID()];
         stiVault.depositByAgent(_account, _tokens, _USDT6Amts, _minterNonce);
     }
 
@@ -173,9 +169,6 @@ contract STIUserAgentSub is STIUserAgentBase {
     function _withdraw(
         address _account, uint _chainId, uint _sharePerc, uint _minterNonce
     ) internal virtual returns (uint _feeAmt) {
-        ISTIVault stiVault = stiVaults[_chainId];
-        require(address(stiVault) != address(0), "Invalid stiVault");
-
         if (_chainId == Token.getChainID()) {
             _withdrawFromVault(stiVault, _account, _sharePerc, _minterNonce);
         } else {
@@ -190,7 +183,7 @@ contract STIUserAgentSub is STIUserAgentBase {
     function withdrawPercByAgent(
         address _account, uint _sharePerc, uint _minterNonce
     ) external onlyRole(ADAPTER_ROLE) {
-        _withdrawFromVault(stiVaults[Token.getChainID()], _account, _sharePerc, _minterNonce);
+        _withdrawFromVault(stiVault, _account, _sharePerc, _minterNonce);
     }
 
     function _withdrawFromVault(
@@ -303,9 +296,6 @@ contract STIUserAgentSub is STIUserAgentBase {
     }
 
     function _claim(address _account, uint _chainId) private returns (uint _feeAmt) {
-        ISTIVault stiVault = stiVaults[_chainId];
-        require(address(stiVault) != address(0), "Invalid stiVault");
-
         if (_chainId == Token.getChainID()) {
             stiVault.claimByAgent(_account);
         } else {
@@ -318,7 +308,6 @@ contract STIUserAgentSub is STIUserAgentBase {
     }
 
     function claimByAgent(address _account) external onlyRole(ADAPTER_ROLE) {
-        ISTIVault stiVault = stiVaults[Token.getChainID()];
         uint balanceBefore = USDT.balanceOf(address(this));
         stiVault.claimByAgent(_account);
         usdtBalances[_account] += (USDT.balanceOf(address(this)) - balanceBefore);

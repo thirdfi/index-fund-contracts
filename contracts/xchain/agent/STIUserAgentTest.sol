@@ -37,7 +37,7 @@ contract STIUserAgentTest is STIUserAgent {
         isLPChain = (chainIdOnLP == chainId);
 
         stiMinter = _stiMinter;
-        _setSTIVault(chainId, _stiVault);
+        setSTIVault(_stiVault);
     }
 
     function initDeposit(uint _pool, uint _USDT6Amt, bytes calldata _signature) external payable override whenNotPaused returns (uint _feeAmt) {

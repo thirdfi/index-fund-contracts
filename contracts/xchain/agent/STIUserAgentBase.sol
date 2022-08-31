@@ -11,8 +11,7 @@ contract STIUserAgentBase is BasicUserAgentBase {
     bool public isLPChain;
 
     ISTIMinter public stiMinter;
-    // Map of STIVaults (chainId => STIVault).
-    mapping(uint => ISTIVault) public stiVaults;
+    ISTIVault public stiVault;
 
     // Address of sub-implementation contract
     address public subImpl;

@@ -77,9 +77,6 @@ contract BNIUserAgentSub is BNIUserAgentBase {
         uint[] memory _USDT6Amts,
         uint _minterNonce
     ) internal virtual returns (uint _feeAmt) {
-        IBNIVault bniVault = bniVaults[_toChainId];
-        require(address(bniVault) != address(0), "Invalid bniVault");
-
         if (_toChainId == Token.getChainID()) {
             uint balance = usdtBalances[_account];
             uint amountSum;
@@ -106,7 +103,6 @@ contract BNIUserAgentSub is BNIUserAgentBase {
         uint[] memory _USDT6Amts,
         uint _minterNonce
     ) external onlyRole(ADAPTER_ROLE) {
-        IBNIVault bniVault = bniVaults[Token.getChainID()];
         bniVault.depositByAgent(_account, _tokens, _USDT6Amts, _minterNonce);
     }
 
@@ -173,9 +169,6 @@ contract BNIUserAgentSub is BNIUserAgentBase {
     function _withdraw(
         address _account, uint _chainId, uint _sharePerc, uint _minterNonce
     ) internal virtual returns (uint _feeAmt) {
-        IBNIVault bniVault = bniVaults[_chainId];
-        require(address(bniVault) != address(0), "Invalid bniVault");
-
         if (_chainId == Token.getChainID()) {
             _withdrawFromVault(bniVault, _account, _sharePerc, _minterNonce);
         } else {
@@ -190,7 +183,7 @@ contract BNIUserAgentSub is BNIUserAgentBase {
     function withdrawPercByAgent(
         address _account, uint _sharePerc, uint _minterNonce
     ) external onlyRole(ADAPTER_ROLE) {
-        _withdrawFromVault(bniVaults[Token.getChainID()], _account, _sharePerc, _minterNonce);
+        _withdrawFromVault(bniVault, _account, _sharePerc, _minterNonce);
     }
 
     function _withdrawFromVault(

@@ -11,8 +11,7 @@ contract BNIUserAgentBase is BasicUserAgentBase {
     bool public isLPChain;
 
     IBNIMinter public bniMinter;
-    // Map of BNIVaults (chainId => BNIVault).
-    mapping(uint => IBNIVault) public bniVaults;
+    IBNIVault public bniVault;
 
     // Address of sub-implementation contract
     address public subImpl;

@@ -10,6 +10,12 @@ module.exports = {
 
   auroraMainnet: {
     chainId: 1313161554,
+    Securo: {
+      mchainAdapter: AddressZero,
+      cbridgeAdapter: "",
+      bniUserAgent: "",
+      stiUserAgent: "",
+    },
     biconomy: AddressZero,
     Bastion: {
       cNEAR: "0x8C14ea853321028a7bb5E4FB0d0147F183d3B677",
@@ -31,6 +37,12 @@ module.exports = {
 
   avaxMainnet: {
     chainId: 43114,
+    Securo: {
+      mchainAdapter: "",
+      cbridgeAdapter: "",
+      bniUserAgent: "",
+      stiUserAgent: "",
+    },
     biconomy: "0x64CD353384109423a966dCd3Aa30D884C9b2E057",
     Aave3: {
       aAvaWBTC: "0x078f358208685046a11C85e8ad32895DED33A249",
@@ -58,6 +70,12 @@ module.exports = {
 
   bscMainnet: {
     chainId: 56,
+    Securo: {
+      mchainAdapter: "",
+      cbridgeAdapter: "",
+      bniUserAgent: AddressZero,
+      stiUserAgent: "",
+    },
     biconomy: "0x86C80a8aa58e0A4fa09A69624c31Ab2a6CAD56b8",
     PancakeSwap: {
       Farm_USDT_USDC_pid: 48,
@@ -80,6 +98,12 @@ module.exports = {
 
   ethMainnet: {
     chainId: 1,
+    Securo: {
+      mchainAdapter: "",
+      cbridgeAdapter: "",
+      bniUserAgent: AddressZero,
+      stiUserAgent: "",
+    },
     biconomy: "0x84a0856b038eaAd1cC7E297cF34A7e72685A8693",
     Swap: {
       router: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", // Uniswap v2
@@ -99,6 +123,12 @@ module.exports = {
 
   maticMainnet: {
     chainId: 137,
+    Securo: {
+      mchainAdapter: "",
+      cbridgeAdapter: "",
+      bniUserAgent: "",
+      stiUserAgent: AddressZero,
+    },
     biconomy: "0x86C80a8aa58e0A4fa09A69624c31Ab2a6CAD56b8",
     Aave3: {
       aPolWMATIC: "0x6d80113e533a2C0fe82EaBD35f1875DcEA89Ea97",

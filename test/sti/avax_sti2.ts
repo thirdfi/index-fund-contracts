@@ -129,15 +129,6 @@ describe("STI non-custodial on Avalanche", async () => {
         accounts[0].address,
         accounts[0].address,
       ]);
-      await userAgent.connect(deployer).setSTIVaults([
-        param.auroraMainnet.chainId,
-        param.bscMainnet.chainId,
-        param.ethMainnet.chainId,
-      ],[ // It uses any addresses for test
-        accounts[0].address,
-        accounts[0].address,
-        accounts[0].address,
-      ]);
     });
 
     it("Deposit/Withdraw", async () => {
@@ -423,15 +414,6 @@ describe("STI non-custodial on Avalanche", async () => {
         accounts[0].address
       ])
       await userAgent.connect(deployer).setUserAgents([
-        param.auroraMainnet.chainId,
-        param.bscMainnet.chainId,
-        param.ethMainnet.chainId,
-      ],[ // It uses any addresses for test
-        accounts[0].address,
-        accounts[0].address,
-        accounts[0].address,
-      ]);
-      await userAgent.connect(deployer).setSTIVaults([
         param.auroraMainnet.chainId,
         param.bscMainnet.chainId,
         param.ethMainnet.chainId,

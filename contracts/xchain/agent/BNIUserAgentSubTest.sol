@@ -20,9 +20,6 @@ contract BNIUserAgentSubTest is BNIUserAgentSub {
         uint[] memory _USDT6Amts,
         uint _minterNonce
     ) internal override returns (uint _feeAmt) {
-        IBNIVault bniVault = bniVaults[_toChainId];
-        require(address(bniVault) != address(0), "Invalid bniVault");
-
         if (_toChainId == Token.getChainID()) {
             uint balance = usdtBalances[_account];
             uint amountSum;
@@ -43,9 +40,6 @@ contract BNIUserAgentSubTest is BNIUserAgentSub {
     function _withdraw(
         address _account, uint _chainId, uint _sharePerc, uint _minterNonce
     ) internal override returns (uint _feeAmt) {
-        IBNIVault bniVault = bniVaults[_chainId];
-        require(address(bniVault) != address(0), "Invalid bniVault");
-
         if (_chainId == Token.getChainID()) {
             _withdrawFromVault(bniVault, _account, _sharePerc, _minterNonce);
         } else {

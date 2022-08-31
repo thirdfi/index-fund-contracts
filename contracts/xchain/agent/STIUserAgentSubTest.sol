@@ -20,9 +20,6 @@ contract STIUserAgentSubTest is STIUserAgentSub {
         uint[] memory _USDT6Amts,
         uint _minterNonce
     ) internal override returns (uint _feeAmt) {
-        ISTIVault stiVault = stiVaults[_toChainId];
-        require(address(stiVault) != address(0), "Invalid stiVault");
-
         if (_toChainId == Token.getChainID()) {
             uint balance = usdtBalances[_account];
             uint amountSum;
@@ -71,9 +68,6 @@ contract STIUserAgentSubTest is STIUserAgentSub {
     function _withdraw(
         address _account, uint _chainId, uint _sharePerc, uint _minterNonce
     ) internal override returns (uint _feeAmt) {
-        ISTIVault stiVault = stiVaults[_chainId];
-        require(address(stiVault) != address(0), "Invalid stiVault");
-
         if (_chainId == Token.getChainID()) {
             _withdrawFromVault(stiVault, _account, _sharePerc, _minterNonce);
         } else {

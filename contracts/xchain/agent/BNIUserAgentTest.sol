@@ -37,7 +37,7 @@ contract BNIUserAgentTest is BNIUserAgent {
         isLPChain = (chainIdOnLP == chainId);
 
         bniMinter = _bniMinter;
-        _setBNIVault(chainId, _bniVault);
+        setBNIVault(_bniVault);
     }
 
     function transfer(

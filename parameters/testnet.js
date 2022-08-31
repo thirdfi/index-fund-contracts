@@ -10,6 +10,12 @@ module.exports = {
 
   auroraTestnet: {
     chainId: 1313161555,
+    Securo: {
+      mchainAdapter: AddressZero,
+      cbridgeAdapter: "0x2D8d132fe8Ac9F979E40a23caCB42C9c69b6c252",
+      bniUserAgent: "0x1edfd9120254B82441fEfbCf2D4fB9ccbCfa07c0",
+      stiUserAgent: "0xbBBe66F9C0aC9B7790296f0BEd27047f377BDC01",
+    },
     biconomy: AddressZero,
     Bastion: {
       cNEAR: "0x8C14ea853321028a7bb5E4FB0d0147F183d3B677",
@@ -31,6 +37,12 @@ module.exports = {
 
   avaxTestnet: {
     chainId: 43113,
+    Securo: {
+      mchainAdapter: "0x2Cb3455B63a04B84c4161d3E683f2bF574a39340",
+      cbridgeAdapter: "0xe96a94AdA89d50A90DA6a1A4BD84d7A0277055e7",
+      bniUserAgent: "0x86377B4726eC01c8378c2d8fB5BA95E8B866a0bf",
+      stiUserAgent: "0xb9Af9Fd316e9cF7Bd5FC1561F9dED28Fb9560031",
+    },
     biconomy: "0x6271Ca63D30507f2Dcbf99B52787032506D75BBF",
     Aave3: {
       aAvaWBTC: "0x07B2C0b69c70e89C94A20A555Ab376E5a6181eE6",
@@ -58,6 +70,12 @@ module.exports = {
 
   bscTestnet: {
     chainId: 97,
+    Securo: {
+      mchainAdapter: "0x8f4C0598A3a72142fEe00DB35f963BD9db62de2D",
+      cbridgeAdapter: "0xECF8bE649F83737d2952Eb1f3Bb1102ed36F6b1C",
+      bniUserAgent: AddressZero,
+      stiUserAgent: "0x9Ba0B916144fC36595c4A9941464E39d24806b8a",
+    },
     biconomy: "0x61456BF1715C1415730076BB79ae118E806E74d2",
     PancakeSwap: {
       Farm_USDT_USDC_pid: 48,
@@ -80,6 +98,12 @@ module.exports = {
 
   ethRinkeby: {
     chainId: 4,
+    Securo: {
+      mchainAdapter: "0x9D59b72964A7Fdb4AEa066101663FdFF710DdC05",
+      cbridgeAdapter: "0x1F19bAF99C103b3afC9f9734566f57F7eEE6B47c",
+      bniUserAgent: AddressZero,
+      stiUserAgent: "0x2D1d9A1E12626Ba50664faeDf2DD267ef110541c",
+    },
     biconomy: "0xFD4973FeB2031D4409fB57afEE5dF2051b171104",
     Swap: {
       router: "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D", // Uniswap v2
@@ -99,6 +123,12 @@ module.exports = {
 
   maticMumbai: {
     chainId: 80001,
+    Securo: {
+      mchainAdapter: "0x09BE4DF001Af1944214A1BF2883E7EbDc79d174a",
+      cbridgeAdapter: "0x82FaC35fFB3eBcEe89FEcE6Cb7b9763dc504Af31",
+      bniUserAgent: "0x846AB2a040ff470dfb513038e78844014e4686FF",
+      stiUserAgent: AddressZero,
+    },
     biconomy: "0x9399BB24DBB5C4b782C70c2969F58716Ebbd6a3b",
     Aave3: {
       aPolWMATIC: "0x89a6AE840b3F8f489418933A220315eeA36d11fF",
