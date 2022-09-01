@@ -94,6 +94,7 @@ module.exports = async ({ deployments }) => {
       contract: "contracts/xchain/agent/BNIUserAgentTest.sol:BNIUserAgentTest",
     });
   } catch(e) {
+    console.log(e)
   }
 
 };

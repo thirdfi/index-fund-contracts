@@ -3,6 +3,7 @@ pragma solidity  0.8.9;
 
 import "../../../libs/Const.sol";
 import "../../../libs/Token.sol";
+import "../../bni/constant/AuroraConstantTest.sol";
 import "../../bni/constant/AvaxConstantTest.sol";
 import "../../bni/IBNIMinter.sol";
 import "../../bni/IBNIVault.sol";
@@ -32,9 +33,9 @@ contract BNIUserAgentTest is BNIUserAgent {
         setCBridgeAdapter(_cbridgeAdapter);
 
         subImpl = _subImpl;
-        uint chainId = Token.getChainID();
-        chainIdOnLP = AvaxConstant.CHAINID;
-        isLPChain = (chainIdOnLP == chainId);
+        chainIdOnLP = AvaxConstantTest.CHAINID;
+        isLPChain = (chainIdOnLP == Token.getChainID());
+        callAdapterTypes[AuroraConstantTest.CHAINID] = AdapterType.CBridge; // Multichain is not supported on Aurora
 
         bniMinter = _bniMinter;
         setBNIVault(_bniVault);

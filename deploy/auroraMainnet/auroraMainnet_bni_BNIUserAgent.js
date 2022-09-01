@@ -1,4 +1,5 @@
 const { ethers } = require("hardhat");
+const param = require('../../parameters');
 const { common, auroraMainnet: network_ } = require('../../parameters');
 const AddressZero = ethers.constants.AddressZero;
 
@@ -67,6 +68,27 @@ module.exports = async ({ deployments }) => {
       await tx.wait();
     }
   } catch(e) {
+    console.log(e);
+  }
+
+  // Multichain is not supported on Aurora
+  try {
+    if (await userAgent.callAdapterTypes(param.avaxMainnet.chainId) == 0) {
+      const tx = await userAgent.setCallAdapterTypes([
+        param.avaxMainnet.chainId,
+        param.bscMainnet.chainId,
+        param.ethMainnet.chainId,
+        param.maticMainnet.chainId,
+      ],[
+        1,
+        1,
+        1,
+        1,
+      ]);
+      tx.wait();
+    }
+  } catch(e) {
+    console.log(e);
   }
 
   // Verify the implementation contract

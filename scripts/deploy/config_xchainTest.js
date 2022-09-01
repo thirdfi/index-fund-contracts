@@ -11,11 +11,13 @@ async function main() {
             param.avaxTestnet.chainId,
             param.bscTestnet.chainId,
             param.ethRinkeby.chainId,
+            param.ftmTestnet.chainId,
             param.maticMumbai.chainId
         ],[
             param.avaxTestnet.Securo.mchainAdapter,
             param.bscTestnet.Securo.mchainAdapter,
             param.ethRinkeby.Securo.mchainAdapter,
+            param.ftmTestnet.Securo.mchainAdapter,
             param.maticMumbai.Securo.mchainAdapter
         ]);
         tx.wait();
@@ -33,12 +35,14 @@ async function main() {
             param.avaxTestnet.chainId,
             param.bscTestnet.chainId,
             param.ethRinkeby.chainId,
+            param.ftmTestnet.chainId,
             param.maticMumbai.chainId
           ],[
             param.auroraTestnet.Securo.cbridgeAdapter,
             param.avaxTestnet.Securo.cbridgeAdapter,
             param.bscTestnet.Securo.cbridgeAdapter,
             param.ethRinkeby.Securo.cbridgeAdapter,
+            param.ftmTestnet.Securo.cbridgeAdapter,
             param.maticMumbai.Securo.cbridgeAdapter
           ]);
           tx.wait();

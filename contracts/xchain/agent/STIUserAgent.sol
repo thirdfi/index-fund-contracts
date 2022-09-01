@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "../../../libs/Const.sol";
 import "../../../libs/Token.sol";
+import "../../bni/constant/AuroraConstant.sol";
 import "../../bni/constant/AvaxConstant.sol";
 import "../../sti/ISTIMinter.sol";
 import "../../sti/ISTIVault.sol";
@@ -25,9 +26,9 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         super.initialize(_admin, _swap, _multichainAdapter, _cbridgeAdapter);
 
         subImpl = _subImpl;
-        uint chainId = Token.getChainID();
         chainIdOnLP = AvaxConstant.CHAINID;
-        isLPChain = (chainIdOnLP == chainId);
+        isLPChain = (chainIdOnLP == Token.getChainID());
+        callAdapterTypes[AuroraConstant.CHAINID] = AdapterType.CBridge; // Multichain is not supported on Aurora
 
         stiMinter = _stiMinter;
         setSTIVault(_stiVault);

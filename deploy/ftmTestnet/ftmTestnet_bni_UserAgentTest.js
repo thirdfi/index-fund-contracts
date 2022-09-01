@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { common, ftmTestnet: network_ } = require('../../parameters/testnet');
+const { common } = require('../../parameters/testnet');
 const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
@@ -16,7 +16,7 @@ module.exports = async ({ deployments }) => {
   const mchainAdapterProxy = await ethers.getContract("MultichainXChainAdapterTest_Proxy");
   const cbridgeAdapterProxy = await ethers.getContract("CBridgeXChainAdapterTest_Proxy");
   const minterAddress = AddressZero;
-  const vaultProxy = await ethers.getContract("BNIVaultTest_Proxy");
+  const vaultAddress = AddressZero;
 
   console.log("Now deploying UserAgentTest...");
   const proxy = await deploy("UserAgentTest", {
@@ -31,7 +31,7 @@ module.exports = async ({ deployments }) => {
             common.admin,
             swapProxy.address,
             mchainAdapterProxy.address, cbridgeAdapterProxy.address,
-            minterAddress, vaultProxy.address,
+            minterAddress, vaultAddress,
           ],
         },
       },
@@ -63,16 +63,6 @@ module.exports = async ({ deployments }) => {
   if (await cbridgeAdapter.hasRole(CLIENT_ROLE, proxy.address) === false) {
     const tx = await cbridgeAdapter.grantRole(CLIENT_ROLE, proxy.address);
     tx.wait();
-  }
-
-  try {
-    const BNIVaultTest = await ethers.getContractFactory("BNIVaultTest");
-    const vault = BNIVaultTest.attach(vaultProxy.address);
-    if (await vault.userAgent() === AddressZero) {
-      const tx = await vault.initialize2(proxy.address, network_.biconomy);
-      await tx.wait();
-    }
-  } catch(e) {
   }
 
   // Verify the implementation contract

@@ -23,8 +23,8 @@ contract BasicUserAgentBase is
     OwnableUpgradeable
 {
     enum AdapterType {
-        CBridge,
-        Multichain
+        Multichain, // Default adapter
+        CBridge
     }
 
     bytes32 public constant ADAPTER_ROLE = keccak256("ADAPTER_ROLE");

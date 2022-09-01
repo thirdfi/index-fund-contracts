@@ -1,4 +1,5 @@
 const { ethers } = require("hardhat");
+const param = require('../../parameters');
 const { common } = require('../../parameters');
 const AddressZero = ethers.constants.AddressZero;
 
@@ -64,6 +65,26 @@ module.exports = async ({ deployments }) => {
   if (await vault.userAgent() === AddressZero) {
     const tx = await vault.setUserAgent(proxy.address);
     await tx.wait();
+  }
+
+  // Multichain is not supported on Aurora
+  try {
+    if (await userAgent.callAdapterTypes(param.avaxMainnet.chainId) == 0) {
+      const tx = await userAgent.setCallAdapterTypes([
+        param.avaxMainnet.chainId,
+        param.bscMainnet.chainId,
+        param.ethMainnet.chainId,
+        param.maticMainnet.chainId,
+      ],[
+        1,
+        1,
+        1,
+        1,
+      ]);
+      tx.wait();
+    }
+  } catch(e) {
+    console.log(e);
   }
 
   // Verify the implementation contract

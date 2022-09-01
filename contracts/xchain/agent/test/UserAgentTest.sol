@@ -5,7 +5,8 @@ import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
 import "../../../../libs/Const.sol";
 import "../../../../libs/Token.sol";
-import "../../../bni/constant/AvaxConstant.sol";
+import "../../../bni/constant/AuroraConstantTest.sol";
+import "../../../bni/constant/AvaxConstantTest.sol";
 import "../../../bni/IBNIMinter.sol";
 import "../../../bni/IBNIVault.sol";
 import "../../../swap/ISwap.sol";
@@ -20,6 +21,10 @@ import "../../../bni/constant/MaticConstantTest.sol";
 
 contract UserAgentTest is BNIUserAgentBase, BasicUserAgent {
     using SafeERC20Upgradeable for IERC20Upgradeable;
+
+    uint public testValue;
+
+    event TestCall(uint newTestValue);
 
     function initialize1(
         address _subImpl,
@@ -41,9 +46,9 @@ contract UserAgentTest is BNIUserAgentBase, BasicUserAgent {
         setCBridgeAdapter(_cbridgeAdapter);
 
         subImpl = _subImpl;
-        uint chainId = Token.getChainID();
-        chainIdOnLP = AvaxConstant.CHAINID;
-        isLPChain = (chainIdOnLP == chainId);
+        chainIdOnLP = AvaxConstantTest.CHAINID;
+        isLPChain = (chainIdOnLP == Token.getChainID());
+        callAdapterTypes[AuroraConstantTest.CHAINID] = AdapterType.CBridge; // Multichain is not supported on Aurora
 
         bniMinter = _bniMinter;
         setBNIVault(_bniVault);
@@ -76,17 +81,30 @@ contract UserAgentTest is BNIUserAgentBase, BasicUserAgent {
     }
 
     function setBNIVault(IBNIVault _bniVault) public onlyOwner {
-        require(address(_bniVault) != address(0), "Invalid vault");
-
         address oldVault = address(bniVault);
         if (oldVault != address(0)) {
             USDT.safeApprove(oldVault, 0);
         }
 
         bniVault = _bniVault;
-        if (USDT.allowance(address(this), address(_bniVault)) == 0) {
+        if (address(_bniVault) != address(0) && USDT.allowance(address(this), address(_bniVault)) == 0) {
             USDT.safeApprove(address(_bniVault), type(uint).max);
         }
+    }
+
+    function testCall(uint _toChainId, uint _value) external payable virtual onlyOwner returns (uint _feeAmt) {
+        if (!isLPChain) {
+            bytes memory _targetCallData = abi.encodeWithSelector(
+                UserAgentTest.testCallByAdmin.selector,
+                _value
+            );
+            _feeAmt = _call(_toChainId, userAgents[_toChainId], 0, _targetCallData, false);
+        }
+    }
+
+    function testCallByAdmin(uint _value) external onlyRole(ADAPTER_ROLE) {
+        testValue = _value;
+        emit TestCall(_value);
     }
 
     /// @dev It calls initDepositByAdmin of BNIMinter.

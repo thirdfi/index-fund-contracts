@@ -3,6 +3,7 @@ pragma solidity  0.8.9;
 
 import "../../../libs/Const.sol";
 import "../../../libs/Token.sol";
+import "../../bni/constant/AuroraConstantTest.sol";
 import "../../bni/constant/EthConstantTest.sol";
 import "../../sti/ISTIMinter.sol";
 import "../../sti/ISTIVault.sol";
@@ -32,9 +33,9 @@ contract STIUserAgentTest is STIUserAgent {
         setCBridgeAdapter(_cbridgeAdapter);
 
         subImpl = _subImpl;
-        uint chainId = Token.getChainID();
         chainIdOnLP = EthConstantTest.CHAINID;
-        isLPChain = (chainIdOnLP == chainId);
+        isLPChain = (chainIdOnLP == Token.getChainID());
+        callAdapterTypes[AuroraConstantTest.CHAINID] = AdapterType.CBridge; // Multichain is not supported on Aurora
 
         stiMinter = _stiMinter;
         setSTIVault(_stiVault);
