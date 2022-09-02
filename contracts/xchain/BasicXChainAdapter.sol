@@ -64,6 +64,13 @@ contract BasicXChainAdapter is IXChainAdapter,
         return 0;
     }
 
+    function minTransfer(
+        address, // _token
+        uint // _toChainId
+    ) public view virtual returns (uint) {
+        return 0;
+    }
+
     receive() external payable {}
 
     /**

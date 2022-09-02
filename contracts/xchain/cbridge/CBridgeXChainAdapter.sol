@@ -10,6 +10,7 @@ import "../BasicXChainAdapter.sol";
 import "../agent/IUserAgent.sol";
 import "./MessageReceiverApp.sol";
 import "./MessageSenderApp.sol";
+import "./ICBridge.sol";
 
 contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXChainAdapter {
     using AddressUpgradeable for address;
@@ -48,18 +49,25 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
     mapping(uint => TransferEntry) public transfers;
     FallbackEntry[] public fallbacks;
 
+    ICBridge public bridge;
+
     event Transfer(uint nonce, address from, address indexed token, uint indexed amount, uint indexed toChainId, address to);
     event Receive(uint indexed fromChainId, uint nonce, address indexed token, uint indexed amount, address to);
     event Refund(uint nonce, address from, address indexed token, uint indexed amount, uint indexed toChainId, address to);
 
-    function initialize1(address _messageBus) external virtual initializer {
+    function initialize1(address _messageBus, ICBridge _bridge) external virtual initializer {
         super.initialize();
         messageBus = _messageBus;
+        bridge = _bridge;
         maxSlippage = 5_0000; // 5%
     }
 
     function transferOwnership(address newOwner) public virtual override(BasicXChainAdapter, OwnableUpgradeable) onlyOwner {
         BasicXChainAdapter.transferOwnership(newOwner);
+    }
+
+    function setBridge(ICBridge _bridge) external onlyOwner {
+        bridge = _bridge;
     }
 
     function setMaxSlippage(uint32 _maxSlippage) external onlyOwner {
@@ -245,5 +253,12 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
     ) public view override returns (uint) {
         bytes memory message = abi.encode(_targetContract, _targetCallValue, _targetCallData);
         return IMessageBus(messageBus).calcFee(message);
+    }
+
+    function minTransfer(
+        address _token,
+        uint // _toChainId
+    ) public view override returns (uint) {
+        return bridge.minSend(_token);
     }
 }

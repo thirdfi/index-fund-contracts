@@ -3,6 +3,7 @@ pragma solidity  0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "../../../interfaces/IERC20UpgradeableExt.sol";
 import "../../../libs/Const.sol";
 import "../../../libs/Token.sol";
 import "../BasicXChainAdapter.sol";
@@ -99,9 +100,9 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
         uint _toChainId,
         address _to
     ) internal {
-        AnyswapMap.Entry memory entry = anyswapMap[_token][_chainId];
-        require(_amount >= (anyswapMap[_token][_toChainId].minimumSwap * (10 ** entry.underlyingDecimals)), "Too small amount");
+        require(_amount >= minTransfer(_token, _toChainId), "Too small amount");
 
+        AnyswapMap.Entry memory entry = anyswapMap[_token][_chainId];
         IAnyswapV6Router(entry.router).anySwapOutUnderlying(entry.anyToken, _to, _amount, _toChainId);
         emit Transfer(msg.sender, entry.underlying, _amount, _toChainId, _to);
     }
@@ -127,5 +128,13 @@ contract MultichainXChainAdapter is BasicXChainAdapter {
     ) public view virtual override returns (uint) {
         bytes memory message = abi.encode(_targetContract, _targetCallValue, _targetCallData);
         return anycallRouter.calcSrcFees("", _toChainId, message.length);
+    }
+
+    function minTransfer(
+        address _token,
+        uint _toChainId
+    ) public view override returns (uint) {
+        uint8 decimals = IERC20UpgradeableExt(_token).decimals();
+        return anyswapMap[_token][_toChainId].minimumSwap * (10 ** decimals);
     }
 }

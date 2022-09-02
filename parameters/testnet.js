@@ -32,6 +32,7 @@ module.exports = {
     },
     cBridge: {
       messageBus: AddressZero,
+      bridge: AddressZero,
     },
   },
 
@@ -65,6 +66,7 @@ module.exports = {
     },
     cBridge: {
       messageBus: "0xE9533976C590200E32d95C53f06AE12d292cFc47",
+      bridge: "0xe95E3a9f1a45B5EDa71781448F6047d7B7e31cbF",
     },
   },
 
@@ -93,6 +95,7 @@ module.exports = {
     },
     cBridge: {
       messageBus: "0xAd204986D6cB67A5Bc76a3CB8974823F43Cb9AAA",
+      bridge: "0xf89354F314faF344Abd754924438bA798E306DF2",
     },
   },
 
@@ -118,6 +121,7 @@ module.exports = {
     },
     cBridge: {
       messageBus: AddressZero,
+      bridge: AddressZero,
     },
   },
 
@@ -140,6 +144,7 @@ module.exports = {
     },
     cBridge: {
       messageBus: "0xb92d6933A024bcca9A21669a480C236Cbc973110",
+      bridge: "0xFA78cBa4ebbf8fE28B4fC1468948F16Fda2752b3",
     },
   },
 
@@ -163,6 +168,7 @@ module.exports = {
     },
     cBridge: {
       messageBus: "0x7d43AABC515C356145049227CeE54B608342c0ad",
+      bridge: "0x841ce48F9446C8E281D3F1444cB859b4A6D0738C",
     },
   },
 

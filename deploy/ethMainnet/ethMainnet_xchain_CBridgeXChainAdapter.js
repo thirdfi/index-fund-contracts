@@ -15,6 +15,7 @@ module.exports = async ({ deployments }) => {
           methodName: "initialize1",
           args: [
             network_.cBridge.messageBus,
+            network_.cBridge.bridge,
           ],
         },
       },

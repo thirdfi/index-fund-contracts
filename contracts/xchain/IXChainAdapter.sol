@@ -25,4 +25,9 @@ interface IXChainAdapter {
         uint _targetCallValue,
         bytes memory _targetCallData
     ) external view returns (uint);
+
+    function minTransfer(
+        address _token,
+        uint _toChainId
+    ) external view returns (uint);
 }
