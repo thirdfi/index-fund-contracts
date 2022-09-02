@@ -1,0 +1,23 @@
+[[multichain]]
+chainID = 97
+name = "BSC Testnet"
+gateway = "https://data-seed-prebsc-2-s3.binance.org:8545/"
+cbridge = "0xf89354F314faF344Abd754924438bA798E306DF2"
+msgbus = "0xAd204986D6cB67A5Bc76a3CB8974823F43Cb9AAA"
+blkinterval = 5
+blkdelay = 8
+maxblkdelta = 5000
+addgasestimateratio = 0.1 # multiply gas limit by this ratio
+
+
+[[multichain]]
+chainID = 4002
+name = "Fantom Testnet"
+gateway = "https://rpc.testnet.fantom.network"
+cbridge = "0xFA78cBa4ebbf8fE28B4fC1468948F16Fda2752b3"
+msgbus = "0xb92d6933A024bcca9A21669a480C236Cbc973110"
+blkinterval = 5
+blkdelay = 8
+maxblkdelta = 5000
+addgasestimateratio = 0.1 # multiply gas limit by this ratio
+

@@ -123,11 +123,11 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
                     _amounts[_lengthOut] = amount;
                     _toChainIds[_lengthOut] = toChainId;
                     _adapterTypes[_lengthOut] = _adapterTypes[i];
-
-                    address toUserAgent = userAgents[toChainId];
-                    require(toUserAgent != address(0), "Invalid user agent");
-                    _toAddresses[_lengthOut] = toUserAgent;
                 }
+                address toUserAgent = userAgents[toChainId];
+                require(toUserAgent != address(0), "Invalid user agent");
+                _toAddresses[_lengthOut] = toUserAgent;
+
                 _lengthOut ++;
                 amountOut += amount;
             }

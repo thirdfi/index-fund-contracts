@@ -1,0 +1,39 @@
+# since we don't want the executor to execute messages that are not sent by our
+# SimpleBatchTransfer contract, the following items are added to filter only
+# the ones we care about
+
+[executor]
+enable_auto_refund = true
+
+[[service]]
+# Fully qualified absolute path only, "~" would not work
+signer_keystore = "/home/user/.executor/eth-ks/signer.json"
+signer_passphrase = ""
+
+[[service.contract_sender_groups]]
+# the name/ID of the group. service.contracts refer to a sender group in allow_sender_groups
+name = "CBridgeXChainAdapter" 
+allow = [
+  # allow and execute messages originated from addresses on the specified chains
+  { chain_id = 97, address = "0x43F26Eab9405966B77d49B9731746E3be1A8Db80" },
+  { chain_id = 4002, address = "0xe78fE82C79E3E0F3D8AF5fecD6719eCf47f80B1D" },
+]
+
+[[service.contracts]]
+chain_id = 97 # Bsc testnet
+address = "0x43F26Eab9405966B77d49B9731746E3be1A8Db80"
+allow_sender_groups = ["CBridgeXChainAdapter"]
+
+[[service.contracts]]
+chain_id = 4002 # Fantom testnet
+address = "0xe78fE82C79E3E0F3D8AF5fecD6719eCf47f80B1D"
+allow_sender_groups = ["CBridgeXChainAdapter"]
+
+[sgnd]
+# SGN testnet node0 grpc. executor reads available messages from this endpoint
+sgn_grpc = "cbridge-v2-test.celer.network:9094" 
+# SGN testnet gateway grpc. all tx operations to the SGN is delegated through it
+gateway_grpc = "cbridge-v2-test.celer.network:9094" 
+
+[db]
+url = "localhost:26257"

@@ -185,6 +185,7 @@ contract CBridgeXChainAdapter is MessageSenderApp, MessageReceiverApp, BasicXCha
     ) internal {
         address peer = peers[_toChainId];
         require(peer != address(0), "No peer");
+        require(_to != address(0), "Invalid _to");
         uint _nonce = nonce;
 
         transfers[_nonce] = TransferEntry({
