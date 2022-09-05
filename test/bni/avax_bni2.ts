@@ -4,6 +4,7 @@ import Safe, { SafeFactory, SafeAccountConfig } from '@gnosis.pm/safe-core-sdk'
 import EthersAdapter from '@gnosis.pm/safe-ethers-lib'
 import { parseEther } from 'ethers/lib/utils';
 const { BigNumber } = ethers;
+const AddressZero = ethers.constants.AddressZero;
 
 const ERC20_ABI = require("@openzeppelin/contracts-upgradeable/build/contracts/ERC20Upgradeable.json").abi;
 const param = require("../../parameters");
@@ -18,8 +19,8 @@ function getUsdtAmount(amount) {
   return BigNumber.from(amount).mul(BigNumber.from(10).pow(6))
 }
 
-const CBridge = 0;
-const Multichain = 1;
+const Multichain = 0;
+const CBridge = 1;
 
 describe("BNI non-custodial on Avalanche", async () => {
 
@@ -54,6 +55,38 @@ describe("BNI non-custodial on Avalanche", async () => {
     await userAgent.connect(deployer).setAdmin(admin.address);
 
     usdt = new ethers.Contract(network_.Swap.USDT, ERC20_ABI, deployer);
+
+    await mchainAdapter.connect(deployer).setPeers([
+      param.avaxMainnet.chainId,
+      param.bscMainnet.chainId,
+      param.ethMainnet.chainId,
+      param.maticMainnet.chainId
+    ],[ // It uses any addresses for test
+      accounts[0].address,
+      accounts[0].address,
+      accounts[0].address,
+      accounts[0].address
+    ]);
+    await cbridgeAdapter.connect(deployer).setPeers([
+      param.auroraMainnet.chainId,
+      param.avaxMainnet.chainId,
+      param.bscMainnet.chainId,
+      param.ethMainnet.chainId,
+      param.maticMainnet.chainId
+    ],[ // It uses any addresses for test
+      accounts[0].address,
+      accounts[0].address,
+      accounts[0].address,
+      accounts[0].address,
+      accounts[0].address
+    ])
+    await userAgent.connect(deployer).setUserAgents([
+      param.auroraMainnet.chainId,
+      param.maticMainnet.chainId
+    ],[ // It uses any addresses for test
+      accounts[0].address,
+      accounts[0].address
+    ]);
   });
 
   describe('Basic', () => {
@@ -86,45 +119,25 @@ describe("BNI non-custodial on Avalanche", async () => {
       );
       dataHash = await userAgent.getMessageHashForSafe(data);
       signature = await admin.signMessage(ethers.utils.arrayify(dataHash));
+
+      await userAgent.connect(deployer).setUserAgents([param.auroraMainnet.chainId],[AddressZero]);
       await expect(userAgent.transfer(amounts, toChainIds, adapterTypes, signature)).to.be.revertedWith("Invalid user agent");
+    });
+
+    it("Function selectors", async () => {
+      const minterIface = new ethers.utils.Interface(JSON.stringify(minterArtifact.abi));
+      console.log(`initDepositByAdmin: ${minterIface.getSighash("initDepositByAdmin")}`);
+      console.log(`mintByAdmin: ${minterIface.getSighash("mintByAdmin")}`);
+      console.log(`burnByAdmin: ${minterIface.getSighash("burnByAdmin")}`);
+      console.log(`exitWithdrawalByAdmin: ${minterIface.getSighash("exitWithdrawalByAdmin")}`);
+
+      const vaultIface = new ethers.utils.Interface(JSON.stringify(vaultArtifact.abi));
+      console.log(`depositByAdmin: ${vaultIface.getSighash("depositByAdmin")}`);
+      console.log(`withdrawPercByAdmin: ${vaultIface.getSighash("withdrawPercByAdmin")}`);
     });
   });
 
   describe('Test with EOA', () => {
-    beforeEach(async () => {
-      await mchainAdapter.connect(deployer).setPeers([
-        param.avaxMainnet.chainId,
-        param.bscMainnet.chainId,
-        param.ethMainnet.chainId,
-        param.maticMainnet.chainId
-      ],[ // It uses any addresses for test
-        accounts[0].address,
-        accounts[0].address,
-        accounts[0].address,
-        accounts[0].address
-      ]);
-      await cbridgeAdapter.connect(deployer).setPeers([
-        param.auroraMainnet.chainId,
-        param.avaxMainnet.chainId,
-        param.bscMainnet.chainId,
-        param.ethMainnet.chainId,
-        param.maticMainnet.chainId
-      ],[ // It uses any addresses for test
-        accounts[0].address,
-        accounts[0].address,
-        accounts[0].address,
-        accounts[0].address,
-        accounts[0].address
-      ])
-      await userAgent.connect(deployer).setUserAgents([
-        param.auroraMainnet.chainId,
-        param.maticMainnet.chainId
-      ],[ // It uses any addresses for test
-        accounts[0].address,
-        accounts[0].address
-      ]);
-    });
-
     it("Deposit/Withdraw", async () => {
       await usdt.transfer(a1.address, getUsdtAmount('30000'));
       await usdt.connect(a1).approve(userAgent.address, getUsdtAmount('30000'));
@@ -312,38 +325,6 @@ describe("BNI non-custodial on Avalanche", async () => {
       safeSdk = await safeFactory.deploySafe({ safeAccountConfig })
       safeAddress = safeSdk.getAddress();
       await userAgent.connect(deployer).setAdmin(safeAddress);
-
-      await mchainAdapter.connect(deployer).setPeers([
-        param.avaxMainnet.chainId,
-        param.bscMainnet.chainId,
-        param.ethMainnet.chainId,
-        param.maticMainnet.chainId
-      ],[ // It uses any addresses for test
-        accounts[0].address,
-        accounts[0].address,
-        accounts[0].address,
-        accounts[0].address
-      ]);
-      await cbridgeAdapter.connect(deployer).setPeers([
-        param.auroraMainnet.chainId,
-        param.avaxMainnet.chainId,
-        param.bscMainnet.chainId,
-        param.ethMainnet.chainId,
-        param.maticMainnet.chainId
-      ],[ // It uses any addresses for test
-        accounts[0].address,
-        accounts[0].address,
-        accounts[0].address,
-        accounts[0].address,
-        accounts[0].address
-      ])
-      await userAgent.connect(deployer).setUserAgents([
-        param.auroraMainnet.chainId,
-        param.maticMainnet.chainId
-      ],[ // It uses any addresses for test
-        accounts[0].address,
-        accounts[0].address
-      ]);
     });
 
     it("Deposit/Withdraw", async () => {
@@ -370,6 +351,40 @@ describe("BNI non-custodial on Avalanche", async () => {
       expect(ret[2]).equal(getUsdt6Amount('30000'));
       expect(ret[3]).equal(false);
       expect(await minter.poolsAtNonce(0)).equal(pool);
+    });
+  });
+
+  describe('UserAgent', () => {
+    it('gatherByAdmin', async () => {
+      const ADAPTER_ROLE = await userAgent.ADAPTER_ROLE();
+      await userAgent.connect(deployer).grantRole(ADAPTER_ROLE, admin.address);
+
+      await usdt.transfer(a1.address, getUsdtAmount('50000'));
+      await usdt.connect(a1).approve(userAgent.address, getUsdtAmount('50000'));
+      // Transfer USDT tokens to user agents on target networks
+      var toChainIds = [
+        param.avaxMainnet.chainId,
+      ];
+      var amounts = [
+        getUsdtAmount('10000'),
+      ];
+      var adapterTypes = [
+        CBridge,
+      ];
+
+      nonce = await userAgent.nonces(a1.address);
+      data = ethers.utils.solidityKeccak256(
+        ['address', 'uint', 'uint[]', 'uint[]', 'uint8[]'],
+        [a1.address, nonce, amounts, toChainIds, adapterTypes]
+      );
+      dataHash = await userAgent.getMessageHashForSafe(data);
+      signature = await admin.signMessage(ethers.utils.arrayify(dataHash));
+      fee = await userAgent.callStatic.transfer(amounts, toChainIds, adapterTypes, signature);
+      await userAgent.transfer(amounts, toChainIds, adapterTypes, signature, {value: fee});
+
+      await userAgent.connect(admin).gatherByAdmin(a1.address, param.auroraMainnet.chainId, CBridge);
+      expect(await userAgent.usdtBalances(a1.address)).equal(0);
+      expect(await usdt.balanceOf(userAgent.address)).equal(0);
     });
   });
 

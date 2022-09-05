@@ -32,7 +32,7 @@ contract BasicUserAgent is IUserAgent, BasicUserAgentBase {
         USDT = IERC20Upgradeable(Token.getTokenAddress(Const.TokenID.USDT));
 
         admin = _admin;
-        swap = _swap;
+        setSwapper(_swap);
         setMultichainAdapter(_multichainAdapter);
         setCBridgeAdapter(_cbridgeAdapter);
     }
@@ -97,6 +97,24 @@ contract BasicUserAgent is IUserAgent, BasicUserAgentBase {
             _setupRole(ADAPTER_ROLE, newAdapter);
             USDC.safeApprove(newAdapter, type(uint).max);
             USDT.safeApprove(newAdapter, type(uint).max);
+        }
+    }
+
+    function setSwapper(ISwap _swap) public onlyOwner {
+        onChangeTokenSpender(address(swap), address(_swap));
+        swap = _swap;
+    }
+
+    function onChangeTokenSpender(address oldSpender, address newSpender) internal {
+        if (oldSpender == newSpender) return;
+
+        if (oldSpender != address(0)) {
+            USDT.safeApprove(oldSpender, 0);
+            USDC.safeApprove(oldSpender, 0);
+        }
+        if (newSpender != address(0)) {
+            USDC.safeApprove(newSpender, type(uint).max);
+            USDT.safeApprove(newSpender, type(uint).max);
         }
     }
 
