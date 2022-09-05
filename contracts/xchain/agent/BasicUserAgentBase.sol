@@ -5,6 +5,7 @@ import "@openzeppelin/contracts-upgradeable/access/AccessControlEnumerableUpgrad
 import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/security/PausableUpgradeable.sol";
+import "sgn-v2-contracts/contracts/message/interfaces/IMessageReceiverApp.sol";
 import "../../../libs/multiSig/GnosisSafeUpgradeable.sol";
 import "../../../libs/BaseRelayRecipient.sol";
 import "../../../libs/Const.sol";
@@ -25,6 +26,15 @@ contract BasicUserAgentBase is
     enum AdapterType {
         Multichain, // Default adapter
         CBridge
+    }
+
+    struct TransfersPerAdapter {
+        uint[] mchainAmounts;
+        uint[] mchainToChainIds;
+        address[] mchainToAddresses;
+        uint[] cbridgeAmounts;
+        uint[] cbridgeToChainIds;
+        address[] cbridgeToAddresses;
     }
 
     bytes32 public constant ADAPTER_ROLE = keccak256("ADAPTER_ROLE");
@@ -51,6 +61,13 @@ contract BasicUserAgentBase is
     // Map of adapter types for calling (chainId => AdapterType).
     // AdapterType.CBridge is the default adapter because it is 0.
     mapping(uint => AdapterType) public callAdapterTypes;
+
+    // Map of gas amounts (function signature => gas amount).
+    mapping(bytes4 => uint) public gasAmounts;
+    // Map of gas prices (chainId => gas cost in the native token of the current chain).
+    mapping(uint => uint) public gasCosts;
+
+    address public treasuryWallet;
 
     event Transfer(
         address indexed from,
@@ -83,56 +100,66 @@ contract BasicUserAgentBase is
         address[] memory _toAddresses,
         AdapterType[] memory _adapterTypes,
         uint _length,
+        uint _suppliedFee,
         bool _skim // It's a flag to calculate fee without execution
-    ) internal returns (uint _feeAmt) {
-        (uint[] memory mchainAmounts, uint[] memory mchainToChainIds, address[] memory mchainToAddresses,
-        uint[] memory cbridgeAmounts, uint[] memory cbridgeToChainIds, address[] memory cbridgeToAddresses)
-            = splitTranfersPerAdapter(_amounts, _toChainIds, _toAddresses, _adapterTypes, _length);
+    ) internal returns (uint _feeAmt, uint _leftFee) {
+        _leftFee = _suppliedFee;
+        TransfersPerAdapter memory transfers = splitTranfersPerAdapter(_amounts, _toChainIds, _toAddresses, _adapterTypes, _length);
 
-        if (_skim == false && mchainAmounts.length > 0) {
-            transferThroughMultichain(_from, _token, mchainAmounts, mchainToChainIds, mchainToAddresses);
+        if (_skim == false && transfers.mchainAmounts.length > 0) {
+            transferThroughMultichain(_from, _token, transfers);
         }
-        if (cbridgeAmounts.length > 0) {
-            _feeAmt = transferThroughCBridge(_from, _token, cbridgeAmounts, cbridgeToChainIds, cbridgeToAddresses, _skim);
+        if (transfers.cbridgeAmounts.length > 0) {
+            (_feeAmt, _leftFee) = transferThroughCBridge(_from, _token, transfers, _leftFee, _skim);
         }
     }
 
     function transferThroughMultichain (
         address _from,
         address _token,
-        uint[] memory _mchainAmounts,
-        uint[] memory _mchainToChainIds,
-        address[] memory _mchainToAddresses
+        TransfersPerAdapter memory transfers
     ) private {
-        uint mchainReqCount = _mchainAmounts.length;
-        multichainAdapter.transfer(_token, _mchainAmounts, _mchainToChainIds, _mchainToAddresses);
+        uint mchainReqCount = transfers.mchainAmounts.length;
+        multichainAdapter.transfer(_token, transfers.mchainAmounts, transfers.mchainToChainIds, transfers.mchainToAddresses);
 
         uint chainId = Token.getChainID();
         for (uint i = 0; i < mchainReqCount; i ++) {
-            emit Transfer(_from, _token, _mchainAmounts[i], chainId, _mchainToChainIds[i], _mchainToAddresses[i], AdapterType.Multichain, 0);
+            emit Transfer(_from, _token, transfers.mchainAmounts[i], chainId, transfers.mchainToChainIds[i], transfers.mchainToAddresses[i], AdapterType.Multichain, 0);
         }
     }
 
     function transferThroughCBridge (
         address _from,
         address _token,
-        uint[] memory _cbridgeAmounts,
-        uint[] memory _cbridgeToChainIds,
-        address[] memory _cbridgeToAddresses,
+        TransfersPerAdapter memory transfers,
+        uint _suppliedFee,
         bool _skim // It's a flag to calculate fee without execution
-    ) private returns (uint _feeAmt) {
-        uint cbridgeReqCount = _cbridgeAmounts.length;
+    ) private returns (uint _feeAmt, uint _leftFee) {
+        _leftFee = _suppliedFee;
+        uint cbridgeReqCount = transfers.cbridgeAmounts.length;
         _feeAmt = cbridgeAdapter.calcTransferFee() * cbridgeReqCount;
 
-        if (_skim == false && address(this).balance >= _feeAmt) {
+        {
+            uint gasAmount = gasAmounts[IMessageReceiverApp.executeMessageWithTransferRefund.selector];
+            if (gasAmount > 0) {
+                uint gasCost;
+                for (uint i = 0; i < cbridgeReqCount; i ++) {
+                    gasCost += gasCosts[transfers.cbridgeToChainIds[i]];
+                }
+                _feeAmt += (gasAmount * gasCost * 11 / 10);
+            }
+        }
+
+        if (_skim == false && _leftFee >= _feeAmt) {
+            _leftFee -= _feeAmt;
             uint cbridgeNonce = ICBridgeAdapter(address(cbridgeAdapter)).nonce();
-            cbridgeAdapter.transfer{value: _feeAmt}(_token, _cbridgeAmounts, _cbridgeToChainIds, _cbridgeToAddresses);
+            cbridgeAdapter.transfer{value: _feeAmt}(_token, transfers.cbridgeAmounts, transfers.cbridgeToChainIds, transfers.cbridgeToAddresses);
 
             uint chainId = Token.getChainID();
             for (uint i = 0; i < cbridgeReqCount; i ++) {
                 uint nonce = cbridgeNonce + i;
                 cbridgeSenders[nonce] = _from;
-                emit Transfer(_from, _token, _cbridgeAmounts[i], chainId, _cbridgeToChainIds[i], _cbridgeToAddresses[i], AdapterType.CBridge, nonce);
+                emit Transfer(_from, _token, transfers.cbridgeAmounts[i], chainId, transfers.cbridgeToChainIds[i], transfers.cbridgeToAddresses[i], AdapterType.CBridge, nonce);
             }
         }
     }
@@ -143,14 +170,7 @@ contract BasicUserAgentBase is
         address[] memory _toAddresses,
         AdapterType[] memory _adapterTypes,
         uint length
-    ) private pure returns (
-        uint[] memory _mchainAmounts,
-        uint[] memory _mchainToChainIds,
-        address[] memory _mchainToAddresses,
-        uint[] memory _cbridgeAmounts,
-        uint[] memory _cbridgeToChainIds,
-        address[] memory _cbridgeToAddresses
-    ){
+    ) private pure returns (TransfersPerAdapter memory _transfers) {
         uint mchainReqCount;
         uint cbridgeReqCount;
         for (uint i = 0; i < length; i ++) {
@@ -158,25 +178,27 @@ contract BasicUserAgentBase is
             else if (_adapterTypes[i] == AdapterType.CBridge) cbridgeReqCount ++;
         }
 
-        _mchainAmounts = new uint[](mchainReqCount);
-        _mchainToChainIds = new uint[](mchainReqCount);
-        _mchainToAddresses = new address[](mchainReqCount);
-        _cbridgeAmounts = new uint[](cbridgeReqCount);
-        _cbridgeToChainIds = new uint[](cbridgeReqCount);
-        _cbridgeToAddresses = new address[](cbridgeReqCount);
+        _transfers = TransfersPerAdapter({
+            mchainAmounts: new uint[](mchainReqCount),
+            mchainToChainIds: new uint[](mchainReqCount),
+            mchainToAddresses: new address[](mchainReqCount),
+            cbridgeAmounts: new uint[](cbridgeReqCount),
+            cbridgeToChainIds: new uint[](cbridgeReqCount),
+            cbridgeToAddresses: new address[](cbridgeReqCount)
+        });
 
         mchainReqCount = 0;
         cbridgeReqCount = 0;
         for (uint i = 0; i < length; i ++) {
             if (_adapterTypes[i] == AdapterType.Multichain) {
-                _mchainAmounts[mchainReqCount] = _amounts[i];
-                _mchainToChainIds[mchainReqCount] = _toChainIds[i];
-                _mchainToAddresses[mchainReqCount] = _toAddresses[i];
+                _transfers.mchainAmounts[mchainReqCount] = _amounts[i];
+                _transfers.mchainToChainIds[mchainReqCount] = _toChainIds[i];
+                _transfers.mchainToAddresses[mchainReqCount] = _toAddresses[i];
                 mchainReqCount ++;
             } else if (_adapterTypes[i] == AdapterType.CBridge) {
-                _cbridgeAmounts[cbridgeReqCount] = _amounts[i];
-                _cbridgeToChainIds[cbridgeReqCount] = _toChainIds[i];
-                _cbridgeToAddresses[cbridgeReqCount] = _toAddresses[i];
+                _transfers.cbridgeAmounts[cbridgeReqCount] = _amounts[i];
+                _transfers.cbridgeToChainIds[cbridgeReqCount] = _toChainIds[i];
+                _transfers.cbridgeToAddresses[cbridgeReqCount] = _toAddresses[i];
                 cbridgeReqCount ++;
             } else {
                 revert("Invalid adapter type");
@@ -189,13 +211,21 @@ contract BasicUserAgentBase is
         address _targetContract,
         uint _targetCallValue,
         bytes memory _targetCallData,
+        bytes4 _targetFuncSelector,
+        uint _suppliedFee,
         bool _skim // It's a flag to calculate fee without execution
-    ) internal returns (uint _feeAmt) {
+    ) internal returns (uint _feeAmt, uint _leftFee) {
+        _leftFee = _suppliedFee;
         require(_targetContract != address(0), "Invalid targetContract");
         IXChainAdapter adapter = (callAdapterTypes[_toChainId] == AdapterType.Multichain) ? multichainAdapter : cbridgeAdapter;
 
         _feeAmt = adapter.calcCallFee(_toChainId, _targetContract, _targetCallValue, _targetCallData);
-        if (_skim == false && address(this).balance >= _feeAmt) {
+        if (adapter == cbridgeAdapter) {
+            _feeAmt += (gasAmounts[_targetFuncSelector] * gasCosts[_toChainId] * 11 / 10);
+        }
+
+        if (_skim == false && _leftFee >= _feeAmt) {
+            _leftFee -= _feeAmt;
             adapter.call{value: _feeAmt}(_toChainId, _targetContract, _targetCallValue, _targetCallData);
         }
     }
@@ -207,5 +237,5 @@ contract BasicUserAgentBase is
      * variables without shifting down storage in the inheritance chain.
      * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
      */
-    uint256[39] private __gap;
+    uint256[35] private __gap;
 }

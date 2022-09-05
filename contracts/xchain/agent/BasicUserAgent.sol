@@ -3,6 +3,7 @@ pragma solidity  0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "sgn-v2-contracts/contracts/message/interfaces/IMessageReceiverApp.sol";
 import "../../../libs/BaseRelayRecipient.sol";
 import "../../../libs/Const.sol";
 import "../../../libs/Token.sol";
@@ -20,10 +21,12 @@ contract BasicUserAgent is IUserAgent, BasicUserAgentBase {
     }
 
     function initialize(
-        address _admin,
+        address _treasury, address _admin,
         ISwap _swap,
         IXChainAdapter _multichainAdapter, IXChainAdapter _cbridgeAdapter
     ) public virtual initializer {
+        require(_treasury != address(0), "treasury invalid");
+
         __Ownable_init_unchained();
         _setupRole(DEFAULT_ADMIN_ROLE, owner());
         __GnosisSafe_init();
@@ -31,10 +34,13 @@ contract BasicUserAgent is IUserAgent, BasicUserAgentBase {
         USDC = IERC20Upgradeable(Token.getTokenAddress(Const.TokenID.USDC));
         USDT = IERC20Upgradeable(Token.getTokenAddress(Const.TokenID.USDT));
 
+        treasuryWallet = _treasury;
         admin = _admin;
         setSwapper(_swap);
         setMultichainAdapter(_multichainAdapter);
         setCBridgeAdapter(_cbridgeAdapter);
+
+        gasAmounts[IMessageReceiverApp.executeMessageWithTransferRefund.selector] = 164615; // It's the gas amount of refund transaction on cBridge
     }
 
     function transferOwnership(address newOwner) public virtual override onlyOwner {
@@ -65,6 +71,11 @@ contract BasicUserAgent is IUserAgent, BasicUserAgentBase {
         if (USDC.allowance(address(this), address(cbridgeAdapter)) == 0) {
             USDC.safeApprove(address(cbridgeAdapter), type(uint).max);
         }
+    }
+
+    function setTreasuryWallet(address _wallet) external onlyOwner {
+        require(_wallet != address(0), "wallet invalid");
+        treasuryWallet = _wallet;
     }
 
     function setAdmin(address _admin) external onlyOwner {
@@ -134,6 +145,24 @@ contract BasicUserAgent is IUserAgent, BasicUserAgentBase {
             require(chainId != 0, "Invalid chainID");
             callAdapterTypes[chainId] = _adapterTypes[i];
         }
+    }
+
+    function setGasAmounts(bytes4[] memory _selectors, uint[] memory _amounts) external onlyOwner {
+        for (uint i = 0; i < _selectors.length; i++) {
+            bytes4 selector = _selectors[i];
+            gasAmounts[selector] = _amounts[i];
+        }
+    }
+
+    function setGasCosts(uint[] memory _chainIds, uint[] memory _costs) external onlyOwner {
+        for (uint i = 0; i < _chainIds.length; i++) {
+            uint chainId = _chainIds[i];
+            gasCosts[chainId] = _costs[i];
+        }
+    }
+
+    function withdrawFee() external onlyOwner {
+        Token.safeTransferETH(treasuryWallet, address(this).balance);
     }
 
     ///@notice Never revert in this function. If not, cbridgeAdapter.executeMessageWithTransferRefund will be failed.

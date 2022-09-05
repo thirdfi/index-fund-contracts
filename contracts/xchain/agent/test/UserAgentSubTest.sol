@@ -13,6 +13,63 @@ import "../BNIUserAgentBase.sol";
 contract UserAgentSubTest is BNIUserAgentBase {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
+    struct DepositPerChain {
+        uint toChainId;
+        address[] tokens;
+        uint[] USDT6Amts;
+    }
+
+    /// @dev It transfers tokens to user agents
+    function transfer(
+        uint[] memory _amounts,
+        uint[] memory _toChainIds,
+        AdapterType[] memory _adapterTypes
+    ) external payable virtual whenNotPaused onlyOwner returns (uint _feeAmt) {
+        address account = _msgSender();
+        uint leftFee = msg.value;
+
+        (address[] memory toAddresses, uint lengthOut) = transferIn(account, _amounts, _toChainIds, _adapterTypes);
+        if (lengthOut > 0) {
+            (_feeAmt, leftFee) = _transfer(account, address(USDT), _amounts, _toChainIds, toAddresses, _adapterTypes, lengthOut, leftFee, false);
+        }
+        if (leftFee > 0) Token.safeTransferETH(account, leftFee);
+    }
+
+    function transferIn(
+        address account,
+        uint[] memory _amounts,
+        uint[] memory _toChainIds,
+        AdapterType[] memory _adapterTypes
+    ) internal returns (address[] memory _toAddresses, uint _lengthOut) {
+        uint length = _amounts.length;
+        _toAddresses = new address[](length);
+        uint chainId = Token.getChainID();
+        uint amountOn;
+        uint amountOut;
+        for (uint i = 0; i < length; i ++) {
+            uint amount = _amounts[i];
+            uint toChainId = _toChainIds[i];
+            if (toChainId == chainId) {
+                amountOn += amount;
+            } else {
+                if (_lengthOut != i) {
+                    _amounts[_lengthOut] = amount;
+                    _toChainIds[_lengthOut] = toChainId;
+                    _adapterTypes[_lengthOut] = _adapterTypes[i];
+                }
+                address toUserAgent = userAgents[toChainId];
+                require(toUserAgent != address(0), "Invalid user agent");
+                _toAddresses[_lengthOut] = toUserAgent;
+
+                _lengthOut ++;
+                amountOut += amount;
+            }
+        }
+
+        USDT.safeTransferFrom(account, address(this), amountOn + amountOut);
+        usdtBalances[account] += amountOn;
+    }
+
     /// @dev It calls depositByAgent of BNIVaults.
     function deposit(
         uint[] memory _toChainIds,
@@ -21,13 +78,16 @@ contract UserAgentSubTest is BNIUserAgentBase {
         uint _minterNonce
     ) external payable whenNotPaused onlyOwner returns (uint _feeAmt) {
         address account = _msgSender();
+        uint leftFee = msg.value;
 
-        (uint toChainId, address[] memory subTokens, uint[] memory subUSDTAmts, uint newPos)
-            = nextDepositData(_toChainIds, _tokens, _USDT6Amts, 0);
-        while (toChainId != 0) {
-            _feeAmt += _deposit(account, toChainId, subTokens, subUSDTAmts, _minterNonce);
-            (toChainId, subTokens, subUSDTAmts, newPos) = nextDepositData(_toChainIds, _tokens, _USDT6Amts, newPos);
+        uint feeAmt;
+        (DepositPerChain memory depositPerChain, uint newPos) = nextDepositData(_toChainIds, _tokens, _USDT6Amts, 0);
+        while (depositPerChain.toChainId != 0) {
+            (feeAmt, leftFee) = _deposit(account, depositPerChain, _minterNonce, leftFee);
+            _feeAmt += feeAmt;
+            (depositPerChain, newPos) = nextDepositData(_toChainIds, _tokens, _USDT6Amts, newPos);
         }
+        if (leftFee > 0) Token.safeTransferETH(account, leftFee);
     }
 
     function nextDepositData (
@@ -36,17 +96,17 @@ contract UserAgentSubTest is BNIUserAgentBase {
         uint[] memory _USDT6Amts,
         uint pos
     ) private pure returns (
-        uint _toChainId,
-        address[] memory _subTokens,
-        uint[] memory _subUSDTAmts,
+        DepositPerChain memory _depositPerChain,
         uint _newPos
     ) {
-        uint length = _toChainIds.length;
+        uint toChainId;
+        address[] memory subTokens;
+        uint[] memory subUSDTAmts;
         uint count;
-        for (uint i = pos; i < length; i ++) {
-            if (_toChainId == 0) {
-                _toChainId = _toChainIds[i];
-            } else if (_toChainId != _toChainIds[i]) {
+        for (uint i = pos; i < _toChainIds.length; i ++) {
+            if (toChainId == 0) {
+                toChainId = _toChainIds[i];
+            } else if (toChainId != _toChainIds[i]) {
                 break;
             }
             count ++;
@@ -54,41 +114,48 @@ contract UserAgentSubTest is BNIUserAgentBase {
 
         _newPos = pos + count;
         if (count > 0) {
-            _subTokens = new address[](count);
-            _subUSDTAmts = new uint[](count);
+            subTokens = new address[](count);
+            subUSDTAmts = new uint[](count);
             count = 0;
             for (uint i = pos; i < _newPos; i ++) {
-                _subTokens[count] = _tokens[i];
-                _subUSDTAmts[count] = _USDT6Amts[i];
+                subTokens[count] = _tokens[i];
+                subUSDTAmts[count] = _USDT6Amts[i];
                 count ++;
             }
         }
+
+        _depositPerChain = DepositPerChain({
+            toChainId: toChainId,
+            tokens: subTokens,
+            USDT6Amts: subUSDTAmts
+        });
     }
 
     function _deposit(
         address _account,
-        uint _toChainId,
-        address[] memory _tokens,
-        uint[] memory _USDT6Amts,
-        uint _minterNonce
-    ) internal virtual returns (uint _feeAmt) {
-        if (_toChainId == Token.getChainID()) {
+        DepositPerChain memory _depositPerChain,
+        uint _minterNonce,
+        uint _suppliedFee
+    ) internal virtual returns (uint _feeAmt, uint _leftFee) {
+        _leftFee = _suppliedFee;
+        if (_depositPerChain.toChainId == Token.getChainID()) {
             uint balance = usdtBalances[_account];
             uint amountSum;
-            for (uint i = 0; i < _USDT6Amts.length; i ++) {
-                amountSum += _USDT6Amts[i];
+            for (uint i = 0; i < _depositPerChain.USDT6Amts.length; i ++) {
+                amountSum += _depositPerChain.USDT6Amts[i];
             }
             amountSum = amountSum * (10 ** (IERC20UpgradeableExt(address(USDT)).decimals() - 6));
             require(balance >= amountSum, "Insufficient balance");
             usdtBalances[_account] = balance - amountSum;
 
-            bniVault.depositByAgent(_account, _tokens, _USDT6Amts, _minterNonce);
+            bniVault.depositByAgent(_account, _depositPerChain.tokens, _depositPerChain.USDT6Amts, _minterNonce);
         } else {
             bytes memory _targetCallData = abi.encodeWithSelector(
                 UserAgentSubTest.depositByAgent.selector,
-                _account, _tokens, _USDT6Amts, _minterNonce
+                _account, _depositPerChain.tokens, _depositPerChain.USDT6Amts, _minterNonce
             );
-            _feeAmt = _call(_toChainId, userAgents[_toChainId], 0, _targetCallData, false);
+            (_feeAmt, _leftFee) = _call(_depositPerChain.toChainId, userAgents[_depositPerChain.toChainId], 0, _targetCallData,
+                                        IBNIVault.depositByAdmin.selector, _leftFee, false);
         }
     }
 
@@ -104,6 +171,7 @@ contract UserAgentSubTest is BNIUserAgentBase {
     /// @dev It calls mintByAdmin of BNIMinter.
     function mint(uint _USDT6Amt) external payable virtual whenNotPaused onlyOwner returns (uint _feeAmt) {
         address account = _msgSender();
+        uint leftFee = msg.value;
 
         if (isLPChain) {
             bniMinter.mintByAdmin(account, _USDT6Amt);
@@ -112,8 +180,10 @@ contract UserAgentSubTest is BNIUserAgentBase {
                 UserAgentSubTest.mintByAdmin.selector,
                 account, _USDT6Amt
             );
-            _feeAmt = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData, false);
+            (_feeAmt, leftFee) = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData,
+                                        IBNIMinter.mintByAdmin.selector, leftFee, false);
         }
+        if (leftFee > 0) Token.safeTransferETH(account, leftFee);
     }
 
     function mintByAdmin(address _account, uint _USDT6Amt) external onlyRole(ADAPTER_ROLE) {
@@ -125,6 +195,7 @@ contract UserAgentSubTest is BNIUserAgentBase {
     /// @param _share amount of shares
     function burn(uint _pool, uint _share) external payable virtual onlyOwner returns (uint _feeAmt) {
         address account = _msgSender();
+        uint leftFee = msg.value;
 
         if (isLPChain) {
             bniMinter.burnByAdmin(account, _pool, _share);
@@ -133,8 +204,10 @@ contract UserAgentSubTest is BNIUserAgentBase {
                 UserAgentSubTest.burnByAdmin.selector,
                 account, _pool, _share
             );
-            _feeAmt = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData, false);
+            (_feeAmt, leftFee) = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData,
+                                        IBNIMinter.burnByAdmin.selector, leftFee, false);
         }
+        if (leftFee > 0) Token.safeTransferETH(account, leftFee);
     }
 
     function burnByAdmin(address _account, uint _pool, uint _share) external onlyRole(ADAPTER_ROLE) {
@@ -146,15 +219,24 @@ contract UserAgentSubTest is BNIUserAgentBase {
         uint[] memory _chainIds, uint _sharePerc, uint _minterNonce
     ) external payable onlyOwner returns (uint _feeAmt) {
         address account = _msgSender();
+        uint leftFee = msg.value;
 
+        uint feeAmt;
         for (uint i = 0; i < _chainIds.length; i ++) {
-            _feeAmt += _withdraw(account, _chainIds[i], _sharePerc, _minterNonce);
+            (feeAmt, leftFee) = _withdraw(account, _chainIds[i], _sharePerc, _minterNonce, leftFee);
+            _feeAmt += feeAmt;
         }
+        if (leftFee > 0) Token.safeTransferETH(account, leftFee);
     }
 
     function _withdraw(
-        address _account, uint _chainId, uint _sharePerc, uint _minterNonce
-    ) internal virtual returns (uint _feeAmt) {
+        address _account,
+        uint _chainId,
+        uint _sharePerc,
+        uint _minterNonce,
+        uint _suppliedFee
+    ) internal virtual returns (uint _feeAmt, uint _leftFee) {
+        _leftFee = _suppliedFee;
         if (_chainId == Token.getChainID()) {
             _withdrawFromVault(bniVault, _account, _sharePerc, _minterNonce);
         } else {
@@ -162,7 +244,8 @@ contract UserAgentSubTest is BNIUserAgentBase {
                 UserAgentSubTest.withdrawPercByAgent.selector,
                 _account, _sharePerc, _minterNonce
             );
-            _feeAmt = _call(_chainId, userAgents[_chainId], 0, _targetCallData, false);
+            (_feeAmt, _leftFee) = _call(_chainId, userAgents[_chainId], 0, _targetCallData,
+                                        IBNIVault.withdrawPercByAdmin.selector, _leftFee, false);
         }
     }
 
@@ -186,22 +269,31 @@ contract UserAgentSubTest is BNIUserAgentBase {
         AdapterType[] memory _adapterTypes
     ) external payable virtual onlyOwner returns (uint _feeAmt) {
         address account = _msgSender();
+        uint leftFee = msg.value;
 
+        uint feeAmt;
         for (uint i = 0; i < _fromChainIds.length; i ++) {
-            _feeAmt += _gather(account, _fromChainIds[i], _adapterTypes[i]);
+            (feeAmt, leftFee) = _gather(account, _fromChainIds[i], _adapterTypes[i], leftFee);
+            _feeAmt += feeAmt;
         }
+        if (leftFee > 0) Token.safeTransferETH(account, leftFee);
     }
 
     function _gather(
-        address _account, uint _fromChainId, AdapterType _adapterType
-    ) private returns (uint _feeAmt) {
+        address _account,
+        uint _fromChainId,
+        AdapterType _adapterType,
+        uint _suppliedFee
+    ) private returns (uint _feeAmt, uint _leftFee) {
+        _leftFee = _suppliedFee;
         uint chainId = Token.getChainID();
         if (_fromChainId != chainId) {
             bytes memory _targetCallData = abi.encodeWithSelector(
                 UserAgentSubTest.gatherByAdmin.selector,
                 _account, chainId, _adapterType
             );
-            _feeAmt = _call(_fromChainId, userAgents[_fromChainId], 0, _targetCallData, false);
+            (_feeAmt, _leftFee) = _call(_fromChainId, userAgents[_fromChainId], 0, _targetCallData,
+                                        UserAgentSubTest.gatherByAdmin.selector, _leftFee, false);
         }
     }
 
@@ -222,14 +314,14 @@ contract UserAgentSubTest is BNIUserAgentBase {
             AdapterType[] memory adapterTypes = new AdapterType[](1);
             adapterTypes[0] = _adapterType;
 
-            uint feeAmt = _transfer(_account, address(USDT), amounts, toChainIds, toAddresses, adapterTypes, 1, true);
+            (uint feeAmt,) = _transfer(_account, address(USDT), amounts, toChainIds, toAddresses, adapterTypes, 1, 0, true);
             uint tokensForFee = swap.getAmountsInForETH(address(USDT), feeAmt);
             if (balance > tokensForFee) {
                 uint spentTokenAmount = swap.swapTokensForExactETH(address(USDT), tokensForFee, feeAmt);
                 amounts[0] = balance - spentTokenAmount;
                 usdtBalances[_account] = 0;
 
-                _transfer(_account, address(USDT), amounts, toChainIds, toAddresses, adapterTypes, 1, false);
+                _transfer(_account, address(USDT), amounts, toChainIds, toAddresses, adapterTypes, 1, feeAmt, false);
             }
         }
     }
@@ -239,6 +331,7 @@ contract UserAgentSubTest is BNIUserAgentBase {
     /// @notice _gatheredAmount doesn't include the balance which is withdrawan in this agent.
     function exitWithdrawal(uint _gatheredAmount) external payable virtual onlyOwner returns (uint _feeAmt) {
         address account = _msgSender();
+        uint leftFee = msg.value;
 
         if (isLPChain) {
             bniMinter.exitWithdrawalByAdmin(account);
@@ -247,12 +340,14 @@ contract UserAgentSubTest is BNIUserAgentBase {
                 UserAgentSubTest.exitWithdrawalByAdmin.selector,
                 account
             );
-            _feeAmt = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData, false);
+            (_feeAmt, leftFee) = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData,
+                                        IBNIMinter.exitWithdrawalByAdmin.selector, leftFee, false);
         }
 
         uint amount = _gatheredAmount + usdtBalances[account];
         usdtBalances[account] = 0;
         USDT.safeTransfer(account, amount);
+        if (leftFee > 0) Token.safeTransferETH(account, leftFee);
     }
 
     function exitWithdrawalByAdmin(address _account) external onlyRole(ADAPTER_ROLE) {

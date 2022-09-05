@@ -13,33 +13,47 @@ import "./BNIUserAgentSub.sol";
 contract BNIUserAgentSubTest is BNIUserAgentSub {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
+    function transfer(
+        uint[] memory _amounts,
+        uint[] memory _toChainIds,
+        AdapterType[] memory _adapterTypes,
+        bytes calldata _signature
+    ) external payable override whenNotPaused returns (uint _feeAmt) {
+        address account = _msgSender();
+        uint leftFee = msg.value;
+        uint _nonce = nonces[account];
+        checkSignature(keccak256(abi.encodePacked(account, _nonce, _amounts, _toChainIds, _adapterTypes)), _signature);
+
+        transferIn(account, _amounts, _toChainIds, _adapterTypes);
+        // NOTE: cBridge doesn't support liquidity on testnets
+        _feeAmt = 0;
+        nonces[account] = _nonce + 1;
+        if (leftFee > 0) Token.safeTransferETH(account, leftFee);
+    }
+
     function _deposit(
         address _account,
-        uint _toChainId,
-        address[] memory _tokens,
-        uint[] memory _USDT6Amts,
-        uint _minterNonce
-    ) internal override returns (uint _feeAmt) {
-        if (_toChainId == Token.getChainID()) {
-            uint balance = usdtBalances[_account];
-            uint amountSum;
-            for (uint i = 0; i < _USDT6Amts.length; i ++) {
-                amountSum += _USDT6Amts[i];
-            }
-            amountSum = amountSum * (10 ** (IERC20UpgradeableExt(address(USDT)).decimals() - 6));
-            require(balance >= amountSum, "Insufficient balance");
-            usdtBalances[_account] = balance - amountSum;
-
-            bniVault.depositByAgent(_account, _tokens, _USDT6Amts, _minterNonce);
+        DepositPerChain memory _depositPerChain,
+        uint _minterNonce,
+        uint _suppliedFee
+    ) internal override returns (uint _feeAmt, uint _leftFee) {
+        if (_depositPerChain.toChainId == Token.getChainID()) {
+            (_feeAmt, _leftFee) = super._deposit(_account, _depositPerChain, _minterNonce, _suppliedFee);
         } else {
             // NOTE: cBridge doesn't support liquidity on testnets
             _feeAmt = 0;
+            _leftFee = _suppliedFee;
         }
     }
 
     function _withdraw(
-        address _account, uint _chainId, uint _sharePerc, uint _minterNonce
-    ) internal override returns (uint _feeAmt) {
+        address _account,
+        uint _chainId,
+        uint _sharePerc,
+        uint _minterNonce,
+        uint _suppliedFee
+    ) internal override returns (uint _feeAmt, uint _leftFee) {
+        _leftFee = _suppliedFee;
         if (_chainId == Token.getChainID()) {
             _withdrawFromVault(bniVault, _account, _sharePerc, _minterNonce);
         } else {
@@ -54,12 +68,14 @@ contract BNIUserAgentSubTest is BNIUserAgentSub {
         bytes calldata _signature
     ) external payable override returns (uint _feeAmt) {
         address account = _msgSender();
+        uint leftFee = msg.value;
         uint _nonce = nonces[account];
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _fromChainIds, _adapterTypes)), _signature);
 
         // NOTE: cBridge doesn't support liquidity on testnets
         _feeAmt = 0;
         nonces[account] = _nonce + 1;
+        if (leftFee > 0) Token.safeTransferETH(account, leftFee);
     }
 
 }

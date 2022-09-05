@@ -3,6 +3,7 @@ pragma solidity  0.8.9;
 
 import "@openzeppelin/contracts-upgradeable/token/ERC20/IERC20Upgradeable.sol";
 import "@openzeppelin/contracts-upgradeable/token/ERC20/utils/SafeERC20Upgradeable.sol";
+import "sgn-v2-contracts/contracts/message/interfaces/IMessageReceiverApp.sol";
 import "../../../../libs/Const.sol";
 import "../../../../libs/Token.sol";
 import "../../../bni/constant/AuroraConstantTest.sol";
@@ -19,6 +20,10 @@ import "../../../bni/constant/EthConstantTest.sol";
 import "../../../bni/constant/FtmConstantTest.sol";
 import "../../../bni/constant/MaticConstantTest.sol";
 
+interface IUserAgentSubTest {
+    function gatherByAdmin(address _account, uint _toChainId, BasicUserAgentBase.AdapterType _adapterType) external;
+}
+
 contract UserAgentTest is BNIUserAgentBase, BasicUserAgent {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
@@ -28,6 +33,7 @@ contract UserAgentTest is BNIUserAgentBase, BasicUserAgent {
 
     function initialize1(
         address _subImpl,
+        address _treasury,
         address _admin,
         ISwap _swap,
         IXChainAdapter _multichainAdapter, IXChainAdapter _cbridgeAdapter,
@@ -40,8 +46,9 @@ contract UserAgentTest is BNIUserAgentBase, BasicUserAgent {
         USDC = IERC20Upgradeable(Token.getTestTokenAddress(Const.TokenID.USDC));
         USDT = IERC20Upgradeable(getTestTokenAddress());
 
+        treasuryWallet = _treasury;
         admin = _admin;
-        swap = _swap;
+        setSwapper(_swap);
         setMultichainAdapter(_multichainAdapter);
         setCBridgeAdapter(_cbridgeAdapter);
 
@@ -52,6 +59,15 @@ contract UserAgentTest is BNIUserAgentBase, BasicUserAgent {
 
         bniMinter = _bniMinter;
         setBNIVault(_bniVault);
+
+        gasAmounts[IBNIMinter.initDepositByAdmin.selector] = 133213;
+        gasAmounts[IBNIMinter.mintByAdmin.selector] = 168205;
+        gasAmounts[IBNIMinter.burnByAdmin.selector] = 153743;
+        gasAmounts[IBNIMinter.exitWithdrawalByAdmin.selector] = 69845;
+        gasAmounts[IBNIVault.depositByAdmin.selector] = 580678;
+        gasAmounts[IBNIVault.withdrawPercByAdmin.selector] = 716679;
+        gasAmounts[IUserAgentSubTest.gatherByAdmin.selector] = 428753;
+        gasAmounts[IMessageReceiverApp.executeMessageWithTransferRefund.selector] = 164615; // It's the gas amount of refund transaction on cBridge
     }
 
     function getTestTokenAddress() internal view returns (address) {
@@ -93,13 +109,17 @@ contract UserAgentTest is BNIUserAgentBase, BasicUserAgent {
     }
 
     function testCall(uint _toChainId, uint _value) external payable virtual onlyOwner returns (uint _feeAmt) {
+        address account = _msgSender();
+        uint leftFee = msg.value;
         if (!isLPChain) {
             bytes memory _targetCallData = abi.encodeWithSelector(
                 UserAgentTest.testCallByAdmin.selector,
                 _value
             );
-            _feeAmt = _call(_toChainId, userAgents[_toChainId], 0, _targetCallData, false);
+            (_feeAmt, leftFee) = _call(_toChainId, userAgents[_toChainId], 0, _targetCallData,
+                                        UserAgentTest.testCallByAdmin.selector, leftFee, false);
         }
+        if (leftFee > 0) Token.safeTransferETH(account, leftFee);
     }
 
     function testCallByAdmin(uint _value) external onlyRole(ADAPTER_ROLE) {
@@ -112,6 +132,7 @@ contract UserAgentTest is BNIUserAgentBase, BasicUserAgent {
     /// @param _USDT6Amt USDT with 6 decimals to be deposited
     function initDeposit(uint _pool, uint _USDT6Amt) external payable virtual whenNotPaused onlyOwner returns (uint _feeAmt) {
         address account = _msgSender();
+        uint leftFee = msg.value;
 
         if (isLPChain) {
             bniMinter.initDepositByAdmin(account, _pool, _USDT6Amt);
@@ -120,8 +141,10 @@ contract UserAgentTest is BNIUserAgentBase, BasicUserAgent {
                 UserAgentTest.initDepositByAdmin.selector,
                 account, _pool, _USDT6Amt
             );
-            _feeAmt = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData, false);
+            (_feeAmt, leftFee) = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData,
+                                        IBNIMinter.initDepositByAdmin.selector, leftFee, false);
         }
+        if (leftFee > 0) Token.safeTransferETH(account, leftFee);
     }
 
     function initDepositByAdmin(address _account, uint _pool, uint _USDT6Amt) external onlyRole(ADAPTER_ROLE) {
@@ -133,47 +156,12 @@ contract UserAgentTest is BNIUserAgentBase, BasicUserAgent {
         uint[] memory _amounts,
         uint[] memory _toChainIds,
         AdapterType[] memory _adapterTypes
-    ) external payable virtual whenNotPaused onlyOwner returns (uint _feeAmt) {
-        address account = _msgSender();
-        (address[] memory toAddresses, uint lengthOut) = transferIn(account, _amounts, _toChainIds, _adapterTypes);
-        if (lengthOut > 0) {
-            _feeAmt = _transfer(account, address(USDT), _amounts, _toChainIds, toAddresses, _adapterTypes, lengthOut, false);
-        }
-    }
-
-    function transferIn(
-        address account,
-        uint[] memory _amounts,
-        uint[] memory _toChainIds,
-        AdapterType[] memory _adapterTypes
-    ) internal returns (address[] memory _toAddresses, uint _lengthOut) {
-        uint length = _amounts.length;
-        _toAddresses = new address[](length);
-        uint chainId = Token.getChainID();
-        uint amountOn;
-        uint amountOut;
-        for (uint i = 0; i < length; i ++) {
-            uint amount = _amounts[i];
-            uint toChainId = _toChainIds[i];
-            if (toChainId == chainId) {
-                amountOn += amount;
-            } else {
-                if (_lengthOut != i) {
-                    _amounts[_lengthOut] = amount;
-                    _toChainIds[_lengthOut] = toChainId;
-                    _adapterTypes[_lengthOut] = _adapterTypes[i];
-                }
-                address toUserAgent = userAgents[toChainId];
-                require(toUserAgent != address(0), "Invalid user agent");
-                _toAddresses[_lengthOut] = toUserAgent;
-
-                _lengthOut ++;
-                amountOut += amount;
-            }
-        }
-
-        USDT.safeTransferFrom(account, address(this), amountOn + amountOut);
-        usdtBalances[account] += amountOn;
+    ) external payable returns (uint _feeAmt) {
+        _amounts;
+        _toChainIds;
+        _adapterTypes;
+        _feeAmt;
+        delegateAndReturn();
     }
 
     /// @dev It calls depositByAdmin of BNIVaults.

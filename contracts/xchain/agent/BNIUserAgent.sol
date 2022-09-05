@@ -13,17 +13,22 @@ import "../../swap/ISwap.sol";
 import "./BasicUserAgent.sol";
 import "./BNIUserAgentBase.sol";
 
+interface IBNIUserAgentSub {
+    function gatherByAdmin(address _account, uint _toChainId, BasicUserAgentBase.AdapterType _adapterType) external;
+}
+
 contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
     using SafeERC20Upgradeable for IERC20Upgradeable;
 
     function initialize1(
         address _subImpl,
+        address _treasury,
         address _admin,
         ISwap _swap,
         IXChainAdapter _multichainAdapter, IXChainAdapter _cbridgeAdapter,
         IBNIMinter _bniMinter, IBNIVault _bniVault
     ) external virtual initializer {
-        super.initialize(_admin, _swap, _multichainAdapter, _cbridgeAdapter);
+        super.initialize(_treasury, _admin, _swap, _multichainAdapter, _cbridgeAdapter);
 
         subImpl = _subImpl;
         chainIdOnLP = AvaxConstant.CHAINID;
@@ -32,6 +37,14 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
 
         bniMinter = _bniMinter;
         setBNIVault(_bniVault);
+
+        gasAmounts[IBNIMinter.initDepositByAdmin.selector] = 133213;
+        gasAmounts[IBNIMinter.mintByAdmin.selector] = 168205;
+        gasAmounts[IBNIMinter.burnByAdmin.selector] = 153743;
+        gasAmounts[IBNIMinter.exitWithdrawalByAdmin.selector] = 69845;
+        gasAmounts[IBNIVault.depositByAdmin.selector] = 580678;
+        gasAmounts[IBNIVault.withdrawPercByAdmin.selector] = 716679;
+        gasAmounts[IBNIUserAgentSub.gatherByAdmin.selector] = 428753;
     }
 
     function transferOwnership(address newOwner) public virtual override(BasicUserAgent, OwnableUpgradeable) onlyOwner {
@@ -65,6 +78,7 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
     /// @param _USDT6Amt USDT with 6 decimals to be deposited
     function initDeposit(uint _pool, uint _USDT6Amt, bytes calldata _signature) external payable virtual whenNotPaused returns (uint _feeAmt) {
         address account = _msgSender();
+        uint leftFee = msg.value;
         uint _nonce = nonces[account];
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _pool, _USDT6Amt)), _signature);
 
@@ -75,9 +89,11 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
                 BNIUserAgent.initDepositByAdmin.selector,
                 account, _pool, _USDT6Amt
             );
-            _feeAmt = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData, false);
+            (_feeAmt, leftFee) = _call(chainIdOnLP, userAgents[chainIdOnLP], 0, _targetCallData,
+                                        IBNIMinter.initDepositByAdmin.selector, leftFee, false);
         }
         nonces[account] = _nonce + 1;
+        if (leftFee > 0) Token.safeTransferETH(account, leftFee);
     }
 
     function initDepositByAdmin(address _account, uint _pool, uint _USDT6Amt) external onlyRole(ADAPTER_ROLE) {
@@ -90,51 +106,13 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
         uint[] memory _toChainIds,
         AdapterType[] memory _adapterTypes,
         bytes calldata _signature
-    ) external payable virtual whenNotPaused returns (uint _feeAmt) {
-        address account = _msgSender();
-        uint _nonce = nonces[account];
-        checkSignature(keccak256(abi.encodePacked(account, _nonce, _amounts, _toChainIds, _adapterTypes)), _signature);
-
-        (address[] memory toAddresses, uint lengthOut) = transferIn(account, _amounts, _toChainIds, _adapterTypes);
-        if (lengthOut > 0) {
-            _feeAmt = _transfer(account, address(USDT), _amounts, _toChainIds, toAddresses, _adapterTypes, lengthOut, false);
-        }
-        nonces[account] = _nonce + 1;
-    }
-
-    function transferIn(
-        address account,
-        uint[] memory _amounts,
-        uint[] memory _toChainIds,
-        AdapterType[] memory _adapterTypes
-    ) internal returns (address[] memory _toAddresses, uint _lengthOut) {
-        uint length = _amounts.length;
-        _toAddresses = new address[](length);
-        uint chainId = Token.getChainID();
-        uint amountOn;
-        uint amountOut;
-        for (uint i = 0; i < length; i ++) {
-            uint amount = _amounts[i];
-            uint toChainId = _toChainIds[i];
-            if (toChainId == chainId) {
-                amountOn += amount;
-            } else {
-                if (_lengthOut != i) {
-                    _amounts[_lengthOut] = amount;
-                    _toChainIds[_lengthOut] = toChainId;
-                    _adapterTypes[_lengthOut] = _adapterTypes[i];
-                }
-                address toUserAgent = userAgents[toChainId];
-                require(toUserAgent != address(0), "Invalid user agent");
-                _toAddresses[_lengthOut] = toUserAgent;
-
-                _lengthOut ++;
-                amountOut += amount;
-            }
-        }
-
-        USDT.safeTransferFrom(account, address(this), amountOn + amountOut);
-        usdtBalances[account] += amountOn;
+    ) external payable returns (uint _feeAmt) {
+        _amounts;
+        _toChainIds;
+        _adapterTypes;
+        _signature;
+        _feeAmt;
+        delegateAndReturn();
     }
 
     /// @dev It calls depositByAdmin of BNIVaults.

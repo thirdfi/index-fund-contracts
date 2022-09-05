@@ -140,6 +140,14 @@ describe("STI non-custodial on Avalanche", async () => {
       console.log(`depositByAdmin: ${vaultIface.getSighash("depositByAdmin")}`);
       console.log(`withdrawPercByAdmin: ${vaultIface.getSighash("withdrawPercByAdmin")}`);
       console.log(`claimByAdmin: ${vaultIface.getSighash("claimByAdmin")}`);
+
+      const userAgentSubArtifact = await deployments.getArtifact("STIUserAgentSub");
+      const userAgentSubIface = new ethers.utils.Interface(JSON.stringify(userAgentSubArtifact.abi));
+      console.log(`gatherByAdmin: ${userAgentSubIface.getSighash("gatherByAdmin")}`);
+
+      const cbridgeAdapterArtifact = await deployments.getArtifact("CBridgeXChainAdapter");
+      const cbridgeAdapterIface = new ethers.utils.Interface(JSON.stringify(cbridgeAdapterArtifact.abi));
+      console.log(`executeMessageWithTransferRefund: ${cbridgeAdapterIface.getSighash("executeMessageWithTransferRefund")}`);
     });
   });
 

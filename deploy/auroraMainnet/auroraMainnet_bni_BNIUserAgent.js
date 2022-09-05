@@ -29,6 +29,7 @@ module.exports = async ({ deployments }) => {
           methodName: "initialize1",
           args: [
             subImpl.address,
+            common.treasury,
             common.admin,
             swapProxy.address,
             mchainAdapterAddress, cbridgeAdapterProxy.address,

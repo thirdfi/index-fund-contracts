@@ -15,6 +15,7 @@ contract BNIUserAgentTest is BNIUserAgent {
 
     function initialize1(
         address _subImpl,
+        address _treasury,
         address _admin,
         ISwap _swap,
         IXChainAdapter _multichainAdapter, IXChainAdapter _cbridgeAdapter,
@@ -27,8 +28,9 @@ contract BNIUserAgentTest is BNIUserAgent {
         USDC = IERC20Upgradeable(Token.getTestTokenAddress(Const.TokenID.USDC));
         USDT = IERC20Upgradeable(Token.getTestTokenAddress(Const.TokenID.USDT));
 
+        treasuryWallet = _treasury;
         admin = _admin;
-        swap = _swap;
+        setSwapper(_swap);
         setMultichainAdapter(_multichainAdapter);
         setCBridgeAdapter(_cbridgeAdapter);
 
@@ -39,21 +41,5 @@ contract BNIUserAgentTest is BNIUserAgent {
 
         bniMinter = _bniMinter;
         setBNIVault(_bniVault);
-    }
-
-    function transfer(
-        uint[] memory _amounts,
-        uint[] memory _toChainIds,
-        AdapterType[] memory _adapterTypes,
-        bytes calldata _signature
-    ) external payable override whenNotPaused returns (uint _feeAmt) {
-        address account = _msgSender();
-        uint _nonce = nonces[account];
-        checkSignature(keccak256(abi.encodePacked(account, _nonce, _amounts, _toChainIds, _adapterTypes)), _signature);
-
-        transferIn(account, _amounts, _toChainIds, _adapterTypes);
-        // NOTE: cBridge doesn't support liquidity on testnets
-        _feeAmt = 0;
-        nonces[account] = _nonce + 1;
     }
 }
