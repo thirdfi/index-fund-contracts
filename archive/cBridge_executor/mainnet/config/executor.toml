@@ -15,37 +15,43 @@ signer_passphrase = ""
 name = "CBridgeXChainAdapter" 
 allow = [
   # allow and execute messages originated from addresses on the specified chains
-  { chain_id = 43113, address = "0x1D41629e505ec6D5fDa6D539a002065E4831cb41" },
-  { chain_id = 97, address = "0x43F26Eab9405966B77d49B9731746E3be1A8Db80" },
-  { chain_id = 4002, address = "0xe78fE82C79E3E0F3D8AF5fecD6719eCf47f80B1D" },
-  { chain_id = 80001, address = "0xCcECA5C4A3355F8e7a0B7d2a7251eec012Be7c58" },
+  { chain_id = 1313161554, address = "" },
+  { chain_id = 43114, address = "" },
+  { chain_id = 56, address = "" },
+  { chain_id = 1, address = "" },
+  { chain_id = 137, address = "" },
 ]
 
 [[service.contracts]]
-chain_id = 43113 # Avalanche testnet
-address = "0x1D41629e505ec6D5fDa6D539a002065E4831cb41"
+chain_id = 1313161554 # Aurora
+address = ""
 allow_sender_groups = ["CBridgeXChainAdapter"]
 
 [[service.contracts]]
-chain_id = 97 # Bsc testnet
-address = "0x43F26Eab9405966B77d49B9731746E3be1A8Db80"
+chain_id = 43114 # Avalanche
+address = ""
 allow_sender_groups = ["CBridgeXChainAdapter"]
 
 [[service.contracts]]
-chain_id = 4002 # Fantom testnet
-address = "0xe78fE82C79E3E0F3D8AF5fecD6719eCf47f80B1D"
+chain_id = 56 # BSC
+address = ""
 allow_sender_groups = ["CBridgeXChainAdapter"]
 
 [[service.contracts]]
-chain_id = 80001 # Avalanche testnet
-address = "0xCcECA5C4A3355F8e7a0B7d2a7251eec012Be7c58"
+chain_id = 1 # Ethereum
+address = ""
+allow_sender_groups = ["CBridgeXChainAdapter"]
+
+[[service.contracts]]
+chain_id = 137 # Polygon
+address = ""
 allow_sender_groups = ["CBridgeXChainAdapter"]
 
 [sgnd]
 # SGN testnet node0 grpc. executor reads available messages from this endpoint
-sgn_grpc = "cbridge-v2-test.celer.network:9094" 
+sgn_grpc = "cbridge-prod2.celer.network:9094" 
 # SGN testnet gateway grpc. all tx operations to the SGN is delegated through it
-gateway_grpc = "cbridge-v2-test.celer.network:9094" 
+gateway_grpc = "cbridge-prod2.celer.network:9094" 
 
 [db]
 url = "localhost:26257"

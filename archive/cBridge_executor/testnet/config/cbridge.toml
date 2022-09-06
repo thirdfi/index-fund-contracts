@@ -1,7 +1,7 @@
 [[multichain]]
 chainID = 43113
 name = "Avalanche Testnet"
-gateway = "https://rpc.ankr.com/avalanche"
+gateway = "https://api.avax-test.network/ext/bc/C/rpc"
 cbridge = "0xe95E3a9f1a45B5EDa71781448F6047d7B7e31cbF"
 msgbus = "0xE9533976C590200E32d95C53f06AE12d292cFc47"
 blkinterval = 5
@@ -32,9 +32,9 @@ maxblkdelta = 5000
 addgasestimateratio = 0.1 # multiply gas limit by this ratio
 
 [[multichain]]
-chainID =
+chainID = 80001
 name = "Polygon Mumbai"
-gateway = "https://rpc-mainnet.maticvigil.com/"
+gateway = "https://rpc-mumbai.maticvigil.com/"
 cbridge = "0x841ce48F9446C8E281D3F1444cB859b4A6D0738C"
 msgbus = "0x7d43AABC515C356145049227CeE54B608342c0ad"
 blkinterval = 5

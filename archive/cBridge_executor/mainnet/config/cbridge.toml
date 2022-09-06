@@ -1,0 +1,54 @@
+[[multichain]]
+chainID = 1313161554
+name = "Aurora"
+gateway = "https://mainnet.aurora.dev"
+cbridge = "0x841ce48F9446C8E281D3F1444cB859b4A6D0738C"
+msgbus = "0xc1a2D967DfAa6A10f3461bc21864C23C1DD51EeA"
+blkinterval = 5
+blkdelay = 8
+maxblkdelta = 5000
+addgasestimateratio = 0.1 # multiply gas limit by this ratio
+
+[[multichain]]
+chainID = 43114
+name = "Avalanche"
+gateway = "https://rpc.ankr.com/avalanche"
+cbridge = "0xef3c714c9425a8F3697A9C969Dc1af30ba82e5d4"
+msgbus = "0x5a926eeeAFc4D217ADd17e9641e8cE23Cd01Ad57"
+blkinterval = 5
+blkdelay = 8
+maxblkdelta = 5000
+addgasestimateratio = 0.1 # multiply gas limit by this ratio
+
+[[multichain]]
+chainID = 56
+name = "BSC"
+gateway = "https://rpc.ankr.com/bsc/"
+cbridge = "0xdd90E5E87A2081Dcf0391920868eBc2FFB81a1aF"
+msgbus = "0x95714818fdd7a5454F73Da9c777B3ee6EbAEEa6B"
+blkinterval = 5
+blkdelay = 8
+maxblkdelta = 5000
+addgasestimateratio = 0.1 # multiply gas limit by this ratio
+
+[[multichain]]
+chainID = 1
+name = "Ethereum"
+gateway = "https://mainnet.infura.io/v3/"
+cbridge = "0x5427FEFA711Eff984124bFBB1AB6fbf5E3DA1820"
+msgbus = "0x4066D196A423b2b3B8B054f4F40efB47a74E200C"
+blkinterval = 5
+blkdelay = 8
+maxblkdelta = 5000
+addgasestimateratio = 0.1 # multiply gas limit by this ratio
+
+[[multichain]]
+chainID = 137
+name = "Polygon"
+gateway = "https://rpc-mainnet.maticvigil.com/"
+cbridge = "0x88DCDC47D2f83a99CF0000FDF667A468bB958a78"
+msgbus = "0xaFDb9C40C7144022811F034EE07Ce2E110093fe6"
+blkinterval = 5
+blkdelay = 8
+maxblkdelta = 5000
+addgasestimateratio = 0.1 # multiply gas limit by this ratio
