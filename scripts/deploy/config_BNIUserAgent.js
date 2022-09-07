@@ -16,7 +16,7 @@ async function main() {
             param.avaxMainnet.Securo.bniUserAgent,
             param.maticMainnet.Securo.bniUserAgent,
         ]);
-        tx.wait();
+        await tx.wait();
     } catch(e) {
         console.log(e);
     }

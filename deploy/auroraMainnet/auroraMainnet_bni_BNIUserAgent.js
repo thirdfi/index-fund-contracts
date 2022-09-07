@@ -47,7 +47,7 @@ module.exports = async ({ deployments }) => {
     // It needs to update subImpl address because the subImpl contract is redeployed.
     try {
       const tx = await userAgent.setSubImpl(subImpl.address);
-      tx.wait();
+      await tx.wait();
     } catch(e) {
       console.error(`===> Check ether the deployer is the owner of the userAgent contract.`)
     }
@@ -58,7 +58,7 @@ module.exports = async ({ deployments }) => {
   const CLIENT_ROLE = await cbridgeAdapter.CLIENT_ROLE();
   if (await cbridgeAdapter.hasRole(CLIENT_ROLE, proxy.address) === false) {
     const tx = await cbridgeAdapter.grantRole(CLIENT_ROLE, proxy.address);
-    tx.wait();
+    await tx.wait();
   }
 
   try {
@@ -86,7 +86,7 @@ module.exports = async ({ deployments }) => {
         1,
         1,
       ]);
-      tx.wait();
+      await tx.wait();
     }
   } catch(e) {
     console.log(e);

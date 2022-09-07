@@ -16,7 +16,7 @@ async function main() {
             param.avaxTestnet.Securo.bniUserAgent,
             param.maticMumbai.Securo.bniUserAgent,
         ]);
-        tx.wait();
+        await tx.wait();
     } catch(e) {
         console.log(e);
     }

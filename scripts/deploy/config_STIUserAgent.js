@@ -18,7 +18,7 @@ async function main() {
             param.bscMainnet.Securo.stiUserAgent,
             param.ethMainnet.Securo.stiUserAgent,
         ]);
-        tx.wait();
+        await tx.wait();
     } catch(e) {
         console.log(e);
     }

@@ -18,7 +18,7 @@ async function main() {
             param.ethMainnet.Securo.mchainAdapter,
             param.maticMainnet.Securo.mchainAdapter
         ]);
-        tx.wait();
+        await tx.wait();
     } catch(e) {
         console.log(e);
     }
@@ -41,7 +41,7 @@ async function main() {
             param.ethMainnet.Securo.cbridgeAdapter,
             param.maticMainnet.Securo.cbridgeAdapter
           ]);
-          tx.wait();
+          await tx.wait();
     } catch(e) {
         console.log(e);
     }

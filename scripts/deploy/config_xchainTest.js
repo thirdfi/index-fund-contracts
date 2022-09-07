@@ -20,7 +20,7 @@ async function main() {
             param.ftmTestnet.Securo.mchainAdapter,
             param.maticMumbai.Securo.mchainAdapter
         ]);
-        tx.wait();
+        await tx.wait();
     } catch(e) {
         console.log(e);
     }
@@ -45,7 +45,7 @@ async function main() {
             param.ftmTestnet.Securo.cbridgeAdapter,
             param.maticMumbai.Securo.cbridgeAdapter
           ]);
-          tx.wait();
+          await tx.wait();
     } catch(e) {
         console.log(e);
     }
