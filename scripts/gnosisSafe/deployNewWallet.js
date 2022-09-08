@@ -13,8 +13,8 @@ async function getGnosisContractAddresses() {
     var singletonAddress = AddressZero;
     switch(chainId) {
         case param.auroraTestnet.chainId:
-            proxyFactoryAddress = "0xc0575528B0c8B7f324Ea883938a5449B07180d85";
-            singletonAddress = "0x23c472533Ba58E693a74157E25aB3738f8dAa0A0";
+            proxyFactoryAddress = "0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2";
+            singletonAddress = "0xd9Db270c1B5E3Bd161E8c8503c55cEABeE709552";
             break;
         case param.avaxTestnet.chainId:
             proxyFactoryAddress = "0xc0575528B0c8B7f324Ea883938a5449B07180d85";
@@ -29,12 +29,12 @@ async function getGnosisContractAddresses() {
             singletonAddress = "0xb4A7C7da1631CF60A2Cf23ABc86986f99a1A7f70";
             break;
         case param.ftmTestnet.chainId:
-            proxyFactoryAddress = "0xc0575528B0c8B7f324Ea883938a5449B07180d85";
-            singletonAddress = "0x23c472533Ba58E693a74157E25aB3738f8dAa0A0";
+            proxyFactoryAddress = "0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2";
+            singletonAddress = "0xd9Db270c1B5E3Bd161E8c8503c55cEABeE709552";
             break;
         case param.maticMumbai.chainId:
-            proxyFactoryAddress = "0xc0575528B0c8B7f324Ea883938a5449B07180d85";
-            singletonAddress = "0x23c472533Ba58E693a74157E25aB3738f8dAa0A0";
+            proxyFactoryAddress = "0xa6B71E26C5e0845f74c812102Ca7114b6a896AB2";
+            singletonAddress = "0xd9Db270c1B5E3Bd161E8c8503c55cEABeE709552";
             break;
     }
 
