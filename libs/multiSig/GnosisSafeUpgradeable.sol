@@ -39,8 +39,7 @@ contract GnosisSafeUpgradeable is Initializable {
     }
 
     function isAddressIncluded(address[] memory items, address item) internal pure returns (bool) {
-        uint length = items.length;
-        for (uint i = 0; i < length; i++) {
+        for (uint i = 0; i < items.length; i++) {
             if (items[i] == item) return true;
         }
         return false;
