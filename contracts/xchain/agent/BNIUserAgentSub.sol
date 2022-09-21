@@ -19,6 +19,8 @@ contract BNIUserAgentSub is BNIUserAgentBase {
         uint[] USDT6Amts;
     }
 
+    event SkipGathering(address account, uint balance, uint tokensForFee);
+
     /// @dev It transfers tokens to user agents
     function transfer(
         uint[] memory _amounts,
@@ -338,12 +340,14 @@ contract BNIUserAgentSub is BNIUserAgentBase {
 
             (uint feeAmt,) = _transfer(_account, address(USDT), amounts, toChainIds, toAddresses, adapterTypes, 1, 0, true);
             uint tokensForFee = swap.getAmountsInForETH(address(USDT), feeAmt);
-            if (balance > tokensForFee) {
+            if (balance > (tokensForFee + minTransfer(address(USDT), _toChainId, _adapterType))) {
                 uint spentTokenAmount = swap.swapTokensForExactETH(address(USDT), tokensForFee, feeAmt);
                 amounts[0] = balance - spentTokenAmount;
                 usdtBalances[_account] = 0;
 
                 _transfer(_account, address(USDT), amounts, toChainIds, toAddresses, adapterTypes, 1, feeAmt, false);
+            } else {
+                emit SkipGathering(_account, balance, tokensForFee);
             }
         }
     }

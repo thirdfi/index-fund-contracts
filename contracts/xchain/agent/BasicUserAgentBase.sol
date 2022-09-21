@@ -230,6 +230,16 @@ contract BasicUserAgentBase is
         }
     }
 
+    function minTransfer(
+        address _token,
+        uint _toChainId,
+        AdapterType _adapterType
+    ) public view returns (uint) {
+        return (_adapterType == AdapterType.Multichain)
+                ? multichainAdapter.minTransfer(_token, _toChainId)
+                : cbridgeAdapter.minTransfer(_token, _toChainId);
+    }
+
     receive() external payable {}
 
     /**
