@@ -63,7 +63,17 @@ npx hardhat run --network bscTestnet ./scripts/deploy/config_STIUserAgent.js
 npx hardhat run --network ethMainnet ./scripts/deploy/config_STIUserAgent.js
 ```
 
+After BNI and STI are deployed, execute the below commands to set gas costs on BNIUserAgent and STIUserAgent
+```text
+npx hardhat run --network auroraMainnet ./scripts/deploy/config_UserAgentGasCost.js
+npx hardhat run --network avaxMainnet ./scripts/deploy/config_UserAgentGasCost.js
+npx hardhat run --network bscMainnet ./scripts/deploy/config_UserAgentGasCost.js
+npx hardhat run --network ethMainnet ./scripts/deploy/config_UserAgentGasCost.js
+npx hardhat run --network maticMainnet ./scripts/deploy/config_UserAgentGasCost.js
+```
+
 ### Cross-chain adapters
+After update addresses of mchainAdapter and cbridgeAdapter in parameters/index.js, execute the below commands.
 ```text
 npx hardhat run --network auroraMainnet ./scripts/deploy/config_xchain.js
 npx hardhat run --network avaxMainnet ./scripts/deploy/config_xchain.js
