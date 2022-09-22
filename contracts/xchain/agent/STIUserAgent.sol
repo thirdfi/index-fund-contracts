@@ -45,7 +45,7 @@ contract STIUserAgent is STIUserAgentBase, BasicUserAgent {
         gasAmounts[ISTIVault.depositByAdmin.selector] = 580678;
         gasAmounts[ISTIVault.withdrawPercByAdmin.selector] = 716679;
         gasAmounts[ISTIVault.claimByAdmin.selector] = 109055;
-        gasAmounts[ISTIUserAgentSub.gatherByAdmin.selector] = 428753;
+        gasAmounts[ISTIUserAgentSub.gatherByAdmin.selector] = 437744;
     }
 
     function transferOwnership(address newOwner) public virtual override(BasicUserAgent, OwnableUpgradeable) onlyOwner {

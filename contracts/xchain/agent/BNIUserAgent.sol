@@ -44,7 +44,7 @@ contract BNIUserAgent is BNIUserAgentBase, BasicUserAgent {
         gasAmounts[IBNIMinter.exitWithdrawalByAdmin.selector] = 69845;
         gasAmounts[IBNIVault.depositByAdmin.selector] = 580678;
         gasAmounts[IBNIVault.withdrawPercByAdmin.selector] = 716679;
-        gasAmounts[IBNIUserAgentSub.gatherByAdmin.selector] = 428753;
+        gasAmounts[IBNIUserAgentSub.gatherByAdmin.selector] = 437744;
     }
 
     function transferOwnership(address newOwner) public virtual override(BasicUserAgent, OwnableUpgradeable) onlyOwner {
