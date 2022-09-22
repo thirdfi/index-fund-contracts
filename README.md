@@ -231,8 +231,8 @@ npx hardhat run --network maticMainnet ./scripts/deploy/config_xchain.js
 
 | Products                  | Mainnet                                                                                                               | Testnet                                                                                                               |
 | ------------------------ | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
-| STI on Avalanche          |  | [0x4F7958BaD34D30618C045163fdf740503B1d7770](https://rinkeby.etherscan.io/address/0x4f7958bad34d30618c045163fdf740503b1d7770)
-| STIMinter on Avalanche    |  | [0xA9a2e9aeF861b5d43578f517F2103940A5011387](https://rinkeby.etherscan.io/address/0xA9a2e9aeF861b5d43578f517F2103940A5011387)
+| STI on Avalanche          |  | [0x02a32a20B85176eA39E3641e827a97136e4991F9](https://testnet.snowtrace.io/address/0x02a32a20b85176ea39e3641e827a97136e4991f9)
+| STIMinter on Avalanche    |  | [0x8f4C0598A3a72142fEe00DB35f963BD9db62de2D](https://testnet.snowtrace.io/address/0x8f4c0598a3a72142fee00db35f963bd9db62de2d)
 | STIVault on Aurora        |  | [0x846AB2a040ff470dfb513038e78844014e4686FF](https://testnet.aurorascan.dev/address/0x846AB2a040ff470dfb513038e78844014e4686FF)
 | STIVault on Avalanche     |  | [0x1edfd9120254B82441fEfbCf2D4fB9ccbCfa07c0](https://testnet.snowtrace.io/address/0x1edfd9120254B82441fEfbCf2D4fB9ccbCfa07c0)
 | STIVault on BSC           |  | [0xdc9638F1664932a67F9632Fd224b9FE06E5F91F6](https://testnet.bscscan.com/address/0xdc9638F1664932a67F9632Fd224b9FE06E5F91F6)

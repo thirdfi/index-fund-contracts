@@ -4,7 +4,7 @@ pragma solidity  0.8.9;
 import "../../../libs/Const.sol";
 import "../../../libs/Token.sol";
 import "../../bni/constant/AuroraConstantTest.sol";
-import "../../bni/constant/EthConstantTest.sol";
+import "../../bni/constant/AvaxConstantTest.sol";
 import "../../sti/ISTIMinter.sol";
 import "../../sti/ISTIVault.sol";
 import "../../swap/ISwap.sol";
@@ -35,7 +35,7 @@ contract STIUserAgentTest is STIUserAgent {
         setCBridgeAdapter(_cbridgeAdapter);
 
         subImpl = _subImpl;
-        chainIdOnLP = EthConstantTest.CHAINID;
+        chainIdOnLP = AvaxConstantTest.CHAINID;
         isLPChain = (chainIdOnLP == Token.getChainID());
         callAdapterTypes[AuroraConstantTest.CHAINID] = AdapterType.CBridge; // Multichain is not supported on Aurora
 
@@ -57,6 +57,11 @@ contract STIUserAgentTest is STIUserAgent {
         }
         nonces[account] = _nonce + 1;
         if (leftFee > 0) Token.safeTransferETH(account, leftFee);
+    }
+
+    function temp() public onlyOwner {
+        chainIdOnLP = AvaxConstantTest.CHAINID;
+        isLPChain = (chainIdOnLP == Token.getChainID());
     }
 
 }

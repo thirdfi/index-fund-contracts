@@ -1,5 +1,5 @@
 const { ethers } = require("hardhat");
-const { common, ethRinkeby: network_ } = require("../../parameters/testnet");
+const { common, avaxTestnet: network_ } = require("../../parameters/testnet");
 const AddressZero = ethers.constants.AddressZero;
 
 module.exports = async ({ deployments }) => {
@@ -10,7 +10,7 @@ module.exports = async ({ deployments }) => {
   const stiProxy = await ethers.getContract("STI_Proxy");
   const sti = STI.attach(stiProxy.address);
 
-  const priceOracleProxy = await ethers.getContract("EthPriceOracleTest_Proxy");
+  const priceOracleProxy = await ethers.getContract("AvaxPriceOracleTest_Proxy");
 
   console.log("Now deploying STIMinterTest...");
   const proxy = await deploy("STIMinterTest", {
@@ -27,6 +27,7 @@ module.exports = async ({ deployments }) => {
         },
       },
     },
+    // gasPrice: '100000000000',
   });
   console.log("  STIMinterTest_Proxy contract address: ", proxy.address);
 
@@ -50,4 +51,4 @@ module.exports = async ({ deployments }) => {
   } catch (e) {
   }
 };
-module.exports.tags = ["ethRinkeby_sti_STIMinter"];
+module.exports.tags = ["avaxTestnet_sti_STIMinter"];

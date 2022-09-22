@@ -33,4 +33,4 @@ module.exports = async ({ deployments }) => {
   } catch (e) {
   }
 };
-module.exports.tags = ["ethRinkeby_sti_STI"];
+module.exports.tags = ["avaxTestnet_sti_STI"];
