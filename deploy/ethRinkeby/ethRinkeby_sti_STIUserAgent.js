@@ -15,7 +15,7 @@ module.exports = async ({ deployments }) => {
   const swapProxy = await ethers.getContract("EthSwapTest_Proxy");
   const mchainAdapterProxy = await ethers.getContract("MultichainXChainAdapterTest_Proxy");
   const cbridgeAdapterProxy = await ethers.getContract("CBridgeXChainAdapterTest_Proxy");
-  const minterProxy = await ethers.getContract("STIMinterTest_Proxy");
+  const minterAddress = ethers.constants.AddressZero;
   const vaultProxy = await ethers.getContract("STIVault_Proxy");
 
   console.log("Now deploying STIUserAgentTest...");
@@ -31,7 +31,7 @@ module.exports = async ({ deployments }) => {
             common.admin,
             swapProxy.address,
             mchainAdapterProxy.address, cbridgeAdapterProxy.address,
-            minterProxy.address, vaultProxy.address,
+            minterAddress, vaultProxy.address,
           ],
         },
       },
@@ -62,13 +62,6 @@ module.exports = async ({ deployments }) => {
   const cbridgeAdapter = CBridgeXChainAdapterTest.attach(cbridgeAdapterProxy.address);
   if (await cbridgeAdapter.hasRole(CLIENT_ROLE, proxy.address) === false) {
     const tx = await cbridgeAdapter.grantRole(CLIENT_ROLE, proxy.address);
-    await tx.wait();
-  }
-
-  const STIMinterTest = await ethers.getContractFactory("STIMinterTest");
-  const minter = STIMinterTest.attach(minterProxy.address);
-  if (await minter.userAgent() === AddressZero) {
-    const tx = await minter.setUserAgent(proxy.address);
     await tx.wait();
   }
 
