@@ -76,9 +76,9 @@ contract STIMinter is
     struct Operation {
         address account;
         OperationType operation;
+        bool done;
         uint pool; // total pool in USD
         uint amount; // amount of USDT or shares
-        bool done;
     }
 
     bytes32 public constant ADMIN_ROLE = keccak256("ADMIN_ROLE");

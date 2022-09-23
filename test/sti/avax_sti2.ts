@@ -175,9 +175,9 @@ describe("STI non-custodial on Avalanche", async () => {
       ret = await minter.getOperation(1);
       expect(ret[0]).equal(a1.address);
       expect(ret[1]).equal(1);
-      expect(ret[2]).equal(pool);
-      expect(ret[3]).equal(getUsdt6Amount('50000'));
-      expect(ret[4]).equal(false);
+      expect(ret[2]).equal(false);
+      expect(ret[3]).equal(pool);
+      expect(ret[4]).equal(getUsdt6Amount('50000'));
 
       // Transfer USDT tokens to user agents on target networks
       var toChainIds = [
@@ -265,7 +265,7 @@ describe("STI non-custodial on Avalanche", async () => {
 
       expect(await userAgent.nonces(a1.address)).equal(4); // It should be increased
       ret = await minter.getOperation(1);
-      expect(ret[4]).equal(true);
+      expect(ret[2]).equal(true);
 
       // Burn STIs
       pool = await vault.getAllPoolInUSD();
@@ -286,9 +286,9 @@ describe("STI non-custodial on Avalanche", async () => {
       ret = await minter.getOperation(2);
       expect(ret[0]).equal(a1.address);
       expect(ret[1]).equal(2);
-      expect(ret[2]).equal(pool);
-      expect(ret[3]).equal(shares);
-      expect(ret[4]).equal(false);
+      expect(ret[2]).equal(false);
+      expect(ret[3]).equal(pool);
+      expect(ret[4]).equal(shares);
 
       // Withdraw from vaults
       minterNonce = await minter.userLastOperationNonce(a1.address);
@@ -432,9 +432,9 @@ describe("STI non-custodial on Avalanche", async () => {
       ret = await minter.getOperation(1);
       expect(ret[0]).equal(a1.address);
       expect(ret[1]).equal(1);
-      expect(ret[2]).equal(pool);
-      expect(ret[3]).equal(getUsdt6Amount('50000'));
-      expect(ret[4]).equal(false);
+      expect(ret[2]).equal(false);
+      expect(ret[3]).equal(pool);
+      expect(ret[4]).equal(getUsdt6Amount('50000'));
     });
   });
 
