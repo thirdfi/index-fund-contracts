@@ -24,8 +24,14 @@ contract BNIUserAgentSubTest is BNIUserAgentSub {
         uint _nonce = nonces[account];
         checkSignature(keccak256(abi.encodePacked(account, _nonce, _amounts, _toChainIds, _adapterTypes)), _signature);
 
-        transferIn(account, _amounts, _toChainIds, _adapterTypes);
         // NOTE: cBridge doesn't support liquidity on testnets
+        uint amountAll;
+        for (uint i = 0; i < _amounts.length; i ++) {
+            amountAll += _amounts[i];
+        }
+        USDT.safeTransferFrom(account, address(this), amountAll);
+        usdtBalances[account] += amountAll;
+
         _feeAmt = 0;
         nonces[account] = _nonce + 1;
         if (leftFee > 0) Token.safeTransferETH(account, leftFee);
