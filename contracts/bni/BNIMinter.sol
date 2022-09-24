@@ -84,7 +84,7 @@ contract BNIMinterV1 is
 
     function initialize(
         address _admin, address _BNI, address _priceOracle
-    ) external initializer {
+    ) public virtual initializer {
         __Ownable_init();
 
         admin = _admin;
