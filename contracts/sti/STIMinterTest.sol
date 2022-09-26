@@ -53,6 +53,6 @@ contract STIMinterTest is STIMinter {
 
     /// @return the price of USDT in USD.
     function getUSDTPriceInUSD() public view override returns(uint, uint8) {
-        return priceOracle.getAssetPrice(EthConstantTest.USDT);
+        return priceOracle.getAssetPrice(AvaxConstantTest.USDT);
     }
 }
