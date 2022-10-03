@@ -67,8 +67,8 @@ contract STIVault is
 
     address public userAgent;
 
-    event Deposit(address indexed caller, uint indexed amtDeposit, address indexed tokenDeposit);
-    event Withdraw(address indexed caller, uint indexed amtWithdraw, address indexed tokenWithdraw, uint sharePerc);
+    event Deposit(address indexed account, address from, uint indexed amtDeposit, address indexed tokenDeposit);
+    event Withdraw(address indexed account, address to, uint indexed amtWithdraw, address indexed tokenWithdraw, uint sharePerc);
     event Reinvest(uint indexed amount);
     
     modifier onlyOwnerOrAdmin {
@@ -137,7 +137,7 @@ contract STIVault is
 
         USDT.safeTransferFrom(_from, address(this), USDTAmt);
         strategy.invest(_tokens, _USDT6Amts);
-        emit Deposit(_account, USDTAmt, address(USDT));
+        emit Deposit(_account, _from, USDTAmt, address(USDT));
     }
 
     /// @param _sharePerc percentage of assets which should be withdrawn. It's 18 decimals
@@ -183,7 +183,7 @@ contract STIVault is
         if (USDTAmt > 0) {
             USDT.safeTransfer(_to, USDTAmt);
         }
-        emit Withdraw(_account, withdrawAmt, address(USDT), _sharePerc);
+        emit Withdraw(_account, _to, withdrawAmt, address(USDT), _sharePerc);
     }
 
     function _snapshotPool(uint _nonce, uint _pool) internal {
