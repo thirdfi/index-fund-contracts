@@ -88,7 +88,7 @@ contract LCIVaultTest is ERC20Upgradeable, OwnableUpgradeable,
     }
 
     function withdraw(uint share) external {
-        _withdraw(msg.sender, share);
+        _withdraw(_msgSender(), share);
     }
     function withdrawByAdmin(address account, uint share) external onlyOwnerOrAdmin {
         _withdraw(account, share);
