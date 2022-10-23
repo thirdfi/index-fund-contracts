@@ -372,7 +372,7 @@ contract MWIStrategyTest is OwnableUpgradeable {
     function getAllPoolInUSD() public view returns (uint) {
         // uint[] memory pools = getEachPoolInUSD();
         // return pools[0] + pools[1] + pools[2] + pools[3];
-        return USDT.balanceOf(address(this));
+        return USDT.balanceOf(address(this)) * 1e12;
     }
 
     function getCurrentTokenCompositionPerc() public view returns (address[] memory tokens, uint[] memory percentages) {
