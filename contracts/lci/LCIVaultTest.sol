@@ -48,6 +48,11 @@ contract LCIVaultTest is ERC20Upgradeable, OwnableUpgradeable,
         _;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _treasuryWallet, address _admin,
         address _biconomy, address _strategy

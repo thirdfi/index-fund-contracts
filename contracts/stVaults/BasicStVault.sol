@@ -78,6 +78,11 @@ contract BasicStVault is IStVault,
         _;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         string memory _name, string memory _symbol,
         address _treasury, address _admin,

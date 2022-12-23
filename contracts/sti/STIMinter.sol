@@ -106,6 +106,11 @@ contract STIMinter is
     event Mint(address indexed caller, uint indexed amtDeposit, uint indexed shareMinted);
     event Burn(address indexed caller, uint indexed shareBurned);
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _admin, address _userAgent, address _biconomy,
         address _STI, address _priceOracle

@@ -36,6 +36,11 @@ contract PriceOracle is IPriceOracle, OwnableUpgradeable {
     // Map of asset price sources (asset => priceSource)
     mapping(address => IChainlinkAggregator) internal assetsSources;
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize() public virtual initializer {
         __Ownable_init();
     }

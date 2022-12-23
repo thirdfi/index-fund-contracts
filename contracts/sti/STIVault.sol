@@ -81,6 +81,11 @@ contract STIVault is
         _;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _admin, address _userAgent, address _biconomy,
         address _strategy, address _priceOracle,

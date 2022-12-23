@@ -277,9 +277,9 @@ describe("STI on Avalanche", async () => {
         ret = await minter.getOperation(1);
         expect(ret[0]).equal(a1.address);
         expect(ret[1]).equal(1);
-        expect(ret[2]).equal(pool);
-        expect(ret[3]).equal(getUsdtAmount('50000'));
-        expect(ret[4]).equal(false);
+        expect(ret[2]).equal(false);
+        expect(ret[3]).equal(pool);
+        expect(ret[4]).equal(getUsdtAmount('50000'));
 
         // deposit
         var ret = await vault.getEachPoolInUSD();

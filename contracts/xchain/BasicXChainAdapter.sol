@@ -15,6 +15,11 @@ contract BasicXChainAdapter is IXChainAdapter,
     // Map of message peers (chainId => peer). Because anyone can send messages, it needs to verify the sender.
     mapping(uint => address) public peers;
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize() public virtual initializer {
         __Ownable_init_unchained();
         _setupRole(DEFAULT_ADMIN_ROLE, owner());

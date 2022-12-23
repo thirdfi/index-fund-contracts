@@ -73,6 +73,11 @@ contract BNIStrategyTest is OwnableUpgradeable {
         _;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _treasuryWallet, address _admin,
         address _priceOracle,

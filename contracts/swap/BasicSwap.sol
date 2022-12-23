@@ -12,6 +12,11 @@ contract BasicSwap is OwnableUpgradeable {
     IUniRouter public router;
     IERC20Upgradeable public SWAP_BASE_TOKEN; // It has same role with WETH on Ethereum Swaps. Most of tokens have been paired with this token.
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         IUniRouter _router, IERC20Upgradeable _SWAP_BASE_TOKEN
     ) public virtual initializer {

@@ -8,6 +8,11 @@ contract BNI is ERC20Upgradeable, OwnableUpgradeable {
 
   address private _minter;
 
+  /// @custom:oz-upgrades-unsafe-allow constructor
+  constructor() {
+    _disableInitializers();
+  }
+
   function initialize() external initializer {
     __Ownable_init();
     __ERC20_init("Blockchain Network Index", "BNI");

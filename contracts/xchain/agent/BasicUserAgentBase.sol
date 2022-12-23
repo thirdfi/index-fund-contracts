@@ -80,6 +80,11 @@ contract BasicUserAgentBase is
         uint nonce
     );
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function _msgSender() internal override(ContextUpgradeable, BaseRelayRecipient) view returns (address) {
         return BaseRelayRecipient._msgSender();
     }

@@ -19,6 +19,11 @@ contract StVaultNFT is IStVaultNFT,
         _;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         string memory _name, string memory _symbol, address _stVault
     ) public initializer {

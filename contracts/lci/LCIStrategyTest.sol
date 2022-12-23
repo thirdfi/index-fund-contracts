@@ -88,6 +88,11 @@ contract LCIStrategyTest is OwnableUpgradeable {
         _;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(IL2Vault _USDTUSDCVault, IL2Vault _USDTBUSDVault, IL2Vault _USDCBUSDVault) external initializer {
         __Ownable_init();
 

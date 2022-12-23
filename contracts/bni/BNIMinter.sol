@@ -82,6 +82,11 @@ contract BNIMinterV1 is
     Operation[] public operations; // The nonce start from 1.
     mapping(address => uint) public userLastOperationNonce;
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _admin, address _BNI, address _priceOracle
     ) public virtual initializer {

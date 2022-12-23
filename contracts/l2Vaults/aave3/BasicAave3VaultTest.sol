@@ -73,6 +73,11 @@ contract BasicAave3VaultTest is Initializable, ERC20Upgradeable, OwnableUpgradea
         _;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(string memory _name, string memory _symbol, 
         address _treasury, address _admin,
         address _priceOracle,

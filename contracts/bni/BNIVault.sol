@@ -78,6 +78,11 @@ contract BNIVault is
         _;
     }
 
+    /// @custom:oz-upgrades-unsafe-allow constructor
+    constructor() {
+        _disableInitializers();
+    }
+
     function initialize(
         address _treasuryWallet, address _admin,
         address _strategy, address _priceOracle,
