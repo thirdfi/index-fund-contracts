@@ -1,4 +1,4 @@
-# Securo Finance
+# ThirdFi
 
 ## Products
 
